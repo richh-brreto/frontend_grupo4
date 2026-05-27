@@ -23,6 +23,7 @@ function Card({ onLoginSuccess }) {
 
     return (
         <div className="page">
+            <img class="logo" src="src/assets/Boost-White.png" alt="Boost Logo" />
             <div className="card">
                 <Input
                     label="E-mail"
