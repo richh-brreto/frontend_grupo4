@@ -12,6 +12,59 @@ body {
   margin-bottom: 30px;
 }
 
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  gap: 24px;
+}
+
+.dashboard-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.secondaryButton {
+  padding: 10px 18px;
+  background-color: #4f46e5;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.secondaryButton:hover {
+  background-color: #4338ca;
+}
+
+.dateFilters {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.dateFilters div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dateFilters label {
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.dateFilters input {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+}
+
 .cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -28,5 +81,17 @@ body {
 @media (max-width: 900px) {
   .charts-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dateFilters {
+    width: 100%;
+    justify-content: space-between;
   }
 }

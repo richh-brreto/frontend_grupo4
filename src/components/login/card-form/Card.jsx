@@ -12,7 +12,18 @@ function Card({ onLoginSuccess }) {
         event.preventDefault();
 
         try {
-            const response = await axios.post("http://localhost:8080/login", { email, senha });
+            const response = await axios.post(
+                "http://localhost:8080/login",
+                { email, senha },
+                { withCredentials: true }
+            );
+
+            const token = response.data?.token || response.data?.accessToken || response.data?.jwt;
+            if (token) {
+                localStorage.setItem("authToken", token);
+                axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+            }
+
             console.log("Login bem-sucedido:", response.data);
             onLoginSuccess(true);
         } catch (error) {
