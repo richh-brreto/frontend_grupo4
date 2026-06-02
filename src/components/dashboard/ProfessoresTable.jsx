@@ -10,7 +10,7 @@ export default function ProfessoresTable({ professores }) {
         <thead>
           <tr>
             <th>Professor</th>
-            <th>Turmas</th>
+            <th>Aulas</th>
             <th>Horas Semanais</th>
             <th>Horários Livres</th>
             <th>Status</th>

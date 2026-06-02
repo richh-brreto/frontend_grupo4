@@ -1,0 +1,34 @@
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.status-indicator.green .dot {
+  background: #22c55e; /* verde */
+}
+
+.status-indicator.red .dot {
+  background: #ef4444; /* vermelho */
+}
+
+.status-indicator.neutral .dot {
+  background: #d1d5db; /* cinza */
+}
+
+.arrow {
+  font-size: 14px;
+}
+
+.percent {
+  font-size: 14px;
+}

@@ -1,31 +1,44 @@
+import { Pie } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend
+} from "chart.js";
 import "./StatusPieChart.css";
-import { PieChart, Pie, Tooltip, Cell, ResponsiveContainer } from "recharts";
+
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 const COLORS = ["#ef4444", "#22c55e", "#facc15"];
 
-// Gráfico de pizza mostrando distribuição dos professores
 export default function StatusPieChart({ data }) {
+  const chartData = {
+    labels: data.map((entry) => entry.name),
+    datasets: [
+      {
+        data: data.map((entry) => entry.value),
+        backgroundColor: COLORS,
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const options = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: "right",
+      },
+      tooltip: {
+        enabled: true,
+      },
+    },
+  };
+
   return (
     <div className="pie-container">
-      <h2>Distribuição de Professores</h2>
-
-      <ResponsiveContainer width="100%" height={300}>
-        <PieChart>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            outerRadius={100}
-            dataKey="value"
-            label
-          >
-            {data.map((entry, index) => (
-              <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
-            ))}
-          </Pie>
-          <Tooltip />
-        </PieChart>
-      </ResponsiveContainer>
+      <h2 className="pie-title">Distribuição de Professores</h2>
+      <Pie data={chartData} options={options} />
     </div>
   );
 }

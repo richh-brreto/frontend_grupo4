@@ -1,11 +1,11 @@
 import "./MetricCard.css";
 
-// Componente simples para mostrar uma métrica
-export default function MetricCard({ titulo, valor, color }) {
+export default function MetricCard({ titulo, valor, color, extra }) {
   return (
     <div className="metric-card">
       <h2>{titulo}</h2>
-      <p className={`metric-value ${color || ""}`}>{valor}</p>
+      <p style={{ color: color || "inherit" }}>{valor}</p>
+      {extra && <div className="extra">{extra}</div>}
     </div>
   );
 }

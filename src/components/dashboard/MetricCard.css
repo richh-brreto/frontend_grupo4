@@ -5,15 +5,17 @@
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
-.metric-card h2 {
-  color: #6b7280;
-  font-size: 16px;
-}
-
 .metric-value {
   margin-top: 10px;
-  font-size: 32px;
+  font-size: 50px;
   font-weight: bold;
+}
+
+.metric-card p {
+  font-size: 2rem;   /* aumenta o tamanho do número */
+  font-weight: bold;
+  margin: 0;
+  color: #111827;    /* cor mais escura para destaque */
 }
 
 .red {

@@ -2,10 +2,10 @@ import { useState } from "react";
 import "./Dashboard.css";
 
 import MetricCard from "./MetricCard";
-// import ProfessoresBarChart from "./ProfessoresBarChart";
-// import StatusPieChart from "./StatusPieChart";
+import StatusPieChart from "./StatusPieChart";
 import ProfessoresTable from "./ProfessoresTable";
 import ClassRegistration from "../class-registration/ClassRegistration";
+import StatusIndicator from "./StatusIndicator";
 
 export default function Dashboard() {
   const [showRegistration, setShowRegistration] = useState(false);
@@ -17,11 +17,15 @@ export default function Dashboard() {
     { nome: "Lucas", turmas: 7, horas: 30, livres: 10, status: "Sobrecarregado" },
   ];
 
-
-
-
   const totalHorasLivres = professores.reduce((acc, p) => acc + p.livres, 0);
   const totalTurmas = professores.reduce((acc, p) => acc + p.turmas, 0);
+
+  // Preparar os dados para o gráfico
+  const statusData = [
+    { name: "Sobrecarregado", value: professores.filter(p => p.status === "Sobrecarregado").length },
+    { name: "Equilibrado", value: professores.filter(p => p.status === "Equilibrado").length },
+    { name: "Subutilizado", value: professores.filter(p => p.status === "Subutilizado").length },
+  ];
 
   if (showRegistration) {
     return <ClassRegistration onBack={() => setShowRegistration(false)} />;
@@ -30,9 +34,7 @@ export default function Dashboard() {
   return (
     <div className="dashboard">
       <div className="dashboard-header">
-        <div>
-          <h1>Dashboard de Carga dos Professores</h1>
-        </div>
+        <h1>Dashboard de Carga dos Professores</h1>
 
         <div className="dashboard-actions">
           <button
@@ -48,7 +50,6 @@ export default function Dashboard() {
               <label htmlFor="data-inicio">Data Início</label>
               <input type="date" id="data-inicio" name="dataInicio" />
             </div>
-
             <div>
               <label htmlFor="data-fim">Data Fim</label>
               <input type="date" id="data-fim" name="dataFim" />
@@ -59,14 +60,19 @@ export default function Dashboard() {
 
       {/* Cards */}
       <div className="cards-grid">
-        <MetricCard titulo="Total de Professores" valor={professores.length} />
-        <MetricCard titulo="Total de Turmas" valor={totalTurmas} />
+        <MetricCard titulo="Total de Professores" valor={professores.length} extra={<StatusIndicator percent={12} direction="up" color="green" />} />
+        <MetricCard titulo="Total de Aulas" valor={totalTurmas} extra={<StatusIndicator percent={12} direction="up" color="green" />}/>
         <MetricCard titulo="Total/h Livres" valor={`${totalHorasLivres}h`} />
         <MetricCard titulo="Professores Sobrecarregados" valor={2} color="red" />
       </div>
 
-      {/* Tabela */}
-      <ProfessoresTable professores={professores} />
+    
+      {/* Gráfico e tabela lado a lado */}
+      <div className="charts-grid">
+        <ProfessoresTable professores={professores} />
+        <StatusPieChart data={statusData} />
+      </div>
+
     </div>
   );
 }
