@@ -11,6 +11,30 @@ export default function Agenda() {
   const [dataAtual, setDataAtual] = useState(new Date('2026-07-08'));
   const [abaSelecionada, setAbaSelecionada] = useState('chatbot');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedDay, setSelectedDay] = useState(null);
+  const [selectedAula, setSelectedAula] = useState(null);
+
+  const abrirModalAdicionar = (dia) => {
+    setSelectedDay(dia);
+    setIsAddModalOpen(true);
+  };
+
+  const fecharModalAdicionar = () => {
+    setIsAddModalOpen(false);
+    setSelectedDay(null);
+  };
+
+  const abrirModalEditar = (aula) => {
+    setSelectedAula(aula);
+    setIsEditModalOpen(true);
+  };
+
+  const fecharModalEditar = () => {
+    setIsEditModalOpen(false);
+    setSelectedAula(null);
+  };
 
   useEffect(() => {
     const fetchAulas = async () => {
@@ -221,7 +245,13 @@ export default function Agenda() {
                 {diasSemana.map((dia, idx) => (
                   <div key={idx} className="agenda-dia-label">
                     <span>{dia.diaSemana}</span>
-                    <strong>+</strong>
+                    <button
+                      type="button"
+                      className="dia-add"
+                      onClick={() => abrirModalAdicionar(dia)}
+                    >
+                      +
+                    </button>
                   </div>
                 ))}
               </div>
@@ -259,7 +289,13 @@ export default function Agenda() {
                           >
                             <div className="evento-label">Conta 1</div>
                             <div className="evento-label">{aula.turma}</div>
-                            <button type="button" className="evento-action">Editar</button>
+                            <button
+                              type="button"
+                              className="evento-action"
+                              onClick={() => abrirModalEditar(aula)}
+                            >
+                              Editar
+                            </button>
                           </div>
                         ))}
                       </div>
@@ -275,6 +311,50 @@ export default function Agenda() {
           )}
         </div>
       </main>
+
+      {(isAddModalOpen || isEditModalOpen) && (
+        <div className="modal-overlay" onClick={() => { if (isAddModalOpen) fecharModalAdicionar(); if (isEditModalOpen) fecharModalEditar(); }}>
+          <div className="modal-backdrop" />
+          <div className="modal-content" onClick={(event) => event.stopPropagation()}>
+            {isAddModalOpen && (
+              <>
+                <div className="modal-header">
+                  <h2>Adicionar evento</h2>
+                  <button type="button" className="modal-close" onClick={fecharModalAdicionar}>×</button>
+                </div>
+                <div className="modal-body">
+                  <label>Nome</label>
+                  <input type="text" placeholder="Nome" />
+                  <label>Descrição</label>
+                  <input type="text" placeholder="Descrição" />
+                  <label>Adicionar professor</label>
+                  <input type="text" placeholder="Adicionar professor" />
+                  <label>Dia e horário</label>
+                  <input type="text" placeholder="Dia e horário" />
+                </div>
+                <div className="modal-actions">
+                  <button type="button" className="modal-button cancel" onClick={fecharModalAdicionar}>Cancelar</button>
+                  <button type="button" className="modal-button save">Salvar</button>
+                </div>
+              </>
+            )}
+
+            {isEditModalOpen && selectedAula && (
+              <>
+                <div className="modal-header">
+                  <h2>Editar evento</h2>
+                  <button type="button" className="modal-close" onClick={fecharModalEditar}>×</button>
+                </div>
+                <div className="modal-body modal-edit-body">
+                  <button type="button" className="modal-action-button">Cancelar aula</button>
+                  <button type="button" className="modal-action-button">Remarcar aula</button>
+                  <button type="button" className="modal-action-button">Fazer chamada</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
