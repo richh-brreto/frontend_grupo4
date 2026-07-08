@@ -2,7 +2,7 @@
   display: flex;
   min-height: 100vh;
   height: 100vh;
-  background: #f3f4f6;
+  background: #0f1f3f;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   overflow: hidden;
 }
@@ -11,8 +11,8 @@
   width: 250px;
   min-width: 250px;
   height: 100vh;
-  background: #0f1f3f;
-  color: #fff;
+  background: #ffffff;
+  color: #0f1f3f;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -40,9 +40,9 @@
 }
 
 .sidebar-collapse {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  color: #fff;
+  background: rgba(15, 31, 63, 0.08);
+  border: 1px solid rgba(15, 31, 63, 0.18);
+  color: #0f1f3f;
   width: 36px;
   height: 36px;
   border-radius: 12px;
@@ -59,7 +59,7 @@
 .sidebar-item {
   background: transparent;
   border: none;
-  color: #fff;
+  color: #0f1f3f;
   text-align: left;
   padding: 12px 14px;
   border-radius: 14px;
@@ -78,7 +78,7 @@
 
 .sidebar-item:hover,
 .sidebar-item.active {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(15, 31, 63, 0.08);
   transform: translateX(2px);
 }
 
