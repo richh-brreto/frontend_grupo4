@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import './Agenda.css';
 
 const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
@@ -202,13 +203,13 @@ export default function Agenda() {
         </div>
 
         <nav className="sidebar-nav">
-          <button className="sidebar-item" data-short="Geral">Geral</button>
-          <button className="sidebar-item active" data-short="AG">Agenda</button>
-          <button className="sidebar-item" data-short="Dash">Dashboards</button>
-          <button className="sidebar-item" data-short="Prof">Professores</button>
-          <button className="sidebar-item" data-short="Tur">Turmas</button>
-          <button className="sidebar-item" data-short="Alu">Alunos</button>
-          <button className="sidebar-item" data-short="Cont">Contratos</button>
+          <Link to="/" className="sidebar-item" data-short="Geral">Geral</Link>
+          <Link to="/aulas" className="sidebar-item active" data-short="AG">Agenda</Link>
+          <Link to="/dashboard" className="sidebar-item" data-short="Dash">Dashboards</Link>
+          <Link to="#" className="sidebar-item" data-short="Prof">Professores</Link>
+          <Link to="#" className="sidebar-item" data-short="Tur">Turmas</Link>
+          <Link to="#" className="sidebar-item" data-short="Alu">Alunos</Link>
+          <Link to="/contratos" className="sidebar-item" data-short="Cont">Contratos</Link>
         </nav>
 
         <div className="sidebar-footer">

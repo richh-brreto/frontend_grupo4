@@ -4,6 +4,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Card from "./components/login/card-form/Card";
 import Dashboard from "./components/dashboard/Dashboard";
 import Agenda from "./components/agenda/Agenda";
+import Contracts from "./components/contracts/Contracts";
+import Students from "./components/students/Students";
 
 axios.defaults.baseURL = "http://localhost:8080";
 axios.defaults.withCredentials = true;
@@ -34,6 +36,8 @@ function App() {
                 />
                 <Route path="/dashboard" element={isLoggedIn ? <Dashboard /> : <Navigate to="/" />} />
                 
+                <Route path="/contratos" element={<Contracts />} />
+                <Route path="/alunos" element={<Students />} />
                 {/* Redirecionar para home */}
                 <Route path="*" element={<Navigate to="/" />} />
             </Routes>

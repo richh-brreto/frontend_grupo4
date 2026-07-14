@@ -104,6 +104,14 @@
   white-space: nowrap;
 }
 
+/* remove underline for links used as sidebar items */
+.sidebar-item {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  color: inherit;
+}
+
 .sidebar-item::before {
   content: attr(data-short);
   display: none;
