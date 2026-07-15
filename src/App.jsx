@@ -6,6 +6,8 @@ import Dashboard from "./components/dashboard/Dashboard";
 import Agenda from "./components/agenda/Agenda";
 import Contracts from "./components/contracts/Contracts";
 import Students from "./components/students/Students";
+import Classes from "./components/classes/Classes";
+import Professors from "./components/professors/Professors";
 
 axios.defaults.baseURL = "http://localhost:8080";
 axios.defaults.withCredentials = true;
@@ -38,6 +40,8 @@ function App() {
                 
                 <Route path="/contratos" element={<Contracts />} />
                 <Route path="/alunos" element={<Students />} />
+                <Route path="/turmas" element={<Classes />} />
+                <Route path="/professores" element={<Professors />} />
                 {/* Redirecionar para home */}
                 <Route path="*" element={<Navigate to="/" />} />
             </Routes>
