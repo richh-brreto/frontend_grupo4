@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import Sidebar from '../layout/Sidebar';
 import './Agenda.css';
 
 const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
@@ -190,32 +190,19 @@ export default function Agenda() {
 
   return (
     <div className="agenda-page">
-      <aside className={`agenda-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
-        <div className="sidebar-header">
-          <div className="sidebar-logo">Logo</div>
-          <button
-            type="button"
-            className="sidebar-collapse"
-            onClick={() => setSidebarCollapsed(prev => !prev)}
-          >
-            {sidebarCollapsed ? '›' : '‹'}
-          </button>
-        </div>
-
-        <nav className="sidebar-nav">
-          <Link to="/" className="sidebar-item" data-short="Geral">Geral</Link>
-          <Link to="/aulas" className="sidebar-item active" data-short="AG">Agenda</Link>
-          <Link to="/dashboard" className="sidebar-item" data-short="Dash">Dashboards</Link>
-          <Link to="#" className="sidebar-item" data-short="Prof">Professores</Link>
-          <Link to="#" className="sidebar-item" data-short="Tur">Turmas</Link>
-          <Link to="#" className="sidebar-item" data-short="Alu">Alunos</Link>
-          <Link to="/contratos" className="sidebar-item" data-short="Cont">Contratos</Link>
-        </nav>
-
-        <div className="sidebar-footer">
-          <button className="sidebar-item">Logout</button>
-        </div>
-      </aside>
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed(prev => !prev)}
+        items={[
+          { to: '/', label: 'Geral', short: 'Geral' },
+          { to: '/aulas', label: 'Agenda', short: 'AG', active: true },
+          { to: '/dashboard', label: 'Dashboard', short: 'Dash' },
+          { to: '/professores', label: 'Professores', short: 'Prof' },
+          { to: '/turmas', label: 'Turmas', short: 'Tur' },
+          { to: '/alunos', label: 'Alunos', short: 'Alu' },
+          { to: '/contratos', label: 'Contratos', short: 'Cont' }
+        ]}
+      />
 
       <main className="agenda-content">
         <div className="agenda-panel">

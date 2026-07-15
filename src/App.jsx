@@ -34,7 +34,7 @@ function App() {
                         )
                     }
                 />
-                <Route path="/dashboard" element={isLoggedIn ? <Dashboard /> : <Navigate to="/" />} />
+                <Route path="/dashboard" element={<Dashboard />} />
                 
                 <Route path="/contratos" element={<Contracts />} />
                 <Route path="/alunos" element={<Students />} />
