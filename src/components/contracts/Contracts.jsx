@@ -44,7 +44,7 @@ export default function Contracts() {
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(prev => !prev)}
         items={[
-          { to: '/', label: 'Geral', short: 'Geral' },
+          { to: '/overview', label: 'Geral', short: 'Geral' },
           { to: '/aulas', label: 'Agenda', short: 'AG' },
           { to: '/dashboard', label: 'Dashboard', short: 'Dash' },
           { to: '/professores', label: 'Professores', short: 'Prof' },
