@@ -1,0 +1,33 @@
+.tab-button {
+  border: 1px solid #d9d9d9;
+  background: transparent;
+  color: #0f1f3f;
+  padding: 10px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color, color 1.5s;
+}
+
+.tab-button.active {
+  background: #0f1f3f;
+  color: #fff;
+  border-color: #0f1f3f;
+  transition: background-color, color 1.5s;
+}
+
+.tab-button:hover{
+  background: #0f1f3f;
+  color: #fff;
+  border-color: #0f1f3f;
+}
+
+.tab-button.active:hover{
+  border: 1px solid #d9d9d9;
+  background: transparent;
+  color: #0f1f3f;
+  padding: 10px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+}

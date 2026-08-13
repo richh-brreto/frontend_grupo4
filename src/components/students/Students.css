@@ -39,9 +39,6 @@
   flex-wrap: wrap;
 }
 
-.student-controls .tab-button {
-  white-space: nowrap;
-}
 
 /* reuse switch styles from Contracts.css */
 .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
@@ -62,13 +59,5 @@
     flex-direction: column;
     align-items: flex-start;
   }
-
-  .student-controls {
-    width: 100%;
-  }
-
-  .student-controls .tab-button {
-    flex: 1 1 0;
-    justify-content: center;
-  }
+  
 }

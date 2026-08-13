@@ -1,10 +1,22 @@
 import React, { useState } from 'react';
 import Sidebar from '../layout/Sidebar';
+import Button from '../layout/Button';
+import ButtonContainer from '../layout/ButtonContainer';
+import Modal from '../layout/Modal';
 import '../agenda/Agenda.css';
 import './Students.css';
 
 export default function Students() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const abrirModalAdicionar = () => {
+    setIsAddModalOpen(true);
+  };
+
+  const fecharModalAdicionar = () => {
+    setIsAddModalOpen(false);
+  };
 
   const alunos = new Array(4).fill(0).map((_, i) => ({
     id: i,
@@ -33,9 +45,11 @@ export default function Students() {
         <div className="agenda-panel">
           <div className="agenda-topbar">
             <div />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <button className="tab-button" style={{ borderRadius: 10 }}>Adicionar aluno</button>
-            </div>
+            <ButtonContainer>
+              <Button active>Ativos</Button>
+              <Button>Inativos</Button>
+              <Button onClick={abrirModalAdicionar}>Adicionar aluno</Button>
+            </ButtonContainer>
           </div>
 
           <div className="agenda-frame">
@@ -53,16 +67,39 @@ export default function Students() {
                     </div>
                   </div>
 
-                  <div className="student-controls">
-                    <button className="tab-button">Editar</button>
-                    <button className="tab-button" style={{ marginLeft: 8 }}>Visualizar faltas</button>
-                  </div>
+                  <ButtonContainer>
+                    <Button>Editar</Button>
+                    <Button>Visualizar faltas</Button>
+                  </ButtonContainer>
                 </div>
               ))}
             </div>
           </div>
         </div>
       </main>
+
+      {isAddModalOpen && (
+        <Modal
+          title="Adicionar Aluno"
+          onClose={fecharModalAdicionar}
+        >
+          <label>Nome:</label>
+          <input type="text" placeholder="Nome" />
+
+          <label>Email:</label>
+          <input type="text" placeholder="Email" />
+
+          <label>Telefone:</label>
+          <input type="text" placeholder="Telefone" />
+
+          <label>Nível:</label>
+          <input type="text" placeholder="Nível" />
+
+          <label>Dia e horário</label>
+          <input type="text" placeholder="Dia e horário" />
+        </Modal>
+      )}
+
     </div>
   );
 }

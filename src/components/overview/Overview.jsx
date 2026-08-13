@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import Sidebar from '../layout/Sidebar';
+import Button from "../layout/Button";
+import ButtonContainer from "../layout/ButtonContainer";
 import '../agenda/Agenda.css';
 import './Overview.css';
 
@@ -46,6 +48,9 @@ export default function Overview() {
             <div>
               <h1>Comunicados</h1>
             </div>
+            <ButtonContainer>
+              <Button>Adicionar comunicado</Button>
+            </ButtonContainer>
           </div>
 
           <div className="agenda-frame">
@@ -54,7 +59,10 @@ export default function Overview() {
                 <article key={`${item.titulo}-${index}`} className="announcement-card">
                   <div className="announcement-header">
                     <h2>{item.titulo}</h2>
-                    <span>{item.data}</span>
+                    <ButtonContainer>
+                      <span>{item.data}</span>
+                      <Button>Editar</Button>
+                    </ButtonContainer>
                   </div>
                   <p>{item.texto}</p>
                 </article>

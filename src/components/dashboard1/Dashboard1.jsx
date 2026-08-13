@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import Sidebar from '../layout/Sidebar';
+import Button from '../layout/Button';
+import ButtonContainer from '../layout/ButtonContainer';
 import '../agenda/Agenda.css';
 import './Dashboard1.css';
 
@@ -88,7 +90,9 @@ export default function Dashboard1({ dashboardData = defaultPayload }) {
               <p className="dashboard1-eyebrow">Painel de carga</p>
               <h1>Dashboard operacional</h1>
             </div>
-            <button className="tab-button active">Exportar relatório</button>
+            <ButtonContainer>
+                    <Button active>Exportar relatório</Button>
+            </ButtonContainer>
           </div>
 
           <div className="dashboard1-metrics">

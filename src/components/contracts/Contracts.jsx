@@ -1,10 +1,23 @@
 import React, { useState } from 'react';
 import Sidebar from '../layout/Sidebar';
+import Button from '../layout/Button';
+import ButtonContainer from '../layout/ButtonContainer';
+import Modal from '../layout/Modal';
 import '../agenda/Agenda.css';
 import './Contracts.css';
 
 export default function Contracts() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const abrirModalAdicionar = () => {
+    setIsAddModalOpen(true);
+  };
+
+  const fecharModalAdicionar = () => {
+    setIsAddModalOpen(false);
+  };
+
   const contratos = [
     {
       id: 0,
@@ -58,9 +71,11 @@ export default function Contracts() {
         <div className="agenda-panel">
           <div className="agenda-topbar" style={{ alignItems: 'center' }}>
             <div />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <button className="tab-button" style={{ borderRadius: 10 }}>Adicionar Contrato</button>
-            </div>
+            <ButtonContainer>
+              <Button active>Ativos</Button>
+              <Button>Inativos</Button>
+              <Button onClick={abrirModalAdicionar}>Adicionar Contrato</Button>
+            </ButtonContainer>
           </div>
 
           <div className="agenda-frame">
@@ -78,15 +93,41 @@ export default function Contracts() {
                     </div>
                   </div>
 
-                  <div className="contract-controls">
-                    <button className="tab-button">Editar</button>
-                  </div>
+                  <ButtonContainer>
+                    <Button>Editar</Button>
+                  </ButtonContainer>
                 </div>
               ))}
             </div>
           </div>
         </div>
       </main>
+
+      {isAddModalOpen && (
+        <Modal
+          title="Adicionar Contrato"
+          onClose={fecharModalAdicionar}
+        >
+          <label>Data início:</label>
+          <input type="text" placeholder="Data início" />
+
+          <label>Data fim:</label>
+          <input type="text" placeholder="Data fim" />
+
+          <label>Tipo:</label>
+          <input type="text" placeholder="Tipo" />
+
+          <label>Aluno:</label>
+          <input type="text" placeholder="Aluno" />
+
+          <label>Professor:</label>
+          <input type="text" placeholder="Professor" />
+
+          <label>Dia e horário</label>
+          <input type="text" placeholder="Dia e horário" />
+        </Modal>
+      )}
+
     </div>
   );
 }

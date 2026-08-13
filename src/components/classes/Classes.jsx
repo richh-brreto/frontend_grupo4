@@ -1,10 +1,22 @@
 import React, { useState } from 'react';
 import Sidebar from '../layout/Sidebar';
+import Button from '../layout/Button';
+import ButtonContainer from '../layout/ButtonContainer';
+import Modal from '../layout/Modal';
 import '../agenda/Agenda.css';
 import './Classes.css';
 
 export default function Classes() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const abrirModalAdicionar = () => {
+    setIsAddModalOpen(true);
+  };
+
+  const fecharModalAdicionar = () => {
+    setIsAddModalOpen(false);
+  };
 
   const turmas = [
     {
@@ -71,11 +83,12 @@ export default function Classes() {
             <div>
               <h1>Turmas</h1>
             </div>
-            <div className="agenda-tabs">
-              <button className="tab-button active">Todas</button>
-              <button className="tab-button">Em andamento</button>
-              <button className="tab-button">Finalizadas</button>
-            </div>
+            <ButtonContainer>
+              <Button active>Todas</Button>
+              <Button>Em andamento</Button>
+              <Button>Finalizadas</Button>
+              <Button onClick={abrirModalAdicionar}>Adicionar turma</Button>
+            </ButtonContainer>
           </div>
 
           <div className="agenda-frame">
@@ -111,16 +124,39 @@ export default function Classes() {
                     </div>
                   </div>
 
-                  <div className="class-card-actions">
-                    <button className="tab-button">Editar</button>
-                    <button className="tab-button active">Ver detalhes</button>
-                  </div>
+                  <ButtonContainer>
+                    <Button active>Editar</Button>
+                    <Button>Ver detalhes</Button>
+                  </ButtonContainer>
                 </article>
               ))}
             </div>
           </div>
         </div>
       </main>
+
+      {isAddModalOpen && (
+        <Modal
+          title="Adicionar Turma"
+          onClose={fecharModalAdicionar}
+        >
+          <label>Nome:</label>
+          <input type="text" placeholder="Nome" />
+
+          <label>Nível:</label>
+          <input type="text" placeholder="Nível" />
+
+          <label>Limite de alunos:</label>
+          <input type="text" placeholder="Limite de alunos" />
+
+          <label>Tipo:</label>
+          <input type="text" placeholder="Tipo" />
+
+          <label>Dia e horário</label>
+          <input type="text" placeholder="Dia e horário" />
+        </Modal>
+      )}
+
     </div>
   );
 }

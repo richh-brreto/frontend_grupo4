@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import Sidebar from '../layout/Sidebar';
+import Button from '../layout/Button';
+import ButtonContainer from '../layout/ButtonContainer';
+import Modal from '../layout/Modal';
 import './Agenda.css';
 
 const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
@@ -13,6 +16,7 @@ export default function Agenda() {
   const [abaSelecionada, setAbaSelecionada] = useState('chatbot');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
   const [selectedAula, setSelectedAula] = useState(null);
@@ -35,6 +39,15 @@ export default function Agenda() {
   const fecharModalEditar = () => {
     setIsEditModalOpen(false);
     setSelectedAula(null);
+  };
+
+  const abrirModalRemarcar = () => {
+    setIsEditModalOpen(false);
+    setIsRescheduleModalOpen(true);
+  };
+
+  const fecharModalRemarcar = () => {
+    setIsRescheduleModalOpen(false);
   };
 
   useEffect(() => {
@@ -61,7 +74,7 @@ export default function Agenda() {
             id: 1,
             data: '2026-07-08',
             horaInicio: '10:00',
-            horaFim: '11:00',
+            horaFim: '12:00',
             status: 'AGENDADA',
             presenca: true,
             contratoId: 1,
@@ -233,13 +246,7 @@ export default function Agenda() {
                 {diasSemana.map((dia, idx) => (
                   <div key={idx} className="agenda-dia-label">
                     <span>{dia.diaSemana}</span>
-                    <button
-                      type="button"
-                      className="dia-add"
-                      onClick={() => abrirModalAdicionar(dia)}
-                    >
-                      +
-                    </button>
+                    <Button onClick={() => abrirModalAdicionar(dia)}>+</Button>
                   </div>
                 ))}
               </div>
@@ -300,49 +307,55 @@ export default function Agenda() {
         </div>
       </main>
 
-      {(isAddModalOpen || isEditModalOpen) && (
-        <div className="modal-overlay" onClick={() => { if (isAddModalOpen) fecharModalAdicionar(); if (isEditModalOpen) fecharModalEditar(); }}>
-          <div className="modal-backdrop" />
-          <div className="modal-content" onClick={(event) => event.stopPropagation()}>
-            {isAddModalOpen && (
-              <>
-                <div className="modal-header">
-                  <h2>Adicionar evento</h2>
-                  <button type="button" className="modal-close" onClick={fecharModalAdicionar}>×</button>
-                </div>
-                <div className="modal-body">
-                  <label>Nome</label>
-                  <input type="text" placeholder="Nome" />
-                  <label>Descrição</label>
-                  <input type="text" placeholder="Descrição" />
-                  <label>Adicionar professor</label>
-                  <input type="text" placeholder="Adicionar professor" />
-                  <label>Dia e horário</label>
-                  <input type="text" placeholder="Dia e horário" />
-                </div>
-                <div className="modal-actions">
-                  <button type="button" className="modal-button cancel" onClick={fecharModalAdicionar}>Cancelar</button>
-                  <button type="button" className="modal-button save">Salvar</button>
-                </div>
-              </>
-            )}
+      {isAddModalOpen && (
+        <Modal
+          title="Adicionar evento"
+          onClose={fecharModalAdicionar}
+        >
+          <label>Nome</label>
+          <input type="text" placeholder="Nome" />
 
-            {isEditModalOpen && selectedAula && (
-              <>
-                <div className="modal-header">
-                  <h2>Editar evento</h2>
-                  <button type="button" className="modal-close" onClick={fecharModalEditar}>×</button>
-                </div>
-                <div className="modal-body modal-edit-body">
-                  <button type="button" className="modal-action-button">Cancelar aula</button>
-                  <button type="button" className="modal-action-button">Remarcar aula</button>
-                  <button type="button" className="modal-action-button">Fazer chamada</button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+          <label>Descrição</label>
+          <input type="text" placeholder="Descrição" />
+
+          <label>Adicionar professor</label>
+          <input type="text" placeholder="Adicionar professor" />
+
+          <label>Dia e horário</label>
+          <input type="text" placeholder="Dia e horário" />
+        </Modal>
       )}
+
+      {isEditModalOpen && selectedAula && (
+        <Modal
+          title="Editar evento"
+          onClose={fecharModalEditar}
+        >
+          <Button active>Cancelar aula</Button>
+          <Button active onClick={abrirModalRemarcar}>Remarcar aula</Button>
+          <Button active>Marcar presença</Button>
+        </Modal>
+      )}
+
+      {isRescheduleModalOpen && (
+        <Modal
+          title="Remarcar aula"
+          onClose={fecharModalRemarcar}
+        >
+          <label>Nome</label>
+          <input type="text" placeholder="Nome" />
+
+          <label>Descrição</label>
+          <input type="text" placeholder="Descrição" />
+
+          <label>Adicionar professor</label>
+          <input type="text" placeholder="Adicionar professor" />
+
+          <label>Dia e horário</label>
+          <input type="text" placeholder="Dia e horário" />
+        </Modal>
+      )}
+
     </div>
   );
 }

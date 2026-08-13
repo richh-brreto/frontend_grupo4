@@ -1,10 +1,22 @@
 import React, { useState } from 'react';
 import Sidebar from '../layout/Sidebar';
+import Button from '../layout/Button';
+import ButtonContainer from '../layout/ButtonContainer';
+import Modal from '../layout/Modal';
 import '../agenda/Agenda.css';
 import './Professors.css';
 
 export default function Professors() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const abrirModalAdicionar = () => {
+    setIsAddModalOpen(true);
+  };
+
+  const fecharModalAdicionar = () => {
+    setIsAddModalOpen(false);
+  };
 
   const professores = [
     {
@@ -67,11 +79,12 @@ export default function Professors() {
             <div>
               <h1>Professores</h1>
             </div>
-            <div className="agenda-tabs">
-              <button className="tab-button active">Todos</button>
-              <button className="tab-button">Disponíveis</button>
-              <button className="tab-button">Indisponíveis</button>
-            </div>
+            <ButtonContainer>
+              <Button active>Todos</Button>
+              <Button>Disponíveis</Button>
+              <Button>Indisponíveis</Button>
+              <Button onClick={abrirModalAdicionar}>Adicionar professor</Button>
+            </ButtonContainer>
           </div>
 
           <div className="agenda-frame">
@@ -102,16 +115,39 @@ export default function Professors() {
                     </div>
                   </div>
 
-                  <div className="professor-card-actions">
-                    <button className="tab-button">Editar</button>
-                    <button className="tab-button active">Ver perfil</button>
-                  </div>
+                  <ButtonContainer>
+                    <Button>Editar</Button>
+                    <Button active>Ver perfil</Button>
+                  </ButtonContainer>
                 </article>
               ))}
             </div>
           </div>
         </div>
       </main>
+
+      {isAddModalOpen && (
+        <Modal
+          title="Adicionar Professor"
+          onClose={fecharModalAdicionar}
+        >
+          <label>Nome:</label>
+          <input type="text" placeholder="Nome" />
+
+          <label>Email:</label>
+          <input type="text" placeholder="Email" />
+
+          <label>Telefone:</label>
+          <input type="text" placeholder="Telefone" />
+
+          <label>Senha:</label>
+          <input type="text" placeholder="Senha" />
+
+          <label>Dia e horário</label>
+          <input type="text" placeholder="Dia e horário" />
+        </Modal>
+      )}
+
     </div>
   );
 }
