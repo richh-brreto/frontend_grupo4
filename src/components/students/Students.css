@@ -1,63 +1,164 @@
-.student-row {
+.students-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  padding: 6px 2px;
+}
+
+.student-card {
+  background: linear-gradient(135deg, #f7fbff 0%, #eff5ff 100%);
+  border: 1px solid #e5ebf8;
+  border-radius: 20px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 12px 26px rgba(15, 31, 63, 0.06);
+}
+
+.student-card-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
-  background: rgba(255,255,255,0.92);
-  border-radius: 8px;
-  padding: 12px 16px;
-  border: 1px solid rgba(233,236,242,0.6);
-  flex-wrap: wrap;
 }
 
-.student-left {
+.student-avatar-circle {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0f1f3f 0%, #1e3a8a 100%);
+  color: #fff;
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-width: 0;
-  flex: 1 1 280px;
-}
-
-.student-text {
-  color: #0f1f3f;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.student-ativo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  justify-content: center;
+  font-weight: 800;
+  letter-spacing: 0.06em;
   flex-shrink: 0;
 }
 
-.student-controls {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+.student-main-info {
+  flex: 1;
 }
 
+.student-main-info h3 {
+  margin: 0 0 4px;
+  color: #0f1f3f;
+  font-size: 17px;
+}
 
-/* reuse switch styles from Contracts.css */
-.switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-.switch input { display:none; }
-.slider { position: absolute; cursor: pointer; top:0; left:0; right:0; bottom:0; background:#e6e9ef; border-radius:24px; transition:.2s; }
-.slider:before { position:absolute; content:""; height:18px; width:18px; left:3px; bottom:3px; background:white; border-radius:50%; transition:.2s; }
-.switch input:checked + .slider { background:#0f1f3f; }
-.switch input:checked + .slider:before { transform: translateX(20px); }
+.student-main-info p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+}
 
-@media (max-width: 900px) {
-  .student-row {
-    flex-direction: column;
-    align-items: flex-start;
+.student-status-pill {
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  background: #eaf4ff;
+  color: #1d4ed8;
+}
+
+.student-status-pill.inativo {
+  background: #fde7e7;
+  color: #b91c1c;
+}
+
+.student-meta {
+  display: grid;
+  gap: 10px;
+}
+
+.student-meta div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e9eef7;
+  padding-bottom: 8px;
+}
+
+.student-meta span {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6d7a95;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.student-meta strong {
+  color: #0f1f3f;
+  font-size: 13px;
+  text-align: right;
+}
+
+.student-absence-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.student-absence-list li {
+  padding: 12px 14px;
+  border: 1px solid #e5ebf8;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #0f1f3f;
+  font-size: 14px;
+}
+
+.student-no-absences {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.switch input {
+  display: none;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: #e6e9ef;
+  border-radius: 24px;
+  transition: 0.2s;
+}
+
+.slider::before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: 0.2s;
+}
+
+.switch input:checked + .slider {
+  background: #0f1f3f;
+}
+
+.switch input:checked + .slider::before {
+  transform: translateX(20px);
+}
+
+@media (max-width: 1000px) {
+  .students-grid {
+    grid-template-columns: 1fr;
   }
-
-  .student-left {
-    width: 100%;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
 }

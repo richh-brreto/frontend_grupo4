@@ -3,22 +3,17 @@ import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
 import Modal from '../layout/Modal';
+import Container from '../layout/Container';
 import '../agenda/Agenda.css';
 import './Classes.css';
 
 export default function Classes() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-
-  const abrirModalAdicionar = () => {
-    setIsAddModalOpen(true);
-  };
-
-  const fecharModalAdicionar = () => {
-    setIsAddModalOpen(false);
-  };
-
-  const turmas = [
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [classDetails, setClassDetails] = useState(null);
+  const [classFilter, setClassFilter] = useState('todas');
+  const [turmas, setTurmas] = useState([
     {
       id: 1,
       codigo: 'TURMA 10',
@@ -59,7 +54,52 @@ export default function Classes() {
       sala: 'Sala 3',
       status: 'Ativa'
     }
-  ];
+  ]);
+
+  const abrirModalAdicionar = () => {
+    setIsAddModalOpen(true);
+  };
+
+  const fecharModalAdicionar = () => {
+    setIsAddModalOpen(false);
+  };
+
+  const abrirModalEdicao = (turma) => {
+    setSelectedClass({ ...turma });
+  };
+
+  const fecharModalEdicao = () => {
+    setSelectedClass(null);
+  };
+
+  const salvarEdicao = () => {
+    setTurmas((items) =>
+      items.map((item) =>
+        item.id === selectedClass.id ? selectedClass : item
+      )
+    );
+    fecharModalEdicao();
+  };
+
+  const abrirDetalhes = (turma) => {
+    setClassDetails(turma);
+  };
+
+  const fecharDetalhes = () => {
+    setClassDetails(null);
+  };
+
+  const turmasFiltradas = turmas.filter((turma) => {
+    if (classFilter === 'em-andamento') {
+      return turma.status === 'Em andamento';
+    }
+
+    if (classFilter === 'finalizadas') {
+      return turma.status === 'Finalizada';
+    }
+
+    return true;
+  });
 
   return (
     <div className="agenda-page classes-page">
@@ -84,16 +124,34 @@ export default function Classes() {
               <h1>Turmas</h1>
             </div>
             <ButtonContainer>
-              <Button active>Todas</Button>
-              <Button>Em andamento</Button>
-              <Button>Finalizadas</Button>
+              <Button
+                active={classFilter === 'todas'}
+                onClick={() => setClassFilter('todas')}
+              >
+                Todas
+              </Button>
+              <Button
+                active={classFilter === 'em-andamento'}
+                onClick={() => setClassFilter('em-andamento')}
+              >
+                Em andamento
+              </Button>
+              <Button
+                active={classFilter === 'finalizadas'}
+                onClick={() => setClassFilter('finalizadas')}
+              >
+                Finalizadas
+              </Button>
               <Button onClick={abrirModalAdicionar}>Adicionar turma</Button>
             </ButtonContainer>
           </div>
 
           <div className="agenda-frame">
-            <div className="classes-grid">
-              {turmas.map(turma => (
+            <Container
+              items={turmasFiltradas}
+              className="classes-grid"
+              getItemKey={(turma) => turma.id}
+              renderItem={(turma) => (
                 <article key={turma.id} className="class-card">
                   <div className="class-card-head">
                     <div>
@@ -125,12 +183,12 @@ export default function Classes() {
                   </div>
 
                   <ButtonContainer>
-                    <Button active>Editar</Button>
-                    <Button>Ver detalhes</Button>
+                    <Button onClick={() => abrirModalEdicao(turma)}>Editar</Button>
+                    <Button active onClick={() => abrirDetalhes(turma)}>Ver detalhes</Button>
                   </ButtonContainer>
                 </article>
-              ))}
-            </div>
+              )}
+            />
           </div>
         </div>
       </main>
@@ -154,6 +212,88 @@ export default function Classes() {
 
           <label>Dia e horário</label>
           <input type="text" placeholder="Dia e horário" />
+        </Modal>
+      )}
+
+      {selectedClass && (
+        <Modal
+          title="Editar Turma"
+          onClose={fecharModalEdicao}
+          onSave={salvarEdicao}
+        >
+          <label>Nome:</label>
+          <input
+            type="text"
+            value={selectedClass.nome}
+            onChange={(event) =>
+              setSelectedClass((turma) => ({ ...turma, nome: event.target.value }))
+            }
+          />
+
+          <label>Professor:</label>
+          <input
+            type="text"
+            value={selectedClass.professor}
+            onChange={(event) =>
+              setSelectedClass((turma) => ({ ...turma, professor: event.target.value }))
+            }
+          />
+
+          <label>Horário:</label>
+          <input
+            type="text"
+            value={selectedClass.horario}
+            onChange={(event) =>
+              setSelectedClass((turma) => ({ ...turma, horario: event.target.value }))
+            }
+          />
+
+          <label>Sala:</label>
+          <input
+            type="text"
+            value={selectedClass.sala}
+            onChange={(event) =>
+              setSelectedClass((turma) => ({ ...turma, sala: event.target.value }))
+            }
+          />
+
+          <label>Status:</label>
+          <input
+            type="text"
+            value={selectedClass.status}
+            onChange={(event) =>
+              setSelectedClass((turma) => ({ ...turma, status: event.target.value }))
+            }
+          />
+        </Modal>
+      )}
+
+      {classDetails && (
+        <Modal
+          title="Detalhes da Turma"
+          onClose={fecharDetalhes}
+          showSave={false}
+        >
+          <label>Código:</label>
+          <input type="text" value={classDetails.codigo} readOnly />
+
+          <label>Nome:</label>
+          <input type="text" value={classDetails.nome} readOnly />
+
+          <label>Professor:</label>
+          <input type="text" value={classDetails.professor} readOnly />
+
+          <label>Horário:</label>
+          <input type="text" value={classDetails.horario} readOnly />
+
+          <label>Alunos:</label>
+          <input type="text" value={classDetails.alunos} readOnly />
+
+          <label>Sala:</label>
+          <input type="text" value={classDetails.sala} readOnly />
+
+          <label>Status:</label>
+          <input type="text" value={classDetails.status} readOnly />
         </Modal>
       )}
 

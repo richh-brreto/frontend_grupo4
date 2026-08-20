@@ -3,22 +3,16 @@ import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
 import Modal from '../layout/Modal';
+import Container from '../layout/Container';
 import '../agenda/Agenda.css';
 import './Contracts.css';
 
 export default function Contracts() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-
-  const abrirModalAdicionar = () => {
-    setIsAddModalOpen(true);
-  };
-
-  const fecharModalAdicionar = () => {
-    setIsAddModalOpen(false);
-  };
-
-  const contratos = [
+  const [selectedContract, setSelectedContract] = useState(null);
+  const [contractFilter, setContractFilter] = useState('ativos');
+  const [contratos, setContratos] = useState([
     {
       id: 0,
       tipo: 'Mensal',
@@ -49,7 +43,41 @@ export default function Contracts() {
       aluno: { id: 3, nome: 'Carlos Souza', ativo: true },
       horarios: []
     }
-  ];
+  ]);
+
+  const abrirModalAdicionar = () => {
+    setIsAddModalOpen(true);
+  };
+
+  const fecharModalAdicionar = () => {
+    setIsAddModalOpen(false);
+  };
+
+  const abrirModalEdicao = (contrato) => {
+    setSelectedContract({
+      ...contrato,
+      turma: { ...contrato.turma },
+      professor: { ...contrato.professor },
+      aluno: { ...contrato.aluno }
+    });
+  };
+
+  const fecharModalEdicao = () => {
+    setSelectedContract(null);
+  };
+
+  const salvarEdicao = () => {
+    setContratos((items) =>
+      items.map((item) =>
+        item.id === selectedContract.id ? selectedContract : item
+      )
+    );
+    fecharModalEdicao();
+  };
+
+  const contratosFiltrados = contratos.filter((contrato) =>
+    contractFilter === 'ativos' ? contrato.aluno.ativo : !contrato.aluno.ativo
+  );
 
   return (
     <div className={`agenda-page contracts-page`}>
@@ -69,36 +97,69 @@ export default function Contracts() {
 
       <main className="agenda-content">
         <div className="agenda-panel">
-          <div className="agenda-topbar" style={{ alignItems: 'center' }}>
-            <div />
+          <div className="agenda-topbar">
+            <div>
+              <h1>Contratos</h1>
+            </div>
             <ButtonContainer>
-              <Button active>Ativos</Button>
-              <Button>Inativos</Button>
+              <Button
+                active={contractFilter === 'ativos'}
+                onClick={() => setContractFilter('ativos')}
+              >
+                Ativos
+              </Button>
+              <Button
+                active={contractFilter === 'inativos'}
+                onClick={() => setContractFilter('inativos')}
+              >
+                Inativos
+              </Button>
               <Button onClick={abrirModalAdicionar}>Adicionar Contrato</Button>
             </ButtonContainer>
           </div>
 
           <div className="agenda-frame">
-            <div style={{ padding: '22px 36px', display: 'grid', gap: 18 }}>
-              {contratos.map(c => (
-                <div key={c.id} className="contract-row">
-                  <div className="contract-left">
-                    <div className="contract-text">Contrato: {c.tipo} | Turma: {c.turma?.nome} | Aluno: {c.aluno?.nome}</div>
-                    <div className="contract-ativo">
-                      <span className="ativo-label">Ativo</span>
-                      <label className="switch">
-                        <input type="checkbox" defaultChecked={!!c.aluno?.ativo} />
-                        <span className="slider" />
-                      </label>
+            <Container
+              items={contratosFiltrados}
+              className="contracts-grid"
+              getItemKey={(contrato) => contrato.id}
+              renderItem={(contrato) => (
+                <article className="contract-card">
+                  <div className="contract-card-head">
+                    <div>
+                      <p className="contract-eyebrow">Contrato {contrato.id + 1}</p>
+                      <h3>{contrato.tipo}</h3>
+                    </div>
+                    <span className={`contract-status-pill ${contrato.aluno.ativo ? 'ativo' : 'inativo'}`}>
+                      {contrato.aluno.ativo ? 'Ativo' : 'Inativo'}
+                    </span>
+                  </div>
+
+                  <div className="contract-meta">
+                    <div>
+                      <span>Turma</span>
+                      <strong>{contrato.turma.nome}</strong>
+                    </div>
+                    <div>
+                      <span>Aluno</span>
+                      <strong>{contrato.aluno.nome}</strong>
+                    </div>
+                    <div>
+                      <span>Professor</span>
+                      <strong>{contrato.professor.nome}</strong>
+                    </div>
+                    <div>
+                      <span>Vigência</span>
+                      <strong>{contrato.dataInicio} a {contrato.dataFim}</strong>
                     </div>
                   </div>
 
                   <ButtonContainer>
-                    <Button>Editar</Button>
+                    <Button active onClick={() => abrirModalEdicao(contrato)}>Editar</Button>
                   </ButtonContainer>
-                </div>
-              ))}
-            </div>
+                </article>
+              )}
+            />
           </div>
         </div>
       </main>
@@ -125,6 +186,65 @@ export default function Contracts() {
 
           <label>Dia e horário</label>
           <input type="text" placeholder="Dia e horário" />
+        </Modal>
+      )}
+
+      {selectedContract && (
+        <Modal
+          title="Editar Contrato"
+          onClose={fecharModalEdicao}
+          onSave={salvarEdicao}
+        >
+          <label>Tipo:</label>
+          <input
+            type="text"
+            value={selectedContract.tipo}
+            onChange={(event) =>
+              setSelectedContract((contrato) => ({ ...contrato, tipo: event.target.value }))
+            }
+          />
+
+          <label>Aluno:</label>
+          <input
+            type="text"
+            value={selectedContract.aluno.nome}
+            onChange={(event) =>
+              setSelectedContract((contrato) => ({
+                ...contrato,
+                aluno: { ...contrato.aluno, nome: event.target.value }
+              }))
+            }
+          />
+
+          <label>Professor:</label>
+          <input
+            type="text"
+            value={selectedContract.professor.nome}
+            onChange={(event) =>
+              setSelectedContract((contrato) => ({
+                ...contrato,
+                professor: { ...contrato.professor, nome: event.target.value }
+              }))
+            }
+          />
+
+          <label>Data início:</label>
+          <input
+            type="date"
+            value={selectedContract.dataInicio}
+            onChange={(event) =>
+              setSelectedContract((contrato) => ({ ...contrato, dataInicio: event.target.value }))
+            }
+          />
+
+          <label>Data fim:</label>
+          <input
+            type="date"
+            value={selectedContract.dataFim}
+            onChange={(event) =>
+              setSelectedContract((contrato) => ({ ...contrato, dataFim: event.target.value }))
+            }
+          />
         </Modal>
       )}
 

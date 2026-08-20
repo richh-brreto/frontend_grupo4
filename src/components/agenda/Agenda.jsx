@@ -6,20 +6,28 @@ import Modal from '../layout/Modal';
 import './Agenda.css';
 
 const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
-const HORAS = Array.from({ length: 23 }, (_, i) => `${String(1 + i).padStart(2, '0')}:00`);
+const HORAS = Array.from({ length: 24 }, (_, i) => `${String(0 + i).padStart(2, '0')}:00`);
 const ALTURA_HORA = 48; // pixels por hora
+const ALUNOS_POR_TURMA = {
+  'Turma 5': ['Beatriz Lima', 'Gabriel Alves', 'Juliana Costa', 'Rafael Souza'],
+  'Turma 8': ['Amanda Rocha', 'Caio Martins', 'Larissa Freitas', 'Vinicius Nunes'],
+  'Turma 10': ['Ana Silva', 'Bruno Oliveira', 'Camila Santos', 'Diego Pereira']
+};
 
 export default function Agenda() {
   const [aulas, setAulas] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [dataAtual, setDataAtual] = useState(new Date('2026-07-08'));
-  const [abaSelecionada, setAbaSelecionada] = useState('chatbot');
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [filtros, setFiltros] = useState({ dataInicio: '', dataFim: '', conta: '', professor: '' });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAusenciaModalOpen, setIsAusenciaModalOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
   const [selectedAula, setSelectedAula] = useState(null);
+  const [alunosAusentes, setAlunosAusentes] = useState([]);
 
   const abrirModalAdicionar = (dia) => {
     setSelectedDay(dia);
@@ -39,6 +47,44 @@ export default function Agenda() {
   const fecharModalEditar = () => {
     setIsEditModalOpen(false);
     setSelectedAula(null);
+  };
+
+  const abrirModalAusencia = () => {
+    if (!selectedAula) return;
+
+    setAlunosAusentes(selectedAula.ausencias || []);
+    setIsEditModalOpen(false);
+    setIsAusenciaModalOpen(true);
+  };
+
+  const fecharModalAusencia = () => {
+    setIsAusenciaModalOpen(false);
+    setSelectedAula(null);
+    setAlunosAusentes([]);
+  };
+
+  const alternarAusencia = (aluno) => {
+    setAlunosAusentes(ausenciasAtuais => (
+      ausenciasAtuais.includes(aluno)
+        ? ausenciasAtuais.filter(alunoAusente => alunoAusente !== aluno)
+        : [...ausenciasAtuais, aluno]
+    ));
+  };
+
+  const salvarAusencias = () => {
+    if (!selectedAula) return;
+
+    setAulas(aulasAtuais => aulasAtuais.map(aula => (
+      aula.id === selectedAula.id ? { ...aula, ausencias: alunosAusentes } : aula
+    )));
+    fecharModalAusencia();
+  };
+
+  const cancelarAula = () => {
+    if (!selectedAula) return;
+
+    setAulas(aulasAtuais => aulasAtuais.filter(aula => aula.id !== selectedAula.id));
+    fecharModalEditar();
   };
 
   const abrirModalRemarcar = () => {
@@ -67,6 +113,7 @@ export default function Agenda() {
             status: 'AGENDADA',
             presenca: true,
             contratoId: 0,
+            conta: 'Conta 1',
             professor: 'Prof. João',
             turma: 'Turma 10'
           },
@@ -78,6 +125,7 @@ export default function Agenda() {
             status: 'AGENDADA',
             presenca: true,
             contratoId: 1,
+            conta: 'Conta 2',
             professor: 'Prof. Maria',
             turma: 'Turma 5'
           },
@@ -89,6 +137,7 @@ export default function Agenda() {
             status: 'AGENDADA',
             presenca: false,
             contratoId: 2,
+            conta: 'Conta 1',
             professor: 'Prof. Carlos',
             turma: 'Turma 10'
           },
@@ -100,6 +149,7 @@ export default function Agenda() {
             status: 'AGENDADA',
             presenca: true,
             contratoId: 3,
+            conta: 'Conta 3',
             professor: 'Prof. Ana',
             turma: 'Turma 8'
           },
@@ -111,6 +161,7 @@ export default function Agenda() {
             status: 'AGENDADA',
             presenca: true,
             contratoId: 4,
+            conta: 'Conta 2',
             professor: 'Prof. Pedro',
             turma: 'Turma 10'
           }
@@ -163,7 +214,24 @@ export default function Agenda() {
     };
   };
 
-  const obterAulasPorDia = (dataDia) => aulas.filter(aula => aula.data === dataDia);
+  const aulasFiltradas = aulas.filter(aula => (
+    (!filtros.dataInicio || aula.data >= filtros.dataInicio)
+    && (!filtros.dataFim || aula.data <= filtros.dataFim)
+    && (!filtros.conta || aula.conta.toLowerCase().includes(filtros.conta.toLowerCase()))
+    && (!filtros.professor || aula.professor === filtros.professor)
+  ));
+
+  const professores = [...new Set(aulas.map(aula => aula.professor))];
+
+  const atualizarFiltro = (campo, valor) => {
+    setFiltros(filtrosAtuais => ({ ...filtrosAtuais, [campo]: valor }));
+  };
+
+  const limparFiltros = () => {
+    setFiltros({ dataInicio: '', dataFim: '', conta: '', professor: '' });
+  };
+
+  const obterAulasPorDia = (dataDia) => aulasFiltradas.filter(aula => aula.data === dataDia);
 
   const obterAulasComPosicao = (dataDia) => {
     const aulasDia = obterAulasPorDia(dataDia).sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
@@ -225,21 +293,17 @@ export default function Agenda() {
             </div>
             <div className="agenda-tabs">
               <button
-                className={`tab-button ${abaSelecionada === 'chatbot' ? 'active' : ''}`}
-                onClick={() => setAbaSelecionada('chatbot')}
-              >
-                Chatbot
-              </button>
-              <button
-                className={`tab-button ${abaSelecionada === 'filtros' ? 'active' : ''}`}
-                onClick={() => setAbaSelecionada('filtros')}
+                className={`tab-button ${isFiltersOpen ? 'active' : ''}`}
+                type="button"
+                aria-pressed={isFiltersOpen}
+                onClick={() => setIsFiltersOpen(aberto => !aberto)}
               >
                 Filtros
               </button>
             </div>
           </div>
 
-          {abaSelecionada === 'chatbot' ? (
+          <div className="agenda-workspace">
             <div className="agenda-frame">
               <div className="agenda-dias-header">
                 <div className="agenda-horarios-label"></div>
@@ -282,7 +346,7 @@ export default function Agenda() {
                               left: `calc((100% - ${(aula.numColunas - 1) * 4}px) / ${aula.numColunas} * ${aula.coluna} + ${aula.coluna * 2}px)`
                             }}
                           >
-                            <div className="evento-label">Conta 1</div>
+                            <div className="evento-label">{aula.conta}</div>
                             <div className="evento-label">{aula.turma}</div>
                             <button
                               type="button"
@@ -299,11 +363,56 @@ export default function Agenda() {
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="agenda-filters">
-              <p>Filtros serão adicionados aqui</p>
-            </div>
-          )}
+
+            {isFiltersOpen && (
+              <aside className="agenda-filters" aria-label="Filtros da agenda">
+                <div className="agenda-filters-header">
+                  <h2>Filtros</h2>
+                  <button
+                    type="button"
+                    className="agenda-filters-close"
+                    onClick={() => setIsFiltersOpen(false)}
+                    aria-label="Fechar filtros"
+                  >
+                    X
+                  </button>
+                </div>
+
+                <label htmlFor="data-inicio">Data de início</label>
+                <input
+                  id="data-inicio"
+                  type="date"
+                  value={filtros.dataInicio}
+                  onChange={event => atualizarFiltro('dataInicio', event.target.value)}
+                />
+
+                <label htmlFor="data-fim">Data de fim</label>
+                <input
+                  id="data-fim"
+                  type="date"
+                  value={filtros.dataFim}
+                  min={filtros.dataInicio}
+                  onChange={event => atualizarFiltro('dataFim', event.target.value)}
+                />
+
+                <label htmlFor="professor">Professor</label>
+                <select
+                  id="professor"
+                  value={filtros.professor}
+                  onChange={event => atualizarFiltro('professor', event.target.value)}
+                >
+                  <option value="">Todos os professores</option>
+                  {professores.map(professor => (
+                    <option key={professor} value={professor}>{professor}</option>
+                  ))}
+                </select>
+
+                <button type="button" className="agenda-filters-clear" onClick={limparFiltros}>
+                  Limpar filtros
+                </button>
+              </aside>
+            )}
+          </div>
         </div>
       </main>
 
@@ -331,9 +440,9 @@ export default function Agenda() {
           title="Editar evento"
           onClose={fecharModalEditar}
         >
-          <Button active>Cancelar aula</Button>
+          <Button active onClick={cancelarAula}>Cancelar aula</Button>
           <Button active onClick={abrirModalRemarcar}>Remarcar aula</Button>
-          <Button active>Marcar presença</Button>
+          <Button active onClick={abrirModalAusencia}>Marcar ausências</Button>
         </Modal>
       )}
 
@@ -353,6 +462,28 @@ export default function Agenda() {
 
           <label>Dia e horário</label>
           <input type="text" placeholder="Dia e horário" />
+        </Modal>
+      )}
+
+      {isAusenciaModalOpen && (
+        <Modal
+          title={`Marcar ausências - ${selectedAula?.turma}`}
+          onClose={fecharModalAusencia}
+          onSave={salvarAusencias}
+        >
+          <p className="ausencia-instrucao">Selecione os alunos que estavam ausentes.</p>
+          <div className="lista-alunos-ausencia">
+            {(ALUNOS_POR_TURMA[selectedAula?.turma] || []).map(aluno => (
+              <label key={aluno} className="aluno-ausencia-item">
+                <input
+                  type="checkbox"
+                  checked={alunosAusentes.includes(aluno)}
+                  onChange={() => alternarAusencia(aluno)}
+                />
+                <span>{aluno}</span>
+              </label>
+            ))}
+          </div>
         </Modal>
       )}
 

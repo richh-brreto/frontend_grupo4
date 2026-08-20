@@ -14,6 +14,7 @@ const defaultPayload = {
     {
       professorId: 1,
       nome: 'Adriano Oliveira',
+      data: '2026-07-06',
       aulasCount: 8,
       horasSemanais: 32,
       horasLivres: 8,
@@ -22,6 +23,7 @@ const defaultPayload = {
     {
       professorId: 2,
       nome: 'Maria Silva',
+      data: '2026-07-08',
       aulasCount: 5,
       horasSemanais: 20,
       horasLivres: 20,
@@ -30,6 +32,7 @@ const defaultPayload = {
     {
       professorId: 3,
       nome: 'Carlos Souza',
+      data: '2026-07-10',
       aulasCount: 9,
       horasSemanais: 36,
       horasLivres: 4,
@@ -38,6 +41,7 @@ const defaultPayload = {
     {
       professorId: 4,
       nome: 'Ana Pereira',
+      data: '2026-07-12',
       aulasCount: 4,
       horasSemanais: 16,
       horasLivres: 24,
@@ -55,6 +59,7 @@ function getStatusClass(status) {
 
 export default function Dashboard1({ dashboardData = defaultPayload }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [periodo, setPeriodo] = useState({ dataInicio: '', dataFim: '' });
 
   const data = useMemo(() => ({
     ...defaultPayload,
@@ -65,7 +70,24 @@ export default function Dashboard1({ dashboardData = defaultPayload }) {
     }))
   }), [dashboardData]);
 
-  const maxHours = Math.max(...data.detalhes.map(item => Number(item.horasSemanais || 0)), 40);
+  const detalhesFiltrados = data.detalhes.filter(item => (
+    (!periodo.dataInicio || !item.data || item.data >= periodo.dataInicio)
+    && (!periodo.dataFim || !item.data || item.data <= periodo.dataFim)
+  ));
+
+  const dadosDoPeriodo = {
+    detalhes: detalhesFiltrados,
+    totalProfessores: new Set(detalhesFiltrados.map(item => item.professorId)).size,
+    totalAulas: detalhesFiltrados.reduce((total, item) => total + Number(item.aulasCount || 0), 0),
+    totalHorasLivres: detalhesFiltrados.reduce((total, item) => total + Number(item.horasLivres || 0), 0),
+    professoresSobrecarregados: detalhesFiltrados.filter(item => getStatusClass(item.status) === 'status-overload').length
+  };
+
+  const maxHours = Math.max(...dadosDoPeriodo.detalhes.map(item => Number(item.horasSemanais || 0)), 40);
+
+  const atualizarPeriodo = (campo, valor) => {
+    setPeriodo(periodoAtual => ({ ...periodoAtual, [campo]: valor }));
+  };
 
   return (
     <div className="agenda-page dashboard1-page">
@@ -90,30 +112,49 @@ export default function Dashboard1({ dashboardData = defaultPayload }) {
               <p className="dashboard1-eyebrow">Painel de carga</p>
               <h1>Dashboard operacional</h1>
             </div>
-            <ButtonContainer>
-                    <Button active>Exportar relatório</Button>
-            </ButtonContainer>
+            <div className="dashboard1-actions">
+              <label>
+                <span>Data início</span>
+                <input
+                  type="date"
+                  value={periodo.dataInicio}
+                  onChange={event => atualizarPeriodo('dataInicio', event.target.value)}
+                />
+              </label>
+              <label>
+                <span>Data fim</span>
+                <input
+                  type="date"
+                  min={periodo.dataInicio}
+                  value={periodo.dataFim}
+                  onChange={event => atualizarPeriodo('dataFim', event.target.value)}
+                />
+              </label>
+              <ButtonContainer>
+                <Button active>Exportar relatório</Button>
+              </ButtonContainer>
+            </div>
           </div>
 
           <div className="dashboard1-metrics">
             <article className="metric-card-large">
               <span>Total de professores</span>
-              <strong>{data.totalProfessores}</strong>
+              <strong>{dadosDoPeriodo.totalProfessores}</strong>
               <small>Ativos no sistema</small>
             </article>
             <article className="metric-card-large">
               <span>Total de aulas</span>
-              <strong>{data.totalAulas}</strong>
-              <small>Programadas na semana</small>
+              <strong>{dadosDoPeriodo.totalAulas}</strong>
+              <small>Programadas no período</small>
             </article>
             <article className="metric-card-large">
               <span>Horas livres</span>
-              <strong>{data.totalHorasLivres.toFixed(1)}h</strong>
-              <small>Disponibilidade total</small>
+              <strong>{dadosDoPeriodo.totalHorasLivres.toFixed(1)}h</strong>
+              <small>Disponibilidade no período</small>
             </article>
             <article className="metric-card-large accent">
               <span>Professores sobrecarregados</span>
-              <strong>{data.professoresSobrecarregados}</strong>
+              <strong>{dadosDoPeriodo.professoresSobrecarregados}</strong>
               <small>Necessitam revisão</small>
             </article>
           </div>
@@ -126,7 +167,7 @@ export default function Dashboard1({ dashboardData = defaultPayload }) {
               </div>
 
               <div className="bars-chart">
-                {data.detalhes.map(item => {
+                {dadosDoPeriodo.detalhes.map(item => {
                   const width = Math.max((Number(item.horasSemanais || 0) / maxHours) * 100, 11);
                   return (
                     <div key={item.professorId} className="bar-row">
@@ -150,7 +191,7 @@ export default function Dashboard1({ dashboardData = defaultPayload }) {
               </div>
 
               <div className="summary-list">
-                {data.detalhes.map(item => (
+                {dadosDoPeriodo.detalhes.map(item => (
                   <div key={item.professorId} className="summary-item">
                     <div>
                       <strong>{item.nome}</strong>

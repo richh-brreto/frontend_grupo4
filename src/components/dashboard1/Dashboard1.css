@@ -25,6 +25,28 @@
   font-size: 28px;
 }
 
+.dashboard1-actions {
+  align-items: flex-end;
+  display: flex;
+  gap: 12px;
+}
+
+.dashboard1-actions label {
+  color: #5f6f90;
+  display: grid;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 6px;
+}
+
+.dashboard1-actions input {
+  border: 1px solid #d9dfe9;
+  border-radius: 8px;
+  color: #0f1f3f;
+  font: inherit;
+  padding: 9px 10px;
+}
+
 .dashboard1-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -163,7 +185,7 @@
   font-size: 12px;
 }
 
-.status-pill {
+.dashboard1-page .status-pill {
   padding: 7px 10px;
   border-radius: 999px;
   font-size: 11px;
@@ -171,19 +193,19 @@
   white-space: nowrap;
 }
 
-.status-overload {
+.dashboard1-page .status-pill.status-overload {
   background: #fde7e7;
   color: #b91c1c;
 }
 
-.status-available {
+.dashboard1-page .status-pill.status-available {
   background: #eaf4ff;
   color: #1d4ed8;
 }
 
-.status-balanced {
-  background: #ecfdf3;
-  color: #047857;
+.dashboard1-page .status-pill.status-balanced {
+  background: #fef3c7;
+  color: #b45309;
 }
 
 @media (max-width: 1100px) {
@@ -200,6 +222,16 @@
   .dashboard1-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .dashboard1-actions {
+    align-items: stretch;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .dashboard1-actions label {
+    flex: 1 1 150px;
   }
 
   .dashboard1-metrics {

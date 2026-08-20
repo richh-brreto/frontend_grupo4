@@ -205,6 +205,18 @@
   min-height: 0;
 }
 
+.agenda-workspace {
+  display: flex;
+  gap: 20px;
+  flex: 1;
+  min-height: 0;
+}
+
+.agenda-workspace .agenda-frame {
+  flex: 1;
+  min-width: 0;
+}
+
 .agenda-dias-header {
   display: grid;
   grid-template-columns: 70px repeat(7, minmax(140px, 1fr));
@@ -316,14 +328,128 @@
   padding: 4px 8px;
   font-size: 12px;
   cursor: pointer;
+  transition: 0.5s;
+}
+
+.evento-action:hover {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background-color: #fff;
+  color: #0f1f3f;
+  border-radius: 10px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
 }
 
 .agenda-filters {
   background: #fff;
   border: 1px solid #e8e8e8;
-  border-radius: 24px;
-  padding: 32px;
-  flex: 1;
+  border-radius: 16px;
+  width: 300px;
+  flex: 0 0 300px;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.agenda-filters-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.agenda-filters h2 {
+  color: #0f1f3f;
+  font-size: 20px;
+  margin: 0;
+}
+
+.agenda-filters label {
+  color: #334155;
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 18px 0 8px;
+}
+
+.agenda-filters input,
+.agenda-filters select {
+  box-sizing: border-box;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #0f1f3f;
+  font: inherit;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.agenda-filters-close {
+  background: transparent;
+  border: 0;
+  color: #0f1f3f;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 700;
+  height: 32px;
+  padding: 0;
+  width: 32px;
+}
+
+.agenda-filters-close:hover {
+  background: #f1f5f9;
+  border-radius: 50%;
+}
+
+.agenda-filters-clear {
+  background: transparent;
+  border: 1px solid #0f1f3f;
+  border-radius: 8px;
+  color: #0f1f3f;
+  cursor: pointer;
+  font-weight: 600;
+  margin-top: 28px;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.agenda-filters-clear:hover {
+  background: #0f1f3f;
+  color: #fff;
+}
+
+.ausencia-instrucao {
+  color: #64748b;
+  margin: 0;
+}
+
+.lista-alunos-ausencia {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.aluno-ausencia-item {
+  align-items: center;
+  color: #0f1f3f;
+  cursor: pointer;
+  display: flex;
+  font-weight: 500;
+  gap: 12px;
+  margin: 0;
+  padding: 12px 14px;
+}
+
+.aluno-ausencia-item + .aluno-ausencia-item {
+  border-top: 1px solid #e2e8f0;
+}
+
+.modal-body .aluno-ausencia-item input {
+  accent-color: #0f1f3f;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  width: 18px;
 }
 
 .agenda-scroll::-webkit-scrollbar {
@@ -383,5 +509,21 @@
 
   .agenda-content {
     padding: 16px;
+  }
+
+  .agenda-workspace {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .agenda-workspace .agenda-frame {
+    flex: none;
+    min-height: 600px;
+  }
+
+  .agenda-filters {
+    box-sizing: border-box;
+    flex-basis: auto;
+    width: 100%;
   }
 }
