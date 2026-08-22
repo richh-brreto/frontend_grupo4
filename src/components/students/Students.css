@@ -149,12 +149,42 @@
   transition: 0.2s;
 }
 
-.switch input:checked + .slider {
+.switch input:checked+.slider {
   background: #0f1f3f;
 }
 
-.switch input:checked + .slider::before {
+.switch input:checked+.slider::before {
   transform: translateX(20px);
+}
+
+.student-level-select {
+  width: 100%;
+  padding: 10px 32px;
+  border: 1px solid #e5ebf8;
+  border-radius: 12px;
+  background-color: #f8fafc;
+  color: #0f1f3f;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  text-align-last: center;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236d7a95' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.student-level-select:hover {
+  border-color: #c7d3ea;
+}
+
+.student-level-select:focus {
+  outline: none;
+  border-color: #1e3a8a;
+  box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.12);
 }
 
 @media (max-width: 1000px) {

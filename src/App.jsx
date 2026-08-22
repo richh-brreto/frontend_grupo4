@@ -1,5 +1,8 @@
 import axios from "axios";
+import { useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+
+import Card from "./components/login/card-form/Card";
 import Dashboard from "./components/dashboard/Dashboard";
 import Dashboard1 from "./components/dashboard1/Dashboard1";
 import Agenda from "./components/agenda/Agenda";
@@ -17,26 +20,33 @@ if (savedToken) {
 }
 
 function App() {
+    const [isLoggedIn, setIsLoggedIn] = useState(!!savedToken);
+
     return (
         <Router>
-            <Routes>
-                {/* Rota pública de Agenda */}
-                <Route path="/aulas" element={<Agenda />} />
-                
-                {/* Rotas protegidas */}
-                <Route path="/" element={<Navigate to="/overview" replace />} />
-                <Route path="/dashboard" element={<Navigate to="/dashboard1" replace />} />
-                <Route path="/dashboard2" element={<Dashboard />} />
-                <Route path="/dashboard1" element={<Dashboard1 />} />
-                <Route path="/overview" element={<Overview />} />
-                
-                <Route path="/contratos" element={<Contracts />} />
-                <Route path="/alunos" element={<Students />} />
-                <Route path="/turmas" element={<Classes />} />
-                <Route path="/professores" element={<Professors />} />
-                {/* Redirecionar para home */}
-                <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
+            {isLoggedIn ? (
+                <Routes>
+                    {/* Rota pública */}
+                    <Route path="/aulas" element={<Agenda />} />
+
+                    {/* Rotas protegidas */}
+                    <Route path="/" element={<Navigate to="/overview" replace />} />
+                    <Route path="/dashboard" element={<Navigate to="/dashboard1" replace />} />
+                    <Route path="/dashboard2" element={<Dashboard />} />
+                    <Route path="/dashboard1" element={<Dashboard1 />} />
+                    <Route path="/overview" element={<Overview />} />
+
+                    <Route path="/contratos" element={<Contracts />} />
+                    <Route path="/alunos" element={<Students />} />
+                    <Route path="/turmas" element={<Classes />} />
+                    <Route path="/professores" element={<Professors />} />
+
+                    {/* Redirecionar para home */}
+                    <Route path="*" element={<Navigate to="/" />} />
+                </Routes>
+            ) : (
+                <Card onLoginSuccess={() => setIsLoggedIn(true)} />
+            )}
         </Router>
     );
 }
