@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
@@ -13,48 +13,16 @@ export default function Classes() {
   const [selectedClass, setSelectedClass] = useState(null);
   const [classDetails, setClassDetails] = useState(null);
   const [classFilter, setClassFilter] = useState('todas');
-  const [turmas, setTurmas] = useState([
-    {
-      id: 1,
-      codigo: 'TURMA 10',
-      nome: 'Inglês Instrumental',
-      professor: 'Adriano Oliveira',
-      horario: 'Terça e Quinta • 18:30',
-      alunos: '18 alunos',
-      sala: 'Sala 2',
-      status: 'Ativa'
-    },
-    {
-      id: 2,
-      codigo: 'TURMA 12',
-      nome: 'Conversação Avançada',
-      professor: 'Maria Silva',
-      horario: 'Segunda e Quarta • 20:00',
-      alunos: '14 alunos',
-      sala: 'Sala 4',
-      status: 'Em andamento'
-    },
-    {
-      id: 3,
-      codigo: 'TURMA 08',
-      nome: 'Preparatório para Testes',
-      professor: 'Carlos Souza',
-      horario: 'Sábado • 09:00',
-      alunos: '22 alunos',
-      sala: 'Sala 1',
-      status: 'Pendente'
-    },
-    {
-      id: 4,
-      codigo: 'TURMA 15',
-      nome: 'Gramática Aplicada',
-      professor: 'Ana Pereira',
-      horario: 'Quarta e Sexta • 16:00',
-      alunos: '11 alunos',
-      sala: 'Sala 3',
-      status: 'Ativa'
-    }
-  ]);
+  const [turmas, setTurmas] = useState([]);
+  const [horarios, setHorarios] = useState([]);
+  const [horariosSelecionados, setHorariosSelecionados] = useState([]);
+
+  const [novaTurma, setNovaTurma] = useState({
+    nome: '',
+    nivel: '',
+    limiteAlunos: '',
+    tipo: ''
+  });
 
   const abrirModalAdicionar = () => {
     setIsAddModalOpen(true);
@@ -89,17 +57,24 @@ export default function Classes() {
     setClassDetails(null);
   };
 
-  const turmasFiltradas = turmas.filter((turma) => {
-    if (classFilter === 'em-andamento') {
-      return turma.status === 'Em andamento';
-    }
+  useEffect(() => {
+    fetch("http://localhost:8080/turmas")
+      .then(response => {
+        if (!response.ok) {
+          throw new Error("Erro ao buscar turmas");
+        }
 
-    if (classFilter === 'finalizadas') {
-      return turma.status === 'Finalizada';
-    }
+        return response.json();
+      })
+      .then(data => {
+        console.log("Turmas recebidas:", data);
+        setTurmas(data);
+      })
+      .catch(error => {
+        console.error("Erro ao buscar as turmas:", error);
+      });
+  }, []);
 
-    return true;
-  });
 
   return (
     <div className="agenda-page classes-page">
@@ -130,55 +105,52 @@ export default function Classes() {
               >
                 Todas
               </Button>
-              <Button
-                active={classFilter === 'em-andamento'}
-                onClick={() => setClassFilter('em-andamento')}
-              >
-                Em andamento
-              </Button>
-              <Button
-                active={classFilter === 'finalizadas'}
-                onClick={() => setClassFilter('finalizadas')}
-              >
-                Finalizadas
-              </Button>
               <Button onClick={abrirModalAdicionar}>Adicionar turma</Button>
             </ButtonContainer>
           </div>
 
           <div className="agenda-frame">
             <Container
-              items={turmasFiltradas}
+              items={turmas}
               className="classes-grid"
               getItemKey={(turma) => turma.id}
               renderItem={(turma) => (
                 <article key={turma.id} className="class-card">
                   <div className="class-card-head">
                     <div>
-                      <p className="class-eyebrow">{turma.codigo}</p>
                       <h3>{turma.nome}</h3>
                     </div>
-                    <span className={`status-pill ${turma.status.toLowerCase().replace(/\s+/g, '-')}`}>
-                      {turma.status}
+                    <span className="status-pill">
+                      Em andamento
                     </span>
                   </div>
 
                   <div className="class-meta">
                     <div>
                       <span>Professor</span>
-                      <strong>{turma.professor}</strong>
+                      <strong>{turma.nomeProfessor}</strong>
                     </div>
+
+                    <div>
+                      <span>Nível</span>
+                      <strong>{turma.nivel}</strong>
+                    </div>
+
+                    <div>
+                      <span>Tipo</span>
+                      <strong>{turma.tipo}</strong>
+                    </div>
+
                     <div>
                       <span>Horário</span>
-                      <strong>{turma.horario}</strong>
-                    </div>
-                    <div>
-                      <span>Alunos</span>
-                      <strong>{turma.alunos}</strong>
-                    </div>
-                    <div>
-                      <span>Sala</span>
-                      <strong>{turma.sala}</strong>
+                      <strong>
+                        {turma.horarios?.map((horario, index) => (
+                          <span key={horario.id}>
+                            {index > 0 && ' / '}
+                            {horario.diaSemana} das {horario.horaInicio} às {horario.horaFim}
+                          </span>
+                        ))}
+                      </strong>
                     </div>
                   </div>
 
@@ -233,67 +205,55 @@ export default function Classes() {
           <label>Professor:</label>
           <input
             type="text"
-            value={selectedClass.professor}
+            value={selectedClass.nomeProfessor}
             onChange={(event) =>
-              setSelectedClass((turma) => ({ ...turma, professor: event.target.value }))
+              setSelectedClass((turma) => ({ ...turma, nomeProfessor: event.target.value }))
             }
           />
 
           <label>Horário:</label>
-          <input
-            type="text"
-            value={selectedClass.horario}
-            onChange={(event) =>
-              setSelectedClass((turma) => ({ ...turma, horario: event.target.value }))
-            }
-          />
-
-          <label>Sala:</label>
-          <input
-            type="text"
-            value={selectedClass.sala}
-            onChange={(event) =>
-              setSelectedClass((turma) => ({ ...turma, sala: event.target.value }))
-            }
-          />
-
-          <label>Status:</label>
-          <input
-            type="text"
-            value={selectedClass.status}
-            onChange={(event) =>
-              setSelectedClass((turma) => ({ ...turma, status: event.target.value }))
-            }
-          />
+          {selectedClass.horarios?.map((horario) => (
+            <input
+              key={horario.id}
+              type="text"
+              value={`${horario.diaSemana} das ${horario.horaInicio} às ${horario.horaFim}`}
+              readOnly
+            />
+          ))}
         </Modal>
       )}
 
       {classDetails && (
         <Modal
-          title="Detalhes da Turma"
+          title={`Detalhes da Turma ${classDetails.nome}`}
           onClose={fecharDetalhes}
           showSave={false}
         >
-          <label>Código:</label>
-          <input type="text" value={classDetails.codigo} readOnly />
 
           <label>Nome:</label>
           <input type="text" value={classDetails.nome} readOnly />
 
+          <label>Nível:</label>
+          <input type="text" value={classDetails.nivel} readOnly />
+
+          <label>Tipo:</label>
+          <input type="text" value={classDetails.tipo} readOnly />
+
+          <label>Limite de alunos:</label>
+          <input type="text" value={classDetails.limiteAlunos} readOnly />
+
           <label>Professor:</label>
-          <input type="text" value={classDetails.professor} readOnly />
+          <input type="text" value={classDetails.nomeProfessor} readOnly />
 
           <label>Horário:</label>
-          <input type="text" value={classDetails.horario} readOnly />
-
-          <label>Alunos:</label>
-          <input type="text" value={classDetails.alunos} readOnly />
-
-          <label>Sala:</label>
-          <input type="text" value={classDetails.sala} readOnly />
-
-          <label>Status:</label>
-          <input type="text" value={classDetails.status} readOnly />
+          {classDetails.horarios?.map((horario) => (
+            <input
+              key={horario.id}
+              type="text"
+              value={`${horario.diaSemana} das ${horario.horaInicio} às ${horario.horaFim}`}
+              readOnly
+            />
+          ))}
         </Modal>
       )}
 
