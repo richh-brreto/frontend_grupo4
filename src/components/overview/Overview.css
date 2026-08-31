@@ -1,0 +1,39 @@
+.overview-board {
+  display: grid;
+  gap: 14px;
+}
+
+.announcement-card {
+  background: linear-gradient(135deg, #f8fbff 0%, #f3f7ff 100%);
+  border: 1px solid #e7edf8;
+  border-radius: 18px;
+  padding: 18px 20px;
+  box-shadow: 0 10px 24px rgba(15, 31, 63, 0.05);
+}
+
+.announcement-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.announcement-header h2 {
+  margin: 0;
+  color: #0f1f3f;
+  font-size: 17px;
+}
+
+.announcement-header span {
+  color: #64748b;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.announcement-card p {
+  margin: 0;
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.6;
+}
