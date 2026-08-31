@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
@@ -7,10 +8,69 @@ import Container from '../layout/Container';
 import '../agenda/Agenda.css';
 import './Contracts.css';
 
+const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+const HORARIOS_MODAL = Array.from({ length: 24 }, (_, index) => `${String(index).padStart(2, '0')}:00`);
+
+const DISPONIBILIDADE = [
+  {
+    dia: 'Segunda',
+    horarios: [
+      { hora: '08:00 - 10:00', titulo: 'Turma 10', professor: 'Adriano Oliveira' },
+      { hora: '10:00 - 12:00', titulo: 'Turma 5', professor: 'Maria Silva' },
+      { hora: '16:00 - 17:00', titulo: 'Professor', professor: 'Carlos Souza' }
+    ]
+  },
+  {
+    dia: 'Terça',
+    horarios: [
+      { hora: '09:00 - 11:00', titulo: 'Turma 8', professor: 'Fernando Costa' },
+      { hora: '13:00 - 15:00', titulo: 'Turma 10', professor: 'Patrícia Nunes' }
+    ]
+  },
+  {
+    dia: 'Quarta',
+    horarios: [
+      { hora: '08:00 - 09:30', titulo: 'Professor', professor: 'Ricardo Lima' },
+      { hora: '14:00 - 16:00', titulo: 'Turma 5', professor: 'Luiza Martins' }
+    ]
+  },
+  {
+    dia: 'Quinta',
+    horarios: [
+      { hora: '07:00 - 09:00', titulo: 'Turma 8', professor: 'Beatriz Silva' },
+      { hora: '15:00 - 17:00', titulo: 'Professor', professor: 'Paulo Rocha' }
+    ]
+  },
+  {
+    dia: 'Sexta',
+    horarios: [
+      { hora: '10:00 - 12:00', titulo: 'Turma 10', professor: 'João Pereira' },
+      { hora: '18:00 - 19:00', titulo: 'Professor', professor: 'Mateus Ribeiro' }
+    ]
+  },
+  {
+    dia: 'Sábado',
+    horarios: [
+      { hora: '09:00 - 11:00', titulo: 'Turma 5', professor: 'Ana Paula' },
+      { hora: '11:00 - 12:00', titulo: 'Professor', professor: 'Camila Torres' }
+    ]
+  },
+  {
+    dia: 'Domingo',
+    horarios: [
+      { hora: '08:00 - 10:00', titulo: 'Turma 8', professor: 'Daniel Moreira' }
+    ]
+  }
+];
+
 export default function Contracts() {
+  const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [selectedContract, setSelectedContract] = useState(null);
+  const [selectedSchedule, setSelectedSchedule] = useState(null);
+  const [contractType, setContractType] = useState('individual');
   const [contractFilter, setContractFilter] = useState('ativos');
   const [contratos, setContratos] = useState([
     {
@@ -45,12 +105,23 @@ export default function Contracts() {
     }
   ]);
 
+  useEffect(() => {
+    if (location.state?.openContractSetup) {
+      setIsScheduleModalOpen(true);
+    }
+  }, [location.state]);
+
   const abrirModalAdicionar = () => {
     setIsAddModalOpen(true);
   };
 
   const fecharModalAdicionar = () => {
     setIsAddModalOpen(false);
+  };
+
+  const fecharModalAgendamento = () => {
+    setIsScheduleModalOpen(false);
+    setSelectedSchedule(null);
   };
 
   const abrirModalEdicao = (contrato) => {
@@ -186,6 +257,87 @@ export default function Contracts() {
 
           <label>Dia e horário</label>
           <input type="text" placeholder="Dia e horário" />
+        </Modal>
+      )}
+
+      {isScheduleModalOpen && (
+        <Modal
+          title="Configurar contrato"
+          onClose={fecharModalAgendamento}
+          onSave={fecharModalAgendamento}
+          saveLabel="Continuar"
+        >
+          <div className="contract-type-options">
+            <label className={`contract-option ${contractType === 'individual' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="contractType"
+                value="individual"
+                checked={contractType === 'individual'}
+                onChange={() => setContractType('individual')}
+              />
+              <span>Aulas individuais</span>
+            </label>
+
+            <label className={`contract-option ${contractType === 'group' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="contractType"
+                value="group"
+                checked={contractType === 'group'}
+                onChange={() => setContractType('group')}
+              />
+              <span>Aulas em grupo</span>
+            </label>
+          </div>
+
+          <div className="mini-schedule">
+            <div className="mini-week-grid">
+              <div className="mini-hours-header">Horários</div>
+              {DIAS_SEMANA.map((dia) => (
+                <div key={dia} className="mini-day-header">{dia}</div>
+              ))}
+
+              <div className="mini-hours-column">
+                {HORARIOS_MODAL.map((hora) => (
+                  <div key={`hora-${hora}`} className="mini-hour-label">{hora}</div>
+                ))}
+              </div>
+
+              {DIAS_SEMANA.map((dia) => {
+                const agendaDoDia = DISPONIBILIDADE.find((item) => item.dia === dia)?.horarios || [];
+
+                return (
+                  <div key={dia} className="mini-day-column">
+                    {HORARIOS_MODAL.map((hora) => {
+                      const slot = agendaDoDia.find((item) => item.hora.startsWith(hora));
+                      const isSelected = selectedSchedule === `${dia}-${slot?.hora ?? hora}`;
+
+                      return (
+                        <button
+                          key={`${dia}-${hora}`}
+                          type="button"
+                          className={`mini-slot-cell ${slot ? 'filled' : 'empty'} ${isSelected ? 'selected' : ''}`}
+                          onClick={() => slot && setSelectedSchedule(`${dia}-${slot.hora}`)}
+                          disabled={!slot}
+                        >
+                          {slot ? (
+                            <>
+                              <span>{slot.hora}</span>
+                              <strong>{slot.titulo}</strong>
+                              <small>{slot.professor}</small>
+                            </>
+                          ) : (
+                            <span>—</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </Modal>
       )}
 

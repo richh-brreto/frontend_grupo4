@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
@@ -19,6 +20,7 @@ const normalizar = (texto) =>
     .toLowerCase();
 
 export default function Students() {
+  const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -40,6 +42,20 @@ export default function Students() {
 
   if (loading) return <p>Carregando alunos...</p>;
   if (error) return <p>Erro ao carregar alunos: {error}</p>;
+
+  const continuarParaContrato = (novoAluno) => {
+    setIsAddModalOpen(false);
+    navigate('/contratos', {
+      replace: true,
+      state: {
+        openContractSetup: true,
+        alunoCadastro: novoAluno
+      }
+    });
+  };
+
+  const salvarNovoAluno = (novoAluno) =>
+    adicionarAluno(novoAluno).then(continuarParaContrato);
 
   const buscaNormalizada = normalizar(busca.trim());
   const alunosFiltrados = buscaNormalizada
@@ -108,7 +124,7 @@ export default function Students() {
       {isAddModalOpen && (
         <AddStudentModal
           onClose={() => setIsAddModalOpen(false)}
-          onSave={adicionarAluno}
+          onSave={salvarNovoAluno}
         />
       )}
 
