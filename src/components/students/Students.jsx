@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
@@ -8,11 +9,18 @@ import '../agenda/Agenda.css';
 import './Students.css';
 
 export default function Students() {
+  const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [studentAbsences, setStudentAbsences] = useState(null);
   const [studentFilter, setStudentFilter] = useState('ativos');
+  const [novoAluno, setNovoAluno] = useState({
+    nome: '',
+    email: '',
+    telefone: '',
+    nivel: ''
+  });
   const [alunos, setAlunos] = useState([
     {
       id: 1,
@@ -66,11 +74,23 @@ export default function Students() {
   ]);
 
   const abrirModalAdicionar = () => {
+    setNovoAluno({ nome: '', email: '', telefone: '', nivel: '' });
     setIsAddModalOpen(true);
   };
 
   const fecharModalAdicionar = () => {
     setIsAddModalOpen(false);
+  };
+
+  const continuarParaContrato = () => {
+    setIsAddModalOpen(false);
+    navigate('/contratos', {
+      replace: true,
+      state: {
+        openContractSetup: true,
+        alunoCadastro: novoAluno
+      }
+    });
   };
 
   const abrirModalEdicao = (aluno) => {
@@ -206,21 +226,48 @@ export default function Students() {
         <Modal
           title="Adicionar Aluno"
           onClose={fecharModalAdicionar}
+          onSave={continuarParaContrato}
+          saveLabel="Next"
         >
           <label>Nome:</label>
-          <input type="text" placeholder="Nome" />
+          <input
+            type="text"
+            placeholder="Nome"
+            value={novoAluno.nome}
+            onChange={(event) =>
+              setNovoAluno((aluno) => ({ ...aluno, nome: event.target.value }))
+            }
+          />
 
           <label>Email:</label>
-          <input type="text" placeholder="Email" />
+          <input
+            type="text"
+            placeholder="Email"
+            value={novoAluno.email}
+            onChange={(event) =>
+              setNovoAluno((aluno) => ({ ...aluno, email: event.target.value }))
+            }
+          />
 
           <label>Telefone:</label>
-          <input type="text" placeholder="Telefone" />
+          <input
+            type="text"
+            placeholder="Telefone"
+            value={novoAluno.telefone}
+            onChange={(event) =>
+              setNovoAluno((aluno) => ({ ...aluno, telefone: event.target.value }))
+            }
+          />
 
           <label>Nível:</label>
-          <input type="text" placeholder="Nível" />
-
-          <label>Dia e horário</label>
-          <input type="text" placeholder="Dia e horário" />
+          <input
+            type="text"
+            placeholder="Nível"
+            value={novoAluno.nivel}
+            onChange={(event) =>
+              setNovoAluno((aluno) => ({ ...aluno, nivel: event.target.value }))
+            }
+          />
         </Modal>
       )}
 

@@ -2,7 +2,16 @@ import Button from "./Button";
 import ButtonContainer from "./ButtonContainer";
 import "./Modal.css";
 
-function Modal({ title, children, onClose, onSave, showSave = true }) {
+function Modal({
+  title,
+  children,
+  onClose,
+  onSave,
+  showSave = true,
+  showCancel = true,
+  saveLabel = "Salvar",
+  cancelLabel = "Cancelar"
+}) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-backdrop" />
@@ -28,8 +37,8 @@ function Modal({ title, children, onClose, onSave, showSave = true }) {
         </div>
 
         <ButtonContainer>
-          <Button onClick={onClose}>Cancelar</Button>
-          {showSave && <Button active onClick={onSave || onClose}>Salvar</Button>}
+          {showCancel && <Button onClick={onClose}>{cancelLabel}</Button>}
+          {showSave && <Button active onClick={onSave || onClose}>{saveLabel}</Button>}
         </ButtonContainer>
       </div>
     </div>
