@@ -192,3 +192,24 @@
     grid-template-columns: 1fr;
   }
 }
+
+.student-search-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.student-search-icon {
+  position: absolute;
+  left: 10px;
+  pointer-events: none;
+  opacity: 0.6;
+  font-size: 14px;
+}
+
+.student-search-input {
+  padding-left: 30px;
+
+  border-radius: 12px;
+  height: 36px;
+}

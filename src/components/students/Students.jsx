@@ -12,12 +12,19 @@ import DeleteConfirmModal from './components/DeleteConfirmModal';
 import '../agenda/Agenda.css';
 import './Students.css';
 
+const normalizar = (texto) =>
+  texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
 export default function Students() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [studentSchedule, setStudentSchedule] = useState(null);
   const [alunoParaExcluir, setAlunoParaExcluir] = useState(null);
+  const [busca, setBusca] = useState('');
 
   const {
     alunos,
@@ -28,10 +35,16 @@ export default function Students() {
     adicionarAluno,
     editarAluno,
     excluirAluno,
+    alternarStatus,
   } = useAlunos();
 
   if (loading) return <p>Carregando alunos...</p>;
   if (error) return <p>Erro ao carregar alunos: {error}</p>;
+
+  const buscaNormalizada = normalizar(busca.trim());
+  const alunosFiltrados = buscaNormalizada
+    ? alunos.filter((aluno) => normalizar(aluno.nome).includes(buscaNormalizada))
+    : alunos;
 
   return (
     <div className="agenda-page students-page">
@@ -56,6 +69,13 @@ export default function Students() {
               <h1>Alunos</h1>
             </div>
             <ButtonContainer>
+              <input
+                type="text"
+                placeholder="Buscar aluno por nome..."
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                className="student-search-input"
+              />
               <Button active={filtro === 'ativos'} onClick={() => setFiltro('ativos')}>
                 Ativos
               </Button>
@@ -68,7 +88,7 @@ export default function Students() {
 
           <div className="agenda-frame">
             <Container
-              items={alunos}
+              items={alunosFiltrados}
               className="students-grid"
               getItemKey={(aluno) => aluno.id}
               renderItem={(aluno) => (
@@ -77,6 +97,7 @@ export default function Students() {
                   onEditar={setSelectedStudent}
                   onVerHorarios={setStudentSchedule}
                   onExcluir={setAlunoParaExcluir}
+                  onAlternarStatus={alternarStatus}
                 />
               )}
             />

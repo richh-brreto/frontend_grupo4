@@ -63,7 +63,7 @@ export default function AddStudentModal({ onClose, onSave }) {
 
       <label>IDs dos horários (separados por vírgula):</label>
       <input
-        type="text"
+        type="number"
         placeholder="Ex: 1, 2"
         value={form.horariosIds}
         onChange={atualizarCampo('horariosIds')}
