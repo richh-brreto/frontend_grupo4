@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Modal from '../../layout/Modal';
+import ProfessorScheduleModal from './ProfessorScheduleModal';
 
 const ESTADO_INICIAL = {
   nome: '',
@@ -7,10 +8,10 @@ const ESTADO_INICIAL = {
   telefone: '',
   senha: '',
   idTipoProfessor: '',
-  horariosIds: '',
 };
 
 export default function AddProfessorModal({ onClose, onSave }) {
+  const [etapa, setEtapa] = useState('dados');
   const [form, setForm] = useState(ESTADO_INICIAL);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
@@ -18,18 +19,19 @@ export default function AddProfessorModal({ onClose, onSave }) {
   const atualizarCampo = (campo) => (event) =>
     setForm((atual) => ({ ...atual, [campo]: event.target.value }));
 
-  const handleSalvar = () => {
+  const avancarParaAgenda = () => {
+    setErro(null);
+    setEtapa('agenda');
+  };
+
+  const handleConfirmarAgenda = (horariosIds) => {
     const payload = {
       nome: form.nome,
       email: form.email,
-      telefone: Number(form.telefone),
+      telefone: form.telefone,
       senha: form.senha,
       idTipoProfessor: Number(form.idTipoProfessor),
-      horariosIds: form.horariosIds
-        .split(',')
-        .map((id) => id.trim())
-        .filter(Boolean)
-        .map(Number),
+      horariosIds,
     };
 
     setSalvando(true);
@@ -41,8 +43,20 @@ export default function AddProfessorModal({ onClose, onSave }) {
       .finally(() => setSalvando(false));
   };
 
+  if (etapa === 'agenda') {
+    return (
+      <ProfessorScheduleModal
+        onBack={() => setEtapa('dados')}
+        onClose={onClose}
+        onConfirm={handleConfirmarAgenda}
+        salvando={salvando}
+        erro={erro}
+      />
+    );
+  }
+
   return (
-    <Modal title="Adicionar Professor" onClose={onClose} onSave={handleSalvar}>
+    <Modal title="Adicionar Professor" onClose={onClose} onSave={avancarParaAgenda}>
       <label>Nome:</label>
       <input type="text" placeholder="Nome" value={form.nome} onChange={atualizarCampo('nome')} />
 
@@ -63,16 +77,7 @@ export default function AddProfessorModal({ onClose, onSave }) {
         onChange={atualizarCampo('idTipoProfessor')}
       />
 
-      <label>IDs dos horários (separados por vírgula):</label>
-      <input
-        type="text"
-        placeholder="Ex: 1, 2"
-        value={form.horariosIds}
-        onChange={atualizarCampo('horariosIds')}
-      />
-
       {erro && <p className="student-form-error">{erro}</p>}
-      {salvando && <p>Salvando...</p>}
     </Modal>
   );
 }

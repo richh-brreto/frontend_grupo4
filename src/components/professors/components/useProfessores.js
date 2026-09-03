@@ -32,7 +32,7 @@ export function useProfessores() {
     const payload = {
       nome: professor.nome,
       email: professor.email,
-      telefone: Number(professor.telefone),
+      telefone: professor.telefone,
       idTipoProfessor: Number(professor.idTipoProfessor),
     };
 
