@@ -27,7 +27,7 @@ export default function EditStudentModal({ aluno, onClose, onSave, onChange }) {
         onChange={(e) => onChange({ ...aluno, telefone: e.target.value })}
       />
 
-      <label>Nível:</label>
+      <label class='student-search-input'>Nível:</label>
       <select
         value={aluno.nivel ?? NIVEIS[0]}
         onChange={(e) => onChange({ ...aluno, nivel: e.target.value })}

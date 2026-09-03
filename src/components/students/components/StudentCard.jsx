@@ -43,9 +43,6 @@ export default function StudentCard({ aluno, onEditar, onVerHorarios, onExcluir,
       <ButtonContainer>
         <Button onClick={() => onEditar(aluno)}>Editar</Button>
         <Button active onClick={() => onVerHorarios(aluno)}>Visualizar horários</Button>
-        <Button onClick={() => onAlternarStatus(aluno)}>
-          {aluno.ativo ? 'Inativar' : 'Reativar'}
-        </Button>
         <Button onClick={() => onExcluir(aluno)}>Excluir</Button>
       </ButtonContainer>
     </article>
