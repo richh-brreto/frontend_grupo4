@@ -28,6 +28,7 @@ export default function Students() {
     adicionarAluno,
     editarAluno,
     excluirAluno,
+    alternarStatus,
   } = useAlunos();
 
   if (loading) return <p>Carregando alunos...</p>;
@@ -77,6 +78,7 @@ export default function Students() {
                   onEditar={setSelectedStudent}
                   onVerHorarios={setStudentSchedule}
                   onExcluir={setAlunoParaExcluir}
+                  onAlternarStatus={alternarStatus}
                 />
               )}
             />

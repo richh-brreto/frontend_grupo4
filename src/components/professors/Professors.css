@@ -62,12 +62,7 @@
   color: #1d4ed8;
 }
 
-.status-pill.em-aula {
-  background: #fef3c7;
-  color: #b45309;
-}
-
-.status-pill.sobrecarga {
+.status-pill.inativo {
   background: #fde7e7;
   color: #b91c1c;
 }
