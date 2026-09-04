@@ -53,10 +53,16 @@ export default function Students() {
       }
     });
   };
+  const salvarNovoAluno = (novoAluno) =>
+  const salvarNovoAluno = (novoAluno) =>
 
   const salvarNovoAluno = (novoAluno) =>
     adicionarAluno(novoAluno).then(continuarParaContrato);
 
+    adicionarAluno(novoAluno).then(continuarParaContrato);
+
+=======
+>>>>>>> 57d23d4 (fix: merge conflicts)
   const buscaNormalizada = normalizar(busca.trim());
   const alunosFiltrados = buscaNormalizada
     ? alunos.filter((aluno) => normalizar(aluno.nome).includes(buscaNormalizada))
