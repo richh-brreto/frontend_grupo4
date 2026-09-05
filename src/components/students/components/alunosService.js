@@ -20,10 +20,10 @@ export const alunosService = {
   },
 
   reativar(id) {
-    return axios.put(`${BASE_URL}/${id}/reativar`).then((res) => res.data);
+    return axios.patch(`${BASE_URL}/${id}/reativar`).then((res) => res.data);
   },
 
   inativar(id) {
-    return axios.put(`${BASE_URL}/${id}/inativar`).then((res) => res.data);
+    return axios.delete(`${BASE_URL}/${id}`);
   },
 };

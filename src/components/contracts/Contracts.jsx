@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
 import Modal from '../layout/Modal';
 import Container from '../layout/Container';
+import { alunosService } from '../students/components/alunosService';
 import '../agenda/Agenda.css';
 import './Contracts.css';
 
@@ -66,10 +67,16 @@ const DISPONIBILIDADE = [
 export default function Contracts() {
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(
+    () => Boolean(location.state?.openContractSetup)
+  );
   const [selectedContract, setSelectedContract] = useState(null);
+  const [contractToDelete, setContractToDelete] = useState(null);
   const [selectedSchedule, setSelectedSchedule] = useState(null);
+  const [alunos, setAlunos] = useState([]);
+  const [alunoSelecionadoId, setAlunoSelecionadoId] = useState(
+    () => String(location.state?.alunoCadastro?.id || '')
+  );
   const [contractType, setContractType] = useState('individual');
   const [contractFilter, setContractFilter] = useState('ativos');
   const [contratos, setContratos] = useState([
@@ -106,17 +113,17 @@ export default function Contracts() {
   ]);
 
   useEffect(() => {
-    if (location.state?.openContractSetup) {
-      setIsScheduleModalOpen(true);
-    }
-  }, [location.state]);
+    alunosService.listar().then((alunosCarregados) => {
+      setAlunos(alunosCarregados);
+    });
+  }, []);
+
+  const alunoSelecionado = alunos.find(
+    (aluno) => String(aluno.id) === alunoSelecionadoId
+  ) || location.state?.alunoCadastro;
 
   const abrirModalAdicionar = () => {
-    setIsAddModalOpen(true);
-  };
-
-  const fecharModalAdicionar = () => {
-    setIsAddModalOpen(false);
+    setIsScheduleModalOpen(true);
   };
 
   const fecharModalAgendamento = () => {
@@ -144,6 +151,13 @@ export default function Contracts() {
       )
     );
     fecharModalEdicao();
+  };
+
+  const excluirContrato = () => {
+    setContratos((items) =>
+      items.filter((item) => item.id !== contractToDelete.id)
+    );
+    setContractToDelete(null);
   };
 
   const contratosFiltrados = contratos.filter((contrato) =>
@@ -227,6 +241,7 @@ export default function Contracts() {
 
                   <ButtonContainer>
                     <Button active onClick={() => abrirModalEdicao(contrato)}>Editar</Button>
+                    <Button onClick={() => setContractToDelete(contrato)}>Excluir</Button>
                   </ButtonContainer>
                 </article>
               )}
@@ -235,31 +250,6 @@ export default function Contracts() {
         </div>
       </main>
 
-      {isAddModalOpen && (
-        <Modal
-          title="Adicionar Contrato"
-          onClose={fecharModalAdicionar}
-        >
-          <label>Data início:</label>
-          <input type="text" placeholder="Data início" />
-
-          <label>Data fim:</label>
-          <input type="text" placeholder="Data fim" />
-
-          <label>Tipo:</label>
-          <input type="text" placeholder="Tipo" />
-
-          <label>Aluno:</label>
-          <input type="text" placeholder="Aluno" />
-
-          <label>Professor:</label>
-          <input type="text" placeholder="Professor" />
-
-          <label>Dia e horário</label>
-          <input type="text" placeholder="Dia e horário" />
-        </Modal>
-      )}
-
       {isScheduleModalOpen && (
         <Modal
           title="Configurar contrato"
@@ -267,6 +257,27 @@ export default function Contracts() {
           onSave={fecharModalAgendamento}
           saveLabel="Continuar"
         >
+          <label htmlFor="contract-student">Aluno:</label>
+          <select
+            id="contract-student"
+            className="contract-student-select"
+            value={alunoSelecionadoId}
+            onChange={(event) => setAlunoSelecionadoId(event.target.value)}
+          >
+            <option value="">Selecione um aluno</option>
+            {alunos.map((aluno) => (
+              <option key={aluno.id} value={aluno.id}>
+                {aluno.nome}
+              </option>
+            ))}
+          </select>
+
+          {alunoSelecionado?.nome && (
+            <p className="contract-selected-student">
+              Aluno selecionado: <strong>{alunoSelecionado.nome}</strong>
+            </p>
+          )}
+
           <div className="contract-type-options">
             <label className={`contract-option ${contractType === 'individual' ? 'selected' : ''}`}>
               <input
@@ -397,6 +408,19 @@ export default function Contracts() {
               setSelectedContract((contrato) => ({ ...contrato, dataFim: event.target.value }))
             }
           />
+        </Modal>
+      )}
+
+      {contractToDelete && (
+        <Modal
+          title="Excluir Contrato"
+          onClose={() => setContractToDelete(null)}
+          onSave={excluirContrato}
+        >
+          <p>
+            Tem certeza que deseja excluir o contrato de{' '}
+            <strong>{contractToDelete.aluno.nome}</strong>?
+          </p>
         </Modal>
       )}
 

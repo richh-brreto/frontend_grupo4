@@ -82,6 +82,30 @@
   font-size: 13px;
 }
 
+.contract-student-select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  border: 1px solid #d8e2f2;
+  border-radius: 12px;
+  background: #f8fbff;
+  color: #0f1f3f;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.contract-student-select:focus {
+  outline: none;
+  border-color: #1d4ed8;
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
+}
+
+.contract-selected-student {
+  margin: -4px 0 2px;
+  color: #64748b;
+  font-size: 13px;
+}
+
 .contract-type-options {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
