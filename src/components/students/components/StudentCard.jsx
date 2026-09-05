@@ -1,4 +1,3 @@
-import React from 'react';
 import Button from '../../layout/Button';
 import ButtonContainer from '../../layout/ButtonContainer';
 
@@ -42,7 +41,10 @@ export default function StudentCard({ aluno, onEditar, onVerHorarios, onExcluir,
 
       <ButtonContainer>
         <Button onClick={() => onEditar(aluno)}>Editar</Button>
-        <Button active onClick={() => onVerHorarios(aluno)}>Visualizar horários</Button>
+        <Button active onClick={() => onVerHorarios(aluno)}>Ver detalhes</Button>
+        <Button onClick={() => onAlternarStatus(aluno)}>
+          {aluno.ativo ? 'Inativar' : 'Reativar'}
+        </Button>
         <Button onClick={() => onExcluir(aluno)}>Excluir</Button>
       </ButtonContainer>
     </article>

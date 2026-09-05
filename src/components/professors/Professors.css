@@ -100,6 +100,23 @@
   flex-wrap: wrap;
 }
 
+.professor-search-input {
+  height: 36px;
+  min-width: 220px;
+  padding: 0 12px;
+  border: 1px solid #d8e2f2;
+  border-radius: 12px;
+  background: #fff;
+  color: #0f1f3f;
+  font-size: 14px;
+}
+
+.professor-search-input:focus {
+  outline: none;
+  border-color: #1e3a8a;
+  box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.12);
+}
+
 @media (max-width: 1000px) {
   .professors-grid {
     grid-template-columns: 1fr;
