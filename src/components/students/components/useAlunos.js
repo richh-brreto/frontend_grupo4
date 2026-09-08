@@ -72,8 +72,8 @@ export function useAlunos() {
   const alternarStatus = (aluno) => {
     const ativo = alunoEstaAtivo(aluno);
     const chamada = ativo
-      ? alunosService.inativar(aluno.id)
-      : alunosService.reativar(aluno.id);
+  ? alunosService.excluir(aluno.id)
+  : alunosService.reativar(aluno.id);
 
     return chamada
       .then(() => {

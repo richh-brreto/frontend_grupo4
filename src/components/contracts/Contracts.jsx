@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
@@ -12,57 +12,19 @@ import './Contracts.css';
 const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 const HORARIOS_MODAL = Array.from({ length: 24 }, (_, index) => `${String(index).padStart(2, '0')}:00`);
 
-const DISPONIBILIDADE = [
-  {
-    dia: 'Segunda',
-    horarios: [
-      { hora: '08:00 - 10:00', titulo: 'Turma 10', professor: 'Adriano Oliveira' },
-      { hora: '10:00 - 12:00', titulo: 'Turma 5', professor: 'Maria Silva' },
-      { hora: '16:00 - 17:00', titulo: 'Professor', professor: 'Carlos Souza' }
-    ]
-  },
-  {
-    dia: 'Terça',
-    horarios: [
-      { hora: '09:00 - 11:00', titulo: 'Turma 8', professor: 'Fernando Costa' },
-      { hora: '13:00 - 15:00', titulo: 'Turma 10', professor: 'Patrícia Nunes' }
-    ]
-  },
-  {
-    dia: 'Quarta',
-    horarios: [
-      { hora: '08:00 - 09:30', titulo: 'Professor', professor: 'Ricardo Lima' },
-      { hora: '14:00 - 16:00', titulo: 'Turma 5', professor: 'Luiza Martins' }
-    ]
-  },
-  {
-    dia: 'Quinta',
-    horarios: [
-      { hora: '07:00 - 09:00', titulo: 'Turma 8', professor: 'Beatriz Silva' },
-      { hora: '15:00 - 17:00', titulo: 'Professor', professor: 'Paulo Rocha' }
-    ]
-  },
-  {
-    dia: 'Sexta',
-    horarios: [
-      { hora: '10:00 - 12:00', titulo: 'Turma 10', professor: 'João Pereira' },
-      { hora: '18:00 - 19:00', titulo: 'Professor', professor: 'Mateus Ribeiro' }
-    ]
-  },
-  {
-    dia: 'Sábado',
-    horarios: [
-      { hora: '09:00 - 11:00', titulo: 'Turma 5', professor: 'Ana Paula' },
-      { hora: '11:00 - 12:00', titulo: 'Professor', professor: 'Camila Torres' }
-    ]
-  },
-  {
-    dia: 'Domingo',
-    horarios: [
-      { hora: '08:00 - 10:00', titulo: 'Turma 8', professor: 'Daniel Moreira' }
-    ]
-  }
-];
+// A API manda "Segunda-feira", "Terça-feira" etc. Normaliza pro formato curto usado no grid.
+const DIA_SEMANA_MAP = {
+  'Segunda-feira': 'Segunda',
+  'Terça-feira': 'Terça',
+  'Quarta-feira': 'Quarta',
+  'Quinta-feira': 'Quinta',
+  'Sexta-feira': 'Sexta',
+  'Sábado': 'Sábado',
+  'Domingo': 'Domingo'
+};
+
+const normalizarDia = (diaSemana) => DIA_SEMANA_MAP[diaSemana] || diaSemana;
+const normalizarHora = (hora) => (hora ? hora.slice(0, 5) : hora);
 
 export default function Contracts() {
   const location = useLocation();
@@ -72,13 +34,24 @@ export default function Contracts() {
   );
   const [selectedContract, setSelectedContract] = useState(null);
   const [contractToDelete, setContractToDelete] = useState(null);
+
+  // horário selecionado no mini-calendário: { dia, hora, item }
   const [selectedSchedule, setSelectedSchedule] = useState(null);
+  // quando um slot tem mais de uma opção (professores/turmas), guarda qual slot está "aberto" pra escolher
+  const [openSlot, setOpenSlot] = useState(null); // { dia, hora }
+
   const [alunos, setAlunos] = useState([]);
   const [alunoSelecionadoId, setAlunoSelecionadoId] = useState(
     () => String(location.state?.alunoCadastro?.id || '')
   );
   const [contractType, setContractType] = useState('individual');
   const [contractFilter, setContractFilter] = useState('ativos');
+
+  const [professoresDisponiveis, setProfessoresDisponiveis] = useState([]);
+  const [turmasDisponiveis, setTurmasDisponiveis] = useState([]);
+  const [carregandoDisponibilidade, setCarregandoDisponibilidade] = useState(false);
+  const [erroDisponibilidade, setErroDisponibilidade] = useState(null);
+
   const [contratos, setContratos] = useState([
     {
       id: 0,
@@ -118,6 +91,80 @@ export default function Contracts() {
     });
   }, []);
 
+  // Busca as duas listas quando o modal de agendamento abre
+  useEffect(() => {
+    if (!isScheduleModalOpen) return;
+
+    let cancelado = false;
+    setCarregandoDisponibilidade(true);
+    setErroDisponibilidade(null);
+
+    Promise.all([
+      fetch('/professores/disponiveis').then((res) => {
+        if (!res.ok) throw new Error('Falha ao buscar professores disponíveis');
+        return res.json();
+      }),
+      fetch('/turmas/disponiveis').then((res) => {
+        if (!res.ok) throw new Error('Falha ao buscar turmas disponíveis');
+        return res.json();
+      })
+    ])
+      .then(([professores, turmas]) => {
+        if (cancelado) return;
+        setProfessoresDisponiveis(Array.isArray(professores) ? professores : []);
+        setTurmasDisponiveis(Array.isArray(turmas) ? turmas : []);
+      })
+      .catch((erro) => {
+        if (cancelado) return;
+        setErroDisponibilidade(erro.message || 'Erro ao carregar disponibilidade');
+      })
+      .finally(() => {
+        if (!cancelado) setCarregandoDisponibilidade(false);
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [isScheduleModalOpen]);
+
+  // Monta o mapa dia+hora -> lista de opções (professor OU turma), dependendo do contractType
+  const gradeDisponibilidade = useMemo(() => {
+    const grade = {};
+
+    const registrarHorario = (item, horario, tipo) => {
+      const dia = normalizarDia(horario.diaSemana);
+      const hora = normalizarHora(horario.horaInicio);
+      const chave = `${dia}-${hora}`;
+
+      if (!grade[chave]) grade[chave] = [];
+
+      grade[chave].push({
+        tipo, // 'individual' | 'group'
+        horarioId: horario.id,
+        horaInicio: normalizarHora(horario.horaInicio),
+        horaFim: normalizarHora(horario.horaFim),
+        id: item.id,
+        nome: tipo === 'individual' ? item.nome : item.nome,
+        detalhe:
+          tipo === 'individual'
+            ? item.tipo?.tipoProfessor
+            : `${item.nivel} · ${item.nomeProfessor}`
+      });
+    };
+
+    if (contractType === 'individual') {
+      professoresDisponiveis.forEach((professor) => {
+        (professor.horarios || []).forEach((horario) => registrarHorario(professor, horario, 'individual'));
+      });
+    } else {
+      turmasDisponiveis.forEach((turma) => {
+        (turma.horarios || []).forEach((horario) => registrarHorario(turma, horario, 'group'));
+      });
+    }
+
+    return grade;
+  }, [contractType, professoresDisponiveis, turmasDisponiveis]);
+
   const alunoSelecionado = alunos.find(
     (aluno) => String(aluno.id) === alunoSelecionadoId
   ) || location.state?.alunoCadastro;
@@ -129,6 +176,30 @@ export default function Contracts() {
   const fecharModalAgendamento = () => {
     setIsScheduleModalOpen(false);
     setSelectedSchedule(null);
+    setOpenSlot(null);
+  };
+
+  const trocarTipoContrato = (tipo) => {
+    setContractType(tipo);
+    setSelectedSchedule(null);
+    setOpenSlot(null);
+  };
+
+  const selecionarOpcaoSlot = (dia, hora, opcao) => {
+    setSelectedSchedule({ dia, hora, item: opcao });
+    setOpenSlot(null);
+  };
+
+  const clicarSlot = (dia, hora, opcoes) => {
+    if (!opcoes || opcoes.length === 0) return;
+
+    if (opcoes.length === 1) {
+      selecionarOpcaoSlot(dia, hora, opcoes[0]);
+      return;
+    }
+
+    const jaEstaAberto = openSlot?.dia === dia && openSlot?.hora === hora;
+    setOpenSlot(jaEstaAberto ? null : { dia, hora });
   };
 
   const abrirModalEdicao = (contrato) => {
@@ -285,7 +356,7 @@ export default function Contracts() {
                 name="contractType"
                 value="individual"
                 checked={contractType === 'individual'}
-                onChange={() => setContractType('individual')}
+                onChange={() => trocarTipoContrato('individual')}
               />
               <span>Aulas individuais</span>
             </label>
@@ -296,11 +367,28 @@ export default function Contracts() {
                 name="contractType"
                 value="group"
                 checked={contractType === 'group'}
-                onChange={() => setContractType('group')}
+                onChange={() => trocarTipoContrato('group')}
               />
               <span>Aulas em grupo</span>
             </label>
           </div>
+
+          {carregandoDisponibilidade && (
+            <p className="contract-disponibilidade-status">Carregando disponibilidade...</p>
+          )}
+          {erroDisponibilidade && (
+            <p className="contract-disponibilidade-status contract-disponibilidade-erro">
+              {erroDisponibilidade}
+            </p>
+          )}
+
+          {selectedSchedule && (
+            <p className="contract-selected-student">
+              Selecionado: <strong>{selectedSchedule.dia} {selectedSchedule.item.horaInicio} - {selectedSchedule.item.horaFim}</strong>
+              {' · '}
+              <strong>{selectedSchedule.item.nome}</strong>
+            </p>
+          )}
 
           <div className="mini-schedule">
             <div className="mini-week-grid">
@@ -315,38 +403,62 @@ export default function Contracts() {
                 ))}
               </div>
 
-              {DIAS_SEMANA.map((dia) => {
-                const agendaDoDia = DISPONIBILIDADE.find((item) => item.dia === dia)?.horarios || [];
+              {DIAS_SEMANA.map((dia) => (
+                <div key={dia} className="mini-day-column">
+                  {HORARIOS_MODAL.map((hora) => {
+                    const chave = `${dia}-${hora}`;
+                    const opcoes = gradeDisponibilidade[chave] || [];
+                    const temOpcoes = opcoes.length > 0;
+                    const isSelected =
+                      selectedSchedule?.dia === dia && selectedSchedule?.hora === hora;
+                    const estaAberto = openSlot?.dia === dia && openSlot?.hora === hora;
 
-                return (
-                  <div key={dia} className="mini-day-column">
-                    {HORARIOS_MODAL.map((hora) => {
-                      const slot = agendaDoDia.find((item) => item.hora.startsWith(hora));
-                      const isSelected = selectedSchedule === `${dia}-${slot?.hora ?? hora}`;
-
-                      return (
+                    return (
+                      <div key={`${dia}-${hora}`} className="mini-slot-wrapper">
                         <button
-                          key={`${dia}-${hora}`}
                           type="button"
-                          className={`mini-slot-cell ${slot ? 'filled' : 'empty'} ${isSelected ? 'selected' : ''}`}
-                          onClick={() => slot && setSelectedSchedule(`${dia}-${slot.hora}`)}
-                          disabled={!slot}
+                          className={`mini-slot-cell ${temOpcoes ? 'filled' : 'empty'} ${isSelected ? 'selected' : ''}`}
+                          onClick={() => clicarSlot(dia, hora, opcoes)}
+                          disabled={!temOpcoes}
                         >
-                          {slot ? (
-                            <>
-                              <span>{slot.hora}</span>
-                              <strong>{slot.titulo}</strong>
-                              <small>{slot.professor}</small>
-                            </>
+                          {temOpcoes ? (
+                            opcoes.length === 1 ? (
+                              <>
+                                <span>{opcoes[0].horaInicio} - {opcoes[0].horaFim}</span>
+                                <strong>{opcoes[0].nome}</strong>
+                                <small>{opcoes[0].detalhe}</small>
+                              </>
+                            ) : (
+                              <>
+                                <span>{hora}</span>
+                                <strong>{opcoes.length} disponíveis</strong>
+                              </>
+                            )
                           ) : (
                             <span>—</span>
                           )}
                         </button>
-                      );
-                    })}
-                  </div>
-                );
-              })}
+
+                        {estaAberto && (
+                          <div className="mini-slot-options">
+                            {opcoes.map((opcao) => (
+                              <button
+                                key={`${opcao.tipo}-${opcao.id}-${opcao.horarioId}`}
+                                type="button"
+                                className="mini-slot-option"
+                                onClick={() => selecionarOpcaoSlot(dia, hora, opcao)}
+                              >
+                                <strong>{opcao.nome}</strong>
+                                <small>{opcao.detalhe}</small>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
           </div>
         </Modal>

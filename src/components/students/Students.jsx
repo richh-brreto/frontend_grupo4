@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
@@ -27,7 +27,6 @@ export default function Students() {
   const [studentSchedule, setStudentSchedule] = useState(null);
   const [alunoParaExcluir, setAlunoParaExcluir] = useState(null);
   const [busca, setBusca] = useState('');
-  const [snackbar, setSnackbar] = useState(null);
 
   const {
     alunos,
@@ -41,29 +40,19 @@ export default function Students() {
     alternarStatus,
   } = useAlunos();
 
-  useEffect(() => {
-    if (!snackbar) return undefined;
-
-    const timeoutId = window.setTimeout(() => {
-      navigate('/contratos', {
-        replace: true,
-        state: {
-          openContractSetup: true,
-          alunoCadastro: snackbar.aluno,
-        },
-      });
-    }, 4000);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [navigate, snackbar]);
-
   if (loading) return <p>Carregando alunos...</p>;
   if (error) return <p>Erro ao carregar alunos: {error}</p>;
 
   const salvarNovoAluno = (novoAluno) =>
     adicionarAluno(novoAluno).then((alunoCriado) => {
       setIsAddModalOpen(false);
-      setSnackbar({ aluno: alunoCriado });
+      navigate('/contratos', {
+        replace: true,
+        state: {
+          openContractSetup: true,
+          alunoCadastro: alunoCriado,
+        },
+      });
       return alunoCriado;
     });
 
@@ -159,13 +148,6 @@ export default function Students() {
             excluirAluno(alunoParaExcluir.id).then(() => setAlunoParaExcluir(null))
           }
         />
-      )}
-
-      {snackbar && (
-        <div className="student-snackbar" role="status" aria-live="polite">
-          <strong>Aluno cadastrado com sucesso!</strong>
-          <span>Você será redirecionado para adicionar o contrato.</span>
-        </div>
       )}
     </div>
   );

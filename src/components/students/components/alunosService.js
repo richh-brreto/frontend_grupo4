@@ -20,8 +20,8 @@ export const alunosService = {
   },
 
   reativar(id) {
-    return axios.patch(`${BASE_URL}/${id}/reativar`).then((res) => res.data);
-  },
+  return axios.patch(`${BASE_URL}/${id}/reativar`).then((res) => res.data);
+},
 
   inativar(id) {
     return axios.delete(`${BASE_URL}/${id}`);

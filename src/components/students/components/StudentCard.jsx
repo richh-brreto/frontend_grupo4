@@ -29,17 +29,13 @@ export default function StudentCard({ aluno, onEditar, onVerHorarios, onExcluir,
           <span>Email</span>
           <strong>{aluno.email}</strong>
         </div>
-        <div>
+        <div> 
           <span>Nível</span>
           <strong>{aluno.nivel ?? '-'}</strong>
         </div>
-        <div>
-          <span>Horários</span>
-          <strong>{aluno.horarios?.length ?? 0}</strong>
-        </div>
       </div>
 
-      <ButtonContainer>
+       <ButtonContainer>
         <Button onClick={() => onEditar(aluno)}>Editar</Button>
         <Button active onClick={() => onVerHorarios(aluno)}>Ver detalhes</Button>
         <Button onClick={() => onAlternarStatus(aluno)}>
@@ -50,3 +46,5 @@ export default function StudentCard({ aluno, onEditar, onVerHorarios, onExcluir,
     </article>
   );
 }
+
+

@@ -38,16 +38,6 @@ export default function EditStudentModal({ aluno, onClose, onSave, onChange }) {
           </option>
         ))}
       </select>
-
-      <label>Situação:</label>
-      <label className="switch">
-        <input
-          type="checkbox"
-          checked={aluno.ativo}
-          onChange={(e) => onChange({ ...aluno, ativo: e.target.checked })}
-        />
-        <span className="slider" />
-      </label>
     </Modal>
   );
 }

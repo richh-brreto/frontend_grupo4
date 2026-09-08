@@ -8,7 +8,7 @@ const ESTADO_INICIAL = {
   email: '',
   telefone: '',
   nivel: NIVEIS[0],
-  horariosIds: '',
+  horariosIds: [0]
 };
 
 export default function AddStudentModal({ onClose, onSave }) {
@@ -25,11 +25,7 @@ export default function AddStudentModal({ onClose, onSave }) {
       email: form.email,
       telefone: form.telefone,
       nivel: form.nivel,
-      horariosIds: form.horariosIds
-        .split(',')
-        .map((id) => id.trim())
-        .filter(Boolean)
-        .map(Number),
+      horariosIds: [0]
     };
 
     setSalvando(true);
@@ -60,15 +56,6 @@ export default function AddStudentModal({ onClose, onSave }) {
           </option>
         ))}
       </select>
-
-      <label>IDs dos horários (separados por vírgula):</label>
-      <input
-        type="number"
-        placeholder="Ex: 1, 2"
-        value={form.horariosIds}
-        onChange={atualizarCampo('horariosIds')}
-      />
-
       {erro && <p className="student-form-error">{erro}</p>}
       {salvando && <p>Salvando...</p>}
     </Modal>
