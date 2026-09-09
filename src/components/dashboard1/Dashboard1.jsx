@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
+import axios from '../../utils/axiosConfig';
 import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
@@ -52,18 +53,68 @@ const defaultPayload = {
 
 function getStatusClass(status) {
   const normalized = (status || '').toLowerCase();
-  if (normalized.includes('sobre')) return 'status-overload';
-  if (normalized.includes('dispo')) return 'status-available';
+  if (normalized.includes('sobre') && !normalized.includes('subu')) return 'status-overload';
+  if (normalized.includes('dispo') || normalized.includes('available')) return 'status-available';
+  if (normalized.includes('subu')) return 'status-underutilized';
+  if (normalized.includes('equil') || normalized.includes('balanced')) return 'status-balanced';
   return 'status-balanced';
 }
 
-export default function Dashboard1({ dashboardData = defaultPayload }) {
+export default function Dashboard1({ dashboardData: externalDashboardData = null }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [periodo, setPeriodo] = useState({ dataInicio: '', dataFim: '' });
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Buscar dados do backend ao montar o componente
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get('/dashboard/professores');
+        
+        // Adaptar os dados da API para o formato esperado
+        const adaptedData = {
+          totalProfessores: response.data.totalProfessores,
+          totalAulas: response.data.totalAulas,
+          totalHorasLivres: response.data.totalHorasLivres,
+          professoresSobrecarregados: response.data.professoresSobrecarregados,
+          detalhes: response.data.detalhes.map(detalhe => ({
+            professorId: detalhe.professorId,
+            nome: detalhe.nome,
+            data: new Date().toISOString().split('T')[0], // Data atual por padrão
+            aulasCount: detalhe.aulasCount,
+            horasSemanais: detalhe.horasSemanais,
+            horasLivres: detalhe.horasLivres,
+            status: detalhe.status
+          }))
+        };
+        
+        setDashboardData(adaptedData);
+        setError(null);
+      } catch (err) {
+        console.error('Erro ao buscar dados do dashboard:', err);
+        setError('Erro ao carregar dados do dashboard');
+        // Usar dados padrão em caso de erro
+        setDashboardData(defaultPayload);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Só faz a requisição se não houver dados externos
+    if (!externalDashboardData) {
+      fetchDashboardData();
+    } else {
+      setDashboardData(externalDashboardData);
+      setLoading(false);
+    }
+  }, [externalDashboardData]);
 
   const data = useMemo(() => ({
     ...defaultPayload,
-    ...dashboardData,
+    ...(dashboardData || {}),
     detalhes: (dashboardData?.detalhes || defaultPayload.detalhes).map((item, index) => ({
       ...item,
       professorId: item.professorId ?? index + 1
@@ -89,6 +140,56 @@ export default function Dashboard1({ dashboardData = defaultPayload }) {
     setPeriodo(periodoAtual => ({ ...periodoAtual, [campo]: valor }));
   };
 
+  if (loading) {
+    return (
+      <div className="agenda-page dashboard1-page">
+        <Sidebar
+          collapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed(prev => !prev)}
+          items={[
+            { to: '/overview', label: 'Geral', short: 'Geral' },
+            { to: '/aulas', label: 'Agenda', short: 'AG' },
+            { to: '/dashboard', label: 'Dashboard', short: 'Dash', active: true },
+            { to: '/professores', label: 'Professores', short: 'Prof' },
+            { to: '/turmas', label: 'Turmas', short: 'Tur' },
+            { to: '/alunos', label: 'Alunos', short: 'Alu' },
+            { to: '/contratos', label: 'Contratos', short: 'Cont' }
+          ]}
+        />
+        <main className="agenda-content">
+          <div className="agenda-panel dashboard1-panel">
+            <p style={{ textAlign: 'center', padding: '20px' }}>Carregando dados...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (error && !dashboardData) {
+    return (
+      <div className="agenda-page dashboard1-page">
+        <Sidebar
+          collapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed(prev => !prev)}
+          items={[
+            { to: '/overview', label: 'Geral', short: 'Geral' },
+            { to: '/aulas', label: 'Agenda', short: 'AG' },
+            { to: '/dashboard', label: 'Dashboard', short: 'Dash', active: true },
+            { to: '/professores', label: 'Professores', short: 'Prof' },
+            { to: '/turmas', label: 'Turmas', short: 'Tur' },
+            { to: '/alunos', label: 'Alunos', short: 'Alu' },
+            { to: '/contratos', label: 'Contratos', short: 'Cont' }
+          ]}
+        />
+        <main className="agenda-content">
+          <div className="agenda-panel dashboard1-panel">
+            <p style={{ textAlign: 'center', padding: '20px', color: 'red' }}>{error}</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="agenda-page dashboard1-page">
       <Sidebar
@@ -97,7 +198,7 @@ export default function Dashboard1({ dashboardData = defaultPayload }) {
         items={[
           { to: '/overview', label: 'Geral', short: 'Geral' },
           { to: '/aulas', label: 'Agenda', short: 'AG' },
-          { to: '/dashboard1', label: 'Dashboard', short: 'Dash', active: true },
+          { to: '/dashboard', label: 'Dashboard', short: 'Dash', active: true },
           { to: '/professores', label: 'Professores', short: 'Prof' },
           { to: '/turmas', label: 'Turmas', short: 'Tur' },
           { to: '/alunos', label: 'Alunos', short: 'Alu' },
@@ -168,15 +269,25 @@ export default function Dashboard1({ dashboardData = defaultPayload }) {
 
               <div className="bars-chart">
                 {dadosDoPeriodo.detalhes.map(item => {
-                  const width = Math.max((Number(item.horasSemanais || 0) / maxHours) * 100, 11);
+                  const horasSemanais = Number(item.horasSemanais || 0);
+                  const horasLivres = Number(item.horasLivres || 0);
+                  const horasAlocadas = horasSemanais - horasLivres; // Horas já usadas com aulas
+                  
+                  // A barra track (total) tem tamanho baseado em horasSemanais
+                  const trackWidth = Math.max((horasSemanais / maxHours) * 100, 11);
+                  
+                  // A barra fill (pintada) tem tamanho proporcional às horas alocadas
+                  // Só aparece se houver horas alocadas (horasAlocadas > 0)
+                  const fillWidth = horasSemanais > 0 ? (horasAlocadas / horasSemanais) * 100 : 0;
+                  
                   return (
                     <div key={item.professorId} className="bar-row">
                       <div className="bar-labels">
                         <strong>{item.nome}</strong>
                         <span>{item.horasSemanais}h / {item.horasLivres}h livres</span>
                       </div>
-                      <div className="bar-track">
-                        <div className="bar-fill" style={{ width: `${width}%` }} />
+                      <div className="bar-track" style={{ width: `${trackWidth}%` }}>
+                        {fillWidth > 0 && <div className="bar-fill" style={{ width: `${fillWidth}%` }} />}
                       </div>
                     </div>
                   );

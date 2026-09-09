@@ -3,8 +3,7 @@ import { useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
 import Card from "./components/login/card-form/Card";
-import Dashboard from "./components/dashboard/Dashboard";
-import Dashboard1 from "./components/dashboard1/Dashboard1";
+import Dashboard from "./components/dashboard1/Dashboard1";
 import Agenda from "./components/agenda/Agenda";
 import Contracts from "./components/contracts/Contracts";
 import Students from "./components/students/Students";
@@ -31,9 +30,7 @@ function App() {
 
                     {/* Rotas protegidas */}
                     <Route path="/" element={<Navigate to="/overview" replace />} />
-                    <Route path="/dashboard" element={<Navigate to="/dashboard1" replace />} />
-                    <Route path="/dashboard2" element={<Dashboard />} />
-                    <Route path="/dashboard1" element={<Dashboard1 />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/overview" element={<Overview />} />
 
                     <Route path="/contratos" element={<Contracts />} />

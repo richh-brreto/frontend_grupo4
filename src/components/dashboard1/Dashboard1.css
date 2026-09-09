@@ -194,18 +194,23 @@
 }
 
 .dashboard1-page .status-pill.status-overload {
-  background: #fde7e7;
-  color: #b91c1c;
+  background: #fee2e2;
+  color: #dc2626;
 }
 
 .dashboard1-page .status-pill.status-available {
-  background: #eaf4ff;
-  color: #1d4ed8;
+  background: #d1fae5;
+  color: #059669;
 }
 
 .dashboard1-page .status-pill.status-balanced {
-  background: #fef3c7;
-  color: #b45309;
+  background: #d1fae5;
+  color: #059669;
+}
+
+.dashboard1-page .status-pill.status-underutilized {
+  background: #fef08a;
+  color: #ca8a04;
 }
 
 @media (max-width: 1100px) {
