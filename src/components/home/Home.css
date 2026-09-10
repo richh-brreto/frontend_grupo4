@@ -1,0 +1,512 @@
+/* ============================================================
+   Home - pagina publica (cartao de visitas do Boost)
+   Paleta alinhada ao restante do sistema: navy #0f1f3f / #152048,
+   botoes no indigo #4f46e5 de login/button e do dashboard, azul
+   #1d4ed8 como cor de acento
+   ============================================================ */
+
+/* rolagem suave nos links de ancora da navbar, com folga para o header
+   fixo. Escopado na home para nao afetar as telas internas. */
+html:has(.home) {
+    scroll-behavior: smooth;
+    scroll-padding-top: 104px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html:has(.home) {
+        scroll-behavior: auto;
+    }
+}
+
+.home {
+    --navy-deep: #0b1730;
+    --navy: #0f1f3f;
+    --navy-soft: #152048;
+    --blue: #1d4ed8;
+    --indigo: #4f46e5;
+    --indigo-hover: #4338ca;
+    --indigo-active: #3730a3;
+    --sky: #60a5fa;
+    --ice: #eaf4ff;
+    --surface: #f8fbff;
+    --line: #e2e8f0;
+    --muted: #64748b;
+
+    min-height: 100%;
+    background: var(--surface);
+    color: var(--navy);
+    /* clip em vez de hidden: hidden faria o overflow-y computar como auto
+       e criaria um container de rolagem aninhado sem necessidade */
+    overflow-x: clip;
+}
+
+.home a {
+    text-decoration: none;
+    color: inherit;
+}
+
+.home-shell {
+    width: 100%;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+/* ---------------- Header ---------------- */
+
+.home-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: rgba(11, 23, 48, 0.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.home-header .home-shell {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    height: 84px;
+}
+
+.home-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.home-brand img {
+    width: 58px;
+    height: 58px;
+    object-fit: contain;
+}
+
+.home-brand span {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.01em;
+}
+
+.home-nav {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+}
+
+.home-nav a {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.75);
+    transition: color 0.2s;
+}
+
+.home-nav a:hover {
+    color: #fff;
+}
+
+/* mesma aparencia do botao .button usado no login e no dashboard */
+.home-login {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #fff;
+    background-color: var(--indigo);
+    border: none;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+.home-login:hover {
+    background-color: var(--indigo-hover);
+}
+
+.home-login:active {
+    background-color: var(--indigo-active);
+}
+
+/* ---------------- Hero ---------------- */
+
+.home-hero {
+    position: relative;
+    background:
+        radial-gradient(900px 480px at 78% 15%, rgba(29, 78, 216, 0.45), transparent 62%),
+        radial-gradient(620px 420px at 8% 90%, rgba(96, 165, 250, 0.22), transparent 65%),
+        linear-gradient(160deg, var(--navy-deep), var(--navy-soft));
+    color: #fff;
+    overflow: hidden;
+}
+
+.home-hero .home-shell {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    align-items: center;
+    gap: 56px;
+    padding-top: 88px;
+    padding-bottom: 96px;
+}
+
+.hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    margin-bottom: 22px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ice);
+    background: rgba(96, 165, 250, 0.14);
+    border: 1px solid rgba(96, 165, 250, 0.3);
+    border-radius: 999px;
+}
+
+.hero-eyebrow::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--sky);
+}
+
+.home-hero h1 {
+    font-size: clamp(2.3rem, 5vw, 3.4rem);
+    line-height: 1.1;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+}
+
+.home-hero h1 em {
+    font-style: normal;
+    color: var(--sky);
+}
+
+.hero-text {
+    max-width: 46ch;
+    margin-top: 20px;
+    font-size: 1.08rem;
+    line-height: 1.65;
+    color: rgba(234, 244, 255, 0.82);
+}
+
+.hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 34px;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 13px 26px;
+    font-size: 0.98rem;
+    font-weight: 600;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s, transform 0.2s;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.btn-primary {
+    color: #fff;
+    background-color: var(--indigo);
+}
+
+.btn-primary:hover {
+    background-color: var(--indigo-hover);
+}
+
+.btn-primary:active {
+    background-color: var(--indigo-active);
+}
+
+.btn-ghost {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.hero-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 36px;
+    margin-top: 48px;
+    padding-top: 28px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.hero-stats strong {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.hero-stats span {
+    font-size: 0.88rem;
+    color: rgba(234, 244, 255, 0.6);
+}
+
+.hero-logo {
+    display: flex;
+    justify-content: center;
+}
+
+.hero-logo img {
+    width: 100%;
+    max-width: 360px;
+    filter: drop-shadow(0 18px 45px rgba(96, 165, 250, 0.35));
+}
+
+/* ---------------- Secoes claras ---------------- */
+
+.home-section {
+    padding: 88px 0;
+}
+
+.home-section.alt {
+    background: #fff;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+}
+
+.section-head {
+    max-width: 60ch;
+    margin-bottom: 44px;
+}
+
+.section-head h2 {
+    font-size: clamp(1.7rem, 3.2vw, 2.2rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--navy);
+}
+
+.section-head p {
+    margin-top: 14px;
+    font-size: 1.03rem;
+    line-height: 1.7;
+    color: var(--muted);
+}
+
+/* Sobre */
+
+.about {
+    display: grid;
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: 56px;
+    align-items: center;
+}
+
+.about-card {
+    padding: 36px;
+    background: linear-gradient(160deg, var(--navy), var(--navy-soft));
+    border-radius: 18px;
+    color: #fff;
+    box-shadow: 0 20px 50px rgba(15, 31, 63, 0.18);
+}
+
+.about-card img {
+    width: 84px;
+    margin-bottom: 18px;
+}
+
+.about-card h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.about-card p {
+    margin-top: 8px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: rgba(234, 244, 255, 0.75);
+}
+
+.about-body p {
+    font-size: 1.05rem;
+    line-height: 1.75;
+    color: #334155;
+}
+
+.about-body p + p {
+    margin-top: 18px;
+}
+
+/* Aulas */
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+}
+
+.card-item {
+    padding: 32px 28px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.card-item:hover {
+    transform: translateY(-3px);
+    border-color: rgba(29, 78, 216, 0.35);
+    box-shadow: 0 14px 34px rgba(15, 31, 63, 0.1);
+}
+
+.card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 20px;
+    color: var(--blue);
+    background: var(--ice);
+    border-radius: 12px;
+}
+
+.card-item h3 {
+    font-size: 1.12rem;
+    font-weight: 700;
+    color: var(--navy);
+}
+
+.card-item p {
+    margin-top: 10px;
+    font-size: 0.96rem;
+    line-height: 1.65;
+    color: var(--muted);
+}
+
+/* ---------------- CTA ---------------- */
+
+.home-cta {
+    padding: 84px 0;
+    background:
+        radial-gradient(700px 380px at 50% 0%, rgba(29, 78, 216, 0.5), transparent 70%),
+        linear-gradient(160deg, var(--navy-deep), var(--navy-soft));
+    color: #fff;
+    text-align: center;
+}
+
+.home-cta h2 {
+    font-size: clamp(1.8rem, 3.6vw, 2.4rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.home-cta p {
+    max-width: 52ch;
+    margin: 16px auto 0;
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: rgba(234, 244, 255, 0.8);
+}
+
+.home-cta .hero-actions {
+    justify-content: center;
+}
+
+/* ---------------- Footer ---------------- */
+
+.home-footer {
+    padding: 34px 0;
+    background: var(--navy-deep);
+    color: rgba(234, 244, 255, 0.6);
+}
+
+.home-footer .home-shell {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    font-size: 0.88rem;
+}
+
+.home-footer a {
+    color: rgba(234, 244, 255, 0.75);
+    transition: color 0.2s;
+}
+
+.home-footer a:hover {
+    color: #fff;
+}
+
+.footer-links {
+    display: flex;
+    gap: 22px;
+}
+
+/* ---------------- Responsivo ---------------- */
+
+@media (max-width: 900px) {
+    .home-hero .home-shell,
+    .about {
+        grid-template-columns: 1fr;
+    }
+
+    .hero-logo {
+        order: -1;
+    }
+
+    .hero-logo img {
+        max-width: 220px;
+    }
+
+    .cards {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .home-nav {
+        display: none;
+    }
+
+    .home-header .home-shell {
+        height: 72px;
+    }
+
+    .home-brand img {
+        width: 46px;
+        height: 46px;
+    }
+
+    .home-login {
+        padding: 9px 14px;
+        white-space: nowrap;
+    }
+
+    .home-hero .home-shell {
+        padding-top: 56px;
+        padding-bottom: 64px;
+    }
+
+    .home-section {
+        padding: 60px 0;
+    }
+
+    .hero-stats {
+        gap: 24px;
+    }
+
+    .btn {
+        flex: 1 1 100%;
+        justify-content: center;
+    }
+}
