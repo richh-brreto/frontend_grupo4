@@ -203,6 +203,10 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  max-height: calc(100vh - 180px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 8px;
 }
 
 .agenda-workspace {
@@ -440,7 +444,7 @@
   padding: 12px 14px;
 }
 
-.aluno-ausencia-item + .aluno-ausencia-item {
+.aluno-ausencia-item+.aluno-ausencia-item {
   border-top: 1px solid #e2e8f0;
 }
 

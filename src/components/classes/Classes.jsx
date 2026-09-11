@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
 import Modal from '../layout/Modal';
 import Container from '../layout/Container';
+import { horariosService } from '../contracts/horariosService';
+import { professoresService } from '../professors/components/professoresService';
+import { turmasService } from "./turmasService";
 import '../agenda/Agenda.css';
 import './Classes.css';
 
@@ -13,72 +16,118 @@ export default function Classes() {
   const [selectedClass, setSelectedClass] = useState(null);
   const [classDetails, setClassDetails] = useState(null);
   const [classFilter, setClassFilter] = useState('todas');
-  const [turmas, setTurmas] = useState([
-    {
-      id: 1,
-      codigo: 'TURMA 10',
-      nome: 'Inglês Instrumental',
-      professor: 'Adriano Oliveira',
-      horario: 'Terça e Quinta • 18:30',
-      alunos: '18 alunos',
-      sala: 'Sala 2',
-      status: 'Ativa'
-    },
-    {
-      id: 2,
-      codigo: 'TURMA 12',
-      nome: 'Conversação Avançada',
-      professor: 'Maria Silva',
-      horario: 'Segunda e Quarta • 20:00',
-      alunos: '14 alunos',
-      sala: 'Sala 4',
-      status: 'Em andamento'
-    },
-    {
-      id: 3,
-      codigo: 'TURMA 08',
-      nome: 'Preparatório para Testes',
-      professor: 'Carlos Souza',
-      horario: 'Sábado • 09:00',
-      alunos: '22 alunos',
-      sala: 'Sala 1',
-      status: 'Pendente'
-    },
-    {
-      id: 4,
-      codigo: 'TURMA 15',
-      nome: 'Gramática Aplicada',
-      professor: 'Ana Pereira',
-      horario: 'Quarta e Sexta • 16:00',
-      alunos: '11 alunos',
-      sala: 'Sala 3',
-      status: 'Ativa'
-    }
-  ]);
+  const [turmas, setTurmas] = useState([]);
+  const [horarios, setHorarios] = useState([]);
+  const [horariosSelecionados, setHorariosSelecionados] = useState([]);
+  const [horariosError, setHorariosError] = useState('');
+  const [cadastroError, setCadastroError] = useState('');
+  const [salvandoTurma, setSalvandoTurma] = useState(false);
+  const [professores, setProfessores] = useState([]);
+  const [professoresError, setProfessoresError] = useState('');
 
-  const abrirModalAdicionar = () => {
+  const [novaTurma, setNovaTurma] = useState({
+    nome: '',
+    nivel: '',
+    limiteAlunos: '',
+    tipo: ''
+  });
+
+  const abrirModalAdicionar = async () => {
     setIsAddModalOpen(true);
+    setHorariosError('');
+
+    try {
+      const data = await horariosService.listar();
+      setHorarios(Array.isArray(data) ? data : data.content ?? []);
+    } catch (error) {
+      console.error('Erro ao buscar horários:', error.response?.data ?? error.message);
+      setHorariosError('Não foi possível carregar os horários disponíveis.');
+    }
   };
 
   const fecharModalAdicionar = () => {
     setIsAddModalOpen(false);
+    setCadastroError('');
   };
 
-  const abrirModalEdicao = (turma) => {
-    setSelectedClass({ ...turma });
+  const salvarNovaTurma = async () => {
+    if (!novaTurma.nome || !novaTurma.nivel || !novaTurma.tipo || !novaTurma.limiteAlunos) {
+      setCadastroError('Preencha todos os dados da turma.');
+      return;
+    }
+
+    if (horariosSelecionados.length === 0) {
+      setCadastroError('Selecione pelo menos um dia e horário.');
+      return;
+    }
+
+    setSalvandoTurma(true);
+    setCadastroError('');
+
+    try {
+      const turmaCriada = await turmasService.criar({
+        ...novaTurma,
+        limiteAlunos: Number(novaTurma.limiteAlunos),
+        horariosIds: horariosSelecionados,
+      });
+
+      if (turmaCriada?.id) {
+        setTurmas((items) => [...items, turmaCriada]);
+      }
+
+      setNovaTurma({ nome: '', nivel: '', limiteAlunos: '', tipo: '' });
+      setHorariosSelecionados([]);
+      fecharModalAdicionar();
+    } catch (error) {
+      console.error('Erro ao cadastrar turma:', error.response?.data ?? error.message);
+      setCadastroError('Não foi possível cadastrar a turma. Verifique os dados e tente novamente.');
+    } finally {
+      setSalvandoTurma(false);
+    }
+  };
+
+  const abrirModalEdicao = async (turma) => {
+    setSelectedClass({
+      ...turma,
+      professorId: turma.professorId ?? turma.professor?.id ?? '',
+    });
+    setProfessoresError('');
+
+    try {
+      const data = await professoresService.listar();
+      setProfessores(Array.isArray(data) ? data : data.content ?? []);
+    } catch (error) {
+      console.error('Erro ao buscar professores:', error.response?.data ?? error.message);
+      setProfessoresError('Não foi possível carregar os professores disponíveis.');
+    }
   };
 
   const fecharModalEdicao = () => {
     setSelectedClass(null);
   };
 
-  const salvarEdicao = () => {
-    setTurmas((items) =>
-      items.map((item) =>
-        item.id === selectedClass.id ? selectedClass : item
-      )
-    );
-    fecharModalEdicao();
+  const salvarEdicao = async () => {
+    if (!selectedClass) return;
+
+    try {
+      const turmaAtualizada = await turmasService.atualizar(selectedClass.id, {
+        nome: selectedClass.nome,
+        nivel: selectedClass.nivel,
+        tipo: selectedClass.tipo,
+        limiteAlunos: Number(selectedClass.limiteAlunos),
+        horariosIds: selectedClass.horarios?.map((horario) => horario.id) ?? [],
+        professorId: selectedClass.professorId || null,
+      });
+      setTurmas((items) =>
+        items.map((item) =>
+          item.id === selectedClass.id ? (turmaAtualizada?.id ? turmaAtualizada : selectedClass) : item
+        )
+      );
+      fecharModalEdicao();
+    } catch (error) {
+      console.error('Erro ao atualizar turma:', error.response?.data ?? error.message);
+      alert('Não foi possível salvar as alterações da turma.');
+    }
   };
 
   const abrirDetalhes = (turma) => {
@@ -89,17 +138,15 @@ export default function Classes() {
     setClassDetails(null);
   };
 
-  const turmasFiltradas = turmas.filter((turma) => {
-    if (classFilter === 'em-andamento') {
-      return turma.status === 'Em andamento';
-    }
-
-    if (classFilter === 'finalizadas') {
-      return turma.status === 'Finalizada';
-    }
-
-    return true;
-  });
+  useEffect(() => {
+    turmasService.listar()
+      .then(data => {
+        setTurmas(Array.isArray(data) ? data : data.content ?? []);
+      })
+      .catch(error => {
+        console.error('Erro ao buscar as turmas:', error.response?.data ?? error.message);
+      });
+  }, []);
 
   return (
     <div className="agenda-page classes-page">
@@ -130,55 +177,52 @@ export default function Classes() {
               >
                 Todas
               </Button>
-              <Button
-                active={classFilter === 'em-andamento'}
-                onClick={() => setClassFilter('em-andamento')}
-              >
-                Em andamento
-              </Button>
-              <Button
-                active={classFilter === 'finalizadas'}
-                onClick={() => setClassFilter('finalizadas')}
-              >
-                Finalizadas
-              </Button>
               <Button onClick={abrirModalAdicionar}>Adicionar turma</Button>
             </ButtonContainer>
           </div>
 
           <div className="agenda-frame">
             <Container
-              items={turmasFiltradas}
+              items={turmas}
               className="classes-grid"
               getItemKey={(turma) => turma.id}
               renderItem={(turma) => (
                 <article key={turma.id} className="class-card">
                   <div className="class-card-head">
                     <div>
-                      <p className="class-eyebrow">{turma.codigo}</p>
                       <h3>{turma.nome}</h3>
                     </div>
-                    <span className={`status-pill ${turma.status.toLowerCase().replace(/\s+/g, '-')}`}>
-                      {turma.status}
+                    <span className="status-pill">
+                      Em andamento
                     </span>
                   </div>
 
                   <div className="class-meta">
                     <div>
                       <span>Professor</span>
-                      <strong>{turma.professor}</strong>
+                      <strong>{turma.nomeProfessor}</strong>
                     </div>
+
+                    <div>
+                      <span>Nível</span>
+                      <strong>{turma.nivel}</strong>
+                    </div>
+
+                    <div>
+                      <span>Tipo</span>
+                      <strong>{turma.tipo}</strong>
+                    </div>
+
                     <div>
                       <span>Horário</span>
-                      <strong>{turma.horario}</strong>
-                    </div>
-                    <div>
-                      <span>Alunos</span>
-                      <strong>{turma.alunos}</strong>
-                    </div>
-                    <div>
-                      <span>Sala</span>
-                      <strong>{turma.sala}</strong>
+                      <strong>
+                        {turma.horarios?.map((horario, index) => (
+                          <a key={horario.id}>
+                            {index > 0 && ' | '}
+                            {horario.diaSemana} das {horario.horaInicio} às {horario.horaFim}
+                          </a>
+                        ))}
+                      </strong>
                     </div>
                   </div>
 
@@ -197,21 +241,118 @@ export default function Classes() {
         <Modal
           title="Adicionar Turma"
           onClose={fecharModalAdicionar}
+          onSave={salvarNovaTurma}
+          saveLabel={salvandoTurma ? 'Salvando...' : 'Salvar'}
         >
           <label>Nome:</label>
-          <input type="text" placeholder="Nome" />
+          <input
+            type="text" placeholder="Nome" value={novaTurma.nome}
+            onChange={(event) =>
+              setNovaTurma({
+                ...novaTurma,
+                nome: event.target.value
+              })
+            }
+          />
 
           <label>Nível:</label>
-          <input type="text" placeholder="Nível" />
+          <select
+            value={novaTurma.nivel}
+            onChange={(event) =>
+              setNovaTurma({
+                ...novaTurma,
+                nivel: event.target.value
+              })
+            }
+          >
+            <option value="">Selecione um nível</option>
+            <option value="Iniciante - A1">Iniciante - A1</option>
+            <option value="Iniciante-intermediário - A2">Iniciante-intermediário - A2</option>
+            <option value="Intermediário - B1">Intermediário - B1</option>
+            <option value="Intermediário-avançado - B2">Intermediário-avançado - B2</option>
+            <option value="Avançado - C1">Avançado - C1</option>
+            <option value="Proficiente - C2">Proficiente - C2</option>
+          </select>
 
           <label>Limite de alunos:</label>
-          <input type="text" placeholder="Limite de alunos" />
+          <input
+            type="text" placeholder="Limite de alunos" value={novaTurma.limiteAlunos}
+            onChange={(event) =>
+              setNovaTurma({
+                ...novaTurma,
+                limiteAlunos: event.target.value
+              })
+            }
+          />
 
           <label>Tipo:</label>
-          <input type="text" placeholder="Tipo" />
+          <input
+            type="text" placeholder="Tipo" value={novaTurma.tipo}
+            onChange={(event) =>
+              setNovaTurma({
+                ...novaTurma,
+                tipo: event.target.value
+              })
+            }
+          />
 
-          <label>Dia e horário</label>
-          <input type="text" placeholder="Dia e horário" />
+          <label>Dia e horário:</label>
+
+          <select
+            value=""
+            onChange={(event) => {
+              const id = Number(event.target.value);
+
+              if (!id) return;
+
+              if (!horariosSelecionados.includes(id)) {
+                setHorariosSelecionados((atual) => [...atual, id]);
+              }
+            }}
+          >
+            <option value="">Selecione um horário</option>
+
+            {horarios.map((horario) => (
+              <option
+                key={horario.id}
+                value={horario.id}
+                disabled={horariosSelecionados.includes(horario.id)}
+              >
+                {horario.diaSemana} das {horario.horaInicio} às {horario.horaFim}
+              </option>
+            ))}
+          </select>
+
+          {horariosError && <p className="classes-load-error">{horariosError}</p>}
+          {cadastroError && <p className="classes-load-error">{cadastroError}</p>}
+
+          <div>
+            {horariosSelecionados.map((id) => {
+              const horario = horarios.find((h) => h.id === id);
+
+              if (!horario) return null;
+
+              return (
+                <div key={id}>
+                  <span>
+                    {horario.diaSemana} das {horario.horaInicio} às {horario.horaFim}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHorariosSelecionados((atual) =>
+                        atual.filter((horarioId) => horarioId !== id)
+                      );
+                    }}
+                  >
+                    Remover
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
         </Modal>
       )}
 
@@ -230,70 +371,82 @@ export default function Classes() {
             }
           />
 
-          <label>Professor:</label>
-          <input
-            type="text"
-            value={selectedClass.professor}
+          <label>Nível:</label>
+          <select
+            value={selectedClass.nivel}
             onChange={(event) =>
-              setSelectedClass((turma) => ({ ...turma, professor: event.target.value }))
+              setSelectedClass((turma) => ({ ...turma, nivel: event.target.value }))
             }
-          />
+          >
+            <option value="">Selecione um nível</option>
+            <option value="Iniciante - A1">Iniciante - A1</option>
+            <option value="Iniciante-intermediário - A2">Iniciante-intermediário - A2</option>
+            <option value="Intermediário - B1">Intermediário - B1</option>
+            <option value="Intermediário-avançado - B2">Intermediário-avançado - B2</option>
+            <option value="Avançado - C1">Avançado - C1</option>
+            <option value="Proficiente - C2">Proficiente - C2</option>
+          </select>
+
+          <label>Professor:</label>
+          <select
+            value={selectedClass.professorId}
+            onChange={(event) =>
+              setSelectedClass((turma) => ({ ...turma, professorId: Number(event.target.value) || '' }))
+            }
+          >
+            <option value="">Selecione um professor</option>
+            {professores.map((professor) => (
+              <option key={professor.id} value={professor.id}>
+                {professor.nome}
+              </option>
+            ))}
+          </select>
+
+          {professoresError && <p className="classes-load-error">{professoresError}</p>}
 
           <label>Horário:</label>
-          <input
-            type="text"
-            value={selectedClass.horario}
-            onChange={(event) =>
-              setSelectedClass((turma) => ({ ...turma, horario: event.target.value }))
-            }
-          />
-
-          <label>Sala:</label>
-          <input
-            type="text"
-            value={selectedClass.sala}
-            onChange={(event) =>
-              setSelectedClass((turma) => ({ ...turma, sala: event.target.value }))
-            }
-          />
-
-          <label>Status:</label>
-          <input
-            type="text"
-            value={selectedClass.status}
-            onChange={(event) =>
-              setSelectedClass((turma) => ({ ...turma, status: event.target.value }))
-            }
-          />
+          {selectedClass.horarios?.map((horario) => (
+            <input
+              key={horario.id}
+              type="text"
+              value={`${horario.diaSemana} das ${horario.horaInicio} às ${horario.horaFim}`}
+              readOnly
+            />
+          ))}
         </Modal>
       )}
 
       {classDetails && (
         <Modal
-          title="Detalhes da Turma"
+          title={`Detalhes da Turma ${classDetails.nome}`}
           onClose={fecharDetalhes}
           showSave={false}
         >
-          <label>Código:</label>
-          <input type="text" value={classDetails.codigo} readOnly />
 
           <label>Nome:</label>
           <input type="text" value={classDetails.nome} readOnly />
 
+          <label>Nível:</label>
+          <input type="text" value={classDetails.nivel} readOnly />
+
+          <label>Tipo:</label>
+          <input type="text" value={classDetails.tipo} readOnly />
+
+          <label>Limite de alunos:</label>
+          <input type="text" value={classDetails.limiteAlunos} readOnly />
+
           <label>Professor:</label>
-          <input type="text" value={classDetails.professor} readOnly />
+          <input type="text" value={classDetails.nomeProfessor} readOnly />
 
           <label>Horário:</label>
-          <input type="text" value={classDetails.horario} readOnly />
-
-          <label>Alunos:</label>
-          <input type="text" value={classDetails.alunos} readOnly />
-
-          <label>Sala:</label>
-          <input type="text" value={classDetails.sala} readOnly />
-
-          <label>Status:</label>
-          <input type="text" value={classDetails.status} readOnly />
+          {classDetails.horarios?.map((horario) => (
+            <input
+              key={horario.id}
+              type="text"
+              value={`${horario.diaSemana} das ${horario.horaInicio} às ${horario.horaFim}`}
+              readOnly
+            />
+          ))}
         </Modal>
       )}
 
