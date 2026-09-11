@@ -28,6 +28,15 @@ const DIA_SEMANA_MAP = {
 
 const normalizarDia = (diaSemana) => DIA_SEMANA_MAP[diaSemana] || diaSemana;
 const normalizarHora = (hora) => (hora ? hora.slice(0, 5) : hora);
+const dataHoje = () => new Date().toISOString().split('T')[0];
+
+// O ContratoResponse da API não envia "aluno.ativo"; determina a vigência pela data fim.
+const contratoEhAtivo = (contrato) => {
+  if (typeof contrato?.aluno?.ativo === 'boolean') return contrato.aluno.ativo;
+  const hoje = dataHoje();
+  return Boolean(contrato?.dataInicio && contrato?.dataFim) &&
+    hoje >= contrato.dataInicio && hoje <= contrato.dataFim;
+};
 
 export default function Contracts() {
   const location = useLocation();
@@ -37,6 +46,10 @@ export default function Contracts() {
   );
   const [selectedContract, setSelectedContract] = useState(null);
   const [contractToDelete, setContractToDelete] = useState(null);
+
+  const hoje = dataHoje();
+  const [dataInicioContrato, setDataInicioContrato] = useState(hoje);
+  const [dataFimContrato, setDataFimContrato] = useState(hoje);
 
   // horário selecionado no mini-calendário: { dia, hora, item }
   const [selectedSchedule, setSelectedSchedule] = useState(null);
@@ -178,6 +191,8 @@ export default function Contracts() {
     setIsScheduleModalOpen(false);
     setSelectedSchedule(null);
     setOpenSlot(null);
+    setDataInicioContrato(dataHoje());
+    setDataFimContrato(dataHoje());
   };
 
   const salvarNovoContrato = async () => {
@@ -186,21 +201,33 @@ export default function Contracts() {
       return;
     }
 
+    if (!dataInicioContrato || !dataFimContrato) {
+      alert('Por favor, preencha as datas de início e fim do contrato');
+      return;
+    }
+
+    if (dataFimContrato < dataInicioContrato) {
+      alert('A data de fim deve ser maior ou igual à data de início');
+      return;
+    }
+
     setCarregandoOperacao(true);
     try {
-      // Preparar payload baseado no tipo de contrato
+      // Payload de acordo com o contrato da API
       const novoContrato = {
+        dataInicio: dataInicioContrato,
+        dataFim: dataFimContrato,
+        tipo: contractType === 'individual' ? 'individual' : 'group',
         alunoId: parseInt(alunoSelecionado.id),
-        dataInicio: new Date().toISOString().split('T')[0],
-        dataFim: new Date().toISOString().split('T')[0],
-        tipo: contractType === 'individual' ? 'individual' : 'group'
+        turmaId: 0,
+        professorId: 0,
+        horariosIds: [parseInt(selectedSchedule.item.horarioId)]
       };
 
-      // Adicionar professor apenas para contratos individuais
+      // Adicionar professor para contratos individuais ou turma para contratos em grupo
       if (contractType === 'individual') {
         novoContrato.professorId = parseInt(selectedSchedule.item.id);
       } else {
-        // Adicionar turma apenas para contratos em grupo
         novoContrato.turmaId = parseInt(selectedSchedule.item.id);
       }
 
@@ -251,9 +278,9 @@ export default function Contracts() {
   const abrirModalEdicao = (contrato) => {
     setSelectedContract({
       ...contrato,
-      turma: { ...contrato.turma },
-      professor: { ...contrato.professor },
-      aluno: { ...contrato.aluno }
+      turma: contrato.turma ? { ...contrato.turma } : null,
+      professor: contrato.professor ? { ...contrato.professor } : null,
+      aluno: contrato.aluno ? { ...contrato.aluno } : {}
     });
   };
 
@@ -304,7 +331,7 @@ export default function Contracts() {
   };
 
   const contratosFiltrados = contratos.filter((contrato) =>
-    contractFilter === 'ativos' ? contrato.aluno.ativo : !contrato.aluno.ativo
+    contractFilter === 'ativos' ? contratoEhAtivo(contrato) : !contratoEhAtivo(contrato)
   );
 
   return (
@@ -369,23 +396,23 @@ export default function Contracts() {
                         <p className="contract-eyebrow">Contrato {contrato.id + 1}</p>
                         <h3>{contrato.tipo}</h3>
                       </div>
-                      <span className={`contract-status-pill ${contrato.aluno?.ativo ? 'ativo' : 'inativo'}`}>
-                      {contrato.aluno.ativo ? 'Ativo' : 'Inativo'}
+                      <span className={`contract-status-pill ${contratoEhAtivo(contrato) ? 'ativo' : 'inativo'}`}>
+                      {contratoEhAtivo(contrato) ? 'Ativo' : 'Inativo'}
                     </span>
                   </div>
 
                   <div className="contract-meta">
                     <div>
                       <span>Turma</span>
-                      <strong>{contrato.turma.nome}</strong>
+                      <strong>{contrato.turma?.nome || '—'}</strong>
                     </div>
                     <div>
                       <span>Aluno</span>
-                      <strong>{contrato.aluno.nome}</strong>
+                      <strong>{contrato.aluno?.nome || '—'}</strong>
                     </div>
                     <div>
                       <span>Professor</span>
-                      <strong>{contrato.professor.nome}</strong>
+                      <strong>{contrato.professor?.nome || '—'}</strong>
                     </div>
                     <div>
                       <span>Vigência</span>
@@ -454,6 +481,33 @@ export default function Contracts() {
                 onChange={() => trocarTipoContrato('group')}
               />
               <span>Aulas em grupo</span>
+            </label>
+          </div>
+
+          <div className="contract-dates">
+            <label className="contract-date-field">
+              <span>Data início:</span>
+              <input
+                type="date"
+                value={dataInicioContrato}
+                min={dataHoje()}
+                onChange={(event) => {
+                  setDataInicioContrato(event.target.value);
+                  if (dataFimContrato < event.target.value) {
+                    setDataFimContrato(event.target.value);
+                  }
+                }}
+              />
+            </label>
+
+            <label className="contract-date-field">
+              <span>Data fim:</span>
+              <input
+                type="date"
+                value={dataFimContrato}
+                min={dataInicioContrato}
+                onChange={(event) => setDataFimContrato(event.target.value)}
+              />
             </label>
           </div>
 
@@ -566,7 +620,7 @@ export default function Contracts() {
           <label>Aluno:</label>
           <input
             type="text"
-            value={selectedContract.aluno.nome}
+            value={selectedContract.aluno?.nome || ''}
             onChange={(event) =>
               setSelectedContract((contrato) => ({
                 ...contrato,
@@ -578,7 +632,7 @@ export default function Contracts() {
           <label>Professor:</label>
           <input
             type="text"
-            value={selectedContract.professor.nome}
+            value={selectedContract.professor?.nome || ''}
             onChange={(event) =>
               setSelectedContract((contrato) => ({
                 ...contrato,
