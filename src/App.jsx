@@ -7,7 +7,7 @@ import Dashboard from "./components/dashboard1/Dashboard1";
 import Agenda from "./components/agenda/Agenda";
 import Contracts from "./components/contracts/Contracts";
 import Students from "./components/students/Students";
-import Classes from "./components/classes/Classes";
+import Classes from "./components/classes/Classes.jsx";
 import Professors from "./components/professors/Professors";
 import Overview from "./components/overview/Overview";
 
