@@ -6,6 +6,8 @@ import ButtonContainer from '../layout/ButtonContainer';
 import Modal from '../layout/Modal';
 import Container from '../layout/Container';
 import { alunosService } from '../students/components/alunosService';
+import { professoresDisponiveisService } from './professoresDisponiveisService';
+import { turmasDisponiveisService } from './turmasDisponiveisService';
 import '../agenda/Agenda.css';
 import './Contracts.css';
 
@@ -91,6 +93,10 @@ export default function Contracts() {
     });
   }, []);
 
+  const alunoSelecionado = alunos.find(
+    (aluno) => String(aluno.id) === alunoSelecionadoId
+  ) || location.state?.alunoCadastro;
+
   // Busca as duas listas quando o modal de agendamento abre
   useEffect(() => {
     if (!isScheduleModalOpen) return;
@@ -99,14 +105,16 @@ export default function Contracts() {
     setCarregandoDisponibilidade(true);
     setErroDisponibilidade(null);
 
+    const payload = {
+      alunoHorariosIds: alunoSelecionado?.horariosIds || [0]
+    };
+
     Promise.all([
-      fetch('/professores/disponiveis').then((res) => {
-        if (!res.ok) throw new Error('Falha ao buscar professores disponíveis');
-        return res.json();
+      professoresDisponiveisService.listar(payload).catch((erro) => {
+        throw new Error(erro.message || 'Falha ao buscar professores disponíveis');
       }),
-      fetch('/turmas/disponiveis').then((res) => {
-        if (!res.ok) throw new Error('Falha ao buscar turmas disponíveis');
-        return res.json();
+      turmasDisponiveisService.listar().catch((erro) => {
+        throw new Error(erro.message || 'Falha ao buscar turmas disponíveis');
       })
     ])
       .then(([professores, turmas]) => {
@@ -125,7 +133,7 @@ export default function Contracts() {
     return () => {
       cancelado = true;
     };
-  }, [isScheduleModalOpen]);
+  }, [isScheduleModalOpen, alunoSelecionado]);
 
   // Monta o mapa dia+hora -> lista de opções (professor OU turma), dependendo do contractType
   const gradeDisponibilidade = useMemo(() => {
@@ -164,10 +172,6 @@ export default function Contracts() {
 
     return grade;
   }, [contractType, professoresDisponiveis, turmasDisponiveis]);
-
-  const alunoSelecionado = alunos.find(
-    (aluno) => String(aluno.id) === alunoSelecionadoId
-  ) || location.state?.alunoCadastro;
 
   const abrirModalAdicionar = () => {
     setIsScheduleModalOpen(true);
@@ -430,12 +434,12 @@ export default function Contracts() {
                               </>
                             ) : (
                               <>
-                                <span>{hora}</span>
+                                <span>{opcoes[0].horaInicio} - {opcoes[0].horaFim}</span>
                                 <strong>{opcoes.length} disponíveis</strong>
                               </>
                             )
                           ) : (
-                            <span>—</span>
+                            <span>Horário não disponível</span>
                           )}
                         </button>
 
