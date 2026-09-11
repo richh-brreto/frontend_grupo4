@@ -6,7 +6,7 @@ import Modal from '../layout/Modal';
 import Container from '../layout/Container';
 import { horariosService } from '../contracts/horariosService';
 import { professoresService } from '../professors/components/professoresService';
-import { turmasService } from './classes';
+import { turmasService } from "./turmasService";
 import '../agenda/Agenda.css';
 import './Classes.css';
 
