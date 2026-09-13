@@ -18,4 +18,8 @@ export const turmasService = {
   atualizar(id, turma) {
     return axios.put(`${BASE_URL}/${id}`, turma).then((res) => res.data);
   },
+
+  excluir(id) {
+    return axios.delete(`${BASE_URL}/${id}`).then((res) => res.data);
+  },
 };

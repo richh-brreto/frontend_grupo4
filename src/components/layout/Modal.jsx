@@ -9,6 +9,8 @@ function Modal({
   onSave,
   showSave = true,
   showCancel = true,
+  onDelete,
+  deleteLabel = "Excluir",
   saveLabel = "Salvar",
   cancelLabel = "Cancelar",
   className = "",
@@ -40,6 +42,11 @@ function Modal({
 
         {!hideFooter && (
           <ButtonContainer>
+            {onDelete && (
+              <div style={{ marginRight: 'auto' }}>
+                <Button danger onClick={onDelete}>{deleteLabel}</Button>
+              </div>
+            )}
             {showCancel && <Button onClick={onClose}>{cancelLabel}</Button>}
             {showSave && <Button active onClick={onSave || onClose}>{saveLabel}</Button>}
           </ButtonContainer>
