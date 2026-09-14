@@ -157,7 +157,7 @@ export default function Contracts() {
       if (!grade[chave]) grade[chave] = [];
 
       grade[chave].push({
-        tipo, // 'individual' | 'group'
+        tipo, // 'individual' | 'grupo'
         horarioId: horario.id,
         horaInicio: normalizarHora(horario.horaInicio),
         horaFim: normalizarHora(horario.horaFim),
@@ -176,7 +176,7 @@ export default function Contracts() {
       });
     } else {
       turmasDisponiveis.forEach((turma) => {
-        (turma.horarios || []).forEach((horario) => registrarHorario(turma, horario, 'group'));
+        (turma.horarios || []).forEach((horario) => registrarHorario(turma, horario, 'grupo'));
       });
     }
 
@@ -217,7 +217,7 @@ export default function Contracts() {
       const novoContrato = {
         dataInicio: dataInicioContrato,
         dataFim: dataFimContrato,
-        tipo: contractType === 'individual' ? 'individual' : 'group',
+        tipo: contractType === 'individual' ? 'individual' : 'grupo',
         alunoId: parseInt(alunoSelecionado.id),
         turmaId: 0,
         professorId: 0,
@@ -472,13 +472,13 @@ export default function Contracts() {
               <span>Aulas individuais</span>
             </label>
 
-            <label className={`contract-option ${contractType === 'group' ? 'selected' : ''}`}>
+            <label className={`contract-option ${contractType === 'grupo' ? 'selected' : ''}`}>
               <input
                 type="radio"
                 name="contractType"
-                value="group"
-                checked={contractType === 'group'}
-                onChange={() => trocarTipoContrato('group')}
+                value="grupo"
+                checked={contractType === 'grupo'}
+                onChange={() => trocarTipoContrato('grupo')}
               />
               <span>Aulas em grupo</span>
             </label>
