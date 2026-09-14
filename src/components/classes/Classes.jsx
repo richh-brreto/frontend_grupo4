@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import Swal from 'sweetalert2';
 import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
@@ -9,6 +10,27 @@ import { professoresService } from '../professors/components/professoresService'
 import { turmasService } from "./turmasService";
 import '../agenda/Agenda.css';
 import './Classes.css';
+
+const normalizar = (texto) =>
+  texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
+const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+const HORARIOS_MODAL = Array.from({ length: 24 }, (_, index) => `${String(index).padStart(2, '0')}:00`);
+const DIA_SEMANA_MAP = {
+  'Segunda-feira': 'Segunda',
+  'Terça-feira': 'Terça',
+  'Quarta-feira': 'Quarta',
+  'Quinta-feira': 'Quinta',
+  'Sexta-feira': 'Sexta',
+  'Sábado': 'Sábado',
+  'Domingo': 'Domingo'
+};
+
+const normalizarDia = (diaSemana) => DIA_SEMANA_MAP[diaSemana] || diaSemana;
+const normalizarHora = (hora) => (hora ? hora.slice(0, 5) : hora);
 
 export default function Classes() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -24,6 +46,7 @@ export default function Classes() {
   const [salvandoTurma, setSalvandoTurma] = useState(false);
   const [professores, setProfessores] = useState([]);
   const [professoresError, setProfessoresError] = useState('');
+  const [busca, setBusca] = useState('');
 
   const [novaTurma, setNovaTurma] = useState({
     nome: '',
@@ -48,6 +71,15 @@ export default function Classes() {
   const fecharModalAdicionar = () => {
     setIsAddModalOpen(false);
     setCadastroError('');
+    setHorariosSelecionados([]);
+  };
+
+  const alternarHorario = (horario) => {
+    setHorariosSelecionados((atual) =>
+      atual.includes(horario.id)
+        ? atual.filter((id) => id !== horario.id)
+        : [...atual, horario.id]
+    );
   };
 
   const salvarNovaTurma = async () => {
@@ -74,6 +106,13 @@ export default function Classes() {
       if (turmaCriada?.id) {
         setTurmas((items) => [...items, turmaCriada]);
       }
+
+      await Swal.fire({
+        icon: 'success',
+        title: 'Turma criada!',
+        text: 'A turma foi cadastrada com sucesso.',
+        confirmButtonColor: '#0f1f3f'
+      });
 
       setNovaTurma({ nome: '', nivel: '', limiteAlunos: '', tipo: '' });
       setHorariosSelecionados([]);
@@ -124,9 +163,47 @@ export default function Classes() {
         )
       );
       fecharModalEdicao();
+      await Swal.fire({
+        icon: 'success',
+        title: 'Turma atualizada!',
+        text: 'As alterações foram salvas com sucesso.',
+        confirmButtonColor: '#0f1f3f'
+      });
     } catch (error) {
       console.error('Erro ao atualizar turma:', error.response?.data ?? error.message);
       alert('Não foi possível salvar as alterações da turma.');
+    }
+  };
+
+  const excluirTurma = async () => {
+    if (!selectedClass) return;
+
+    const resultado = await Swal.fire({
+      icon: 'warning',
+      title: 'Excluir turma?',
+      text: `Tem certeza que deseja excluir a turma "${selectedClass.nome}"? Essa ação não pode ser desfeita.`,
+      showCancelButton: true,
+      confirmButtonText: 'Sim, excluir',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#b91c1c',
+      cancelButtonColor: '#64748b'
+    });
+
+    if (!resultado.isConfirmed) return;
+
+    try {
+      await turmasService.excluir(selectedClass.id);
+      setTurmas((items) => items.filter((item) => item.id !== selectedClass.id));
+      fecharModalEdicao();
+      await Swal.fire({
+        icon: 'success',
+        title: 'Turma excluída!',
+        text: 'A turma foi removida com sucesso.',
+        confirmButtonColor: '#0f1f3f'
+      });
+    } catch (error) {
+      console.error('Erro ao excluir turma:', error.response?.data ?? error.message);
+      alert('Não foi possível excluir a turma. Tente novamente.');
     }
   };
 
@@ -147,6 +224,17 @@ export default function Classes() {
         console.error('Erro ao buscar as turmas:', error.response?.data ?? error.message);
       });
   }, []);
+
+  const buscaNormalizada = normalizar(busca.trim());
+  const turmasFiltradas = buscaNormalizada
+    ? turmas.filter((turma) => normalizar(turma.nome).includes(buscaNormalizada))
+    : turmas;
+
+  const horariosPorSlot = horarios.reduce((slots, horario) => {
+    const chave = `${normalizarDia(horario.diaSemana)}-${normalizarHora(horario.horaInicio)}`;
+    slots[chave] = [...(slots[chave] || []), horario];
+    return slots;
+  }, {});
 
   return (
     <div className="agenda-page classes-page">
@@ -171,6 +259,13 @@ export default function Classes() {
               <h1>Turmas</h1>
             </div>
             <ButtonContainer>
+              <input
+                type="text"
+                placeholder="Buscar turma por nome..."
+                value={busca}
+                onChange={(event) => setBusca(event.target.value)}
+                className="class-search-input"
+              />
               <Button
                 active={classFilter === 'todas'}
                 onClick={() => setClassFilter('todas')}
@@ -178,12 +273,13 @@ export default function Classes() {
                 Todas
               </Button>
               <Button onClick={abrirModalAdicionar}>Adicionar turma</Button>
+              
             </ButtonContainer>
           </div>
 
           <div className="agenda-frame">
             <Container
-              items={turmas}
+              items={turmasFiltradas}
               className="classes-grid"
               getItemKey={(turma) => turma.id}
               renderItem={(turma) => (
@@ -296,61 +392,51 @@ export default function Classes() {
             }
           />
 
-          <label>Dia e horário:</label>
-
-          <select
-            value=""
-            onChange={(event) => {
-              const id = Number(event.target.value);
-
-              if (!id) return;
-
-              if (!horariosSelecionados.includes(id)) {
-                setHorariosSelecionados((atual) => [...atual, id]);
-              }
-            }}
-          >
-            <option value="">Selecione um horário</option>
-
-            {horarios.map((horario) => (
-              <option
-                key={horario.id}
-                value={horario.id}
-                disabled={horariosSelecionados.includes(horario.id)}
-              >
-                {horario.diaSemana} das {horario.horaInicio} às {horario.horaFim}
-              </option>
-            ))}
-          </select>
-
           {horariosError && <p className="classes-load-error">{horariosError}</p>}
           {cadastroError && <p className="classes-load-error">{cadastroError}</p>}
 
-          <div>
-            {horariosSelecionados.map((id) => {
-              const horario = horarios.find((h) => h.id === id);
+          <div className="class-schedule">
+            <div className="class-week-grid">
+              <div className="class-hours-header">Horários</div>
+              {DIAS_SEMANA.map((dia) => (
+                <div key={dia} className="class-day-header">{dia}</div>
+              ))}
 
-              if (!horario) return null;
+              <div className="class-hours-column">
+                {HORARIOS_MODAL.map((hora) => (
+                  <div key={`hora-${hora}`} className="class-hour-label">{hora}</div>
+                ))}
+              </div>
 
-              return (
-                <div key={id}>
-                  <span>
-                    {horario.diaSemana} das {horario.horaInicio} às {horario.horaFim}
-                  </span>
+              {DIAS_SEMANA.map((dia) => (
+                <div key={dia} className="class-day-column">
+                  {HORARIOS_MODAL.map((hora) => {
+                    const opcoes = horariosPorSlot[`${dia}-${hora}`] || [];
+                    const horario = opcoes[0];
+                    const isSelected = opcoes.some((item) => horariosSelecionados.includes(item.id));
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setHorariosSelecionados((atual) =>
-                        atual.filter((horarioId) => horarioId !== id)
-                      );
-                    }}
-                  >
-                    Remover
-                  </button>
+                    return (
+                      <button
+                        key={`${dia}-${hora}`}
+                        type="button"
+                        className={`class-slot-cell ${horario ? 'filled' : 'empty'} ${isSelected ? 'selected' : ''}`}
+                        onClick={() => horario && alternarHorario(horario)}
+                        disabled={!horario}
+                      >
+                        {horario ? (
+                          <>
+                            <span>{normalizarHora(horario.horaInicio)} - {normalizarHora(horario.horaFim)}</span>
+                            <strong>{isSelected ? 'Selecionado' : 'Disponível'}</strong>
+                          </>
+                        ) : (
+                          <span>Horário não disponível</span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
 
         </Modal>
@@ -361,6 +447,7 @@ export default function Classes() {
           title="Editar Turma"
           onClose={fecharModalEdicao}
           onSave={salvarEdicao}
+          onDelete={excluirTurma}
         >
           <label>Nome:</label>
           <input

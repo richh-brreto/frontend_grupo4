@@ -31,3 +31,15 @@
   cursor: pointer;
   font-weight: 600;
 }
+
+.tab-button.danger {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fff;
+}
+
+.tab-button.danger:hover {
+  color: #fff;
+  border-color: #b91c1c;
+  background: #b91c1c;
+}
