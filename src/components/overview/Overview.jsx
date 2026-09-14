@@ -67,7 +67,7 @@ export default function Overview() {
         items={[
           { to: '/overview', label: 'Geral', short: 'Geral', active: true },
           { to: '/aulas', label: 'Agenda', short: 'AG' },
-          { to: '/dashboard1', label: 'Dashboard', short: 'Dash' },
+          { to: '/dashboard', label: 'Dashboard', short: 'Dash' },
           { to: '/professores', label: 'Professores', short: 'Prof' },
           { to: '/turmas', label: 'Turmas', short: 'Tur' },
           { to: '/alunos', label: 'Alunos', short: 'Alu' },
