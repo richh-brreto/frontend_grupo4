@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Swal from 'sweetalert2';
 import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
@@ -71,20 +72,32 @@ export default function Agenda() {
     ));
   };
 
-  const salvarAusencias = () => {
+  const salvarAusencias = async () => {
     if (!selectedAula) return;
 
     setAulas(aulasAtuais => aulasAtuais.map(aula => (
       aula.id === selectedAula.id ? { ...aula, ausencias: alunosAusentes } : aula
     )));
     fecharModalAusencia();
+    await Swal.fire({
+      icon: 'success',
+      title: 'Ausências salvas!',
+      text: 'A lista de ausências foi atualizada com sucesso.',
+      confirmButtonColor: '#0f1f3f'
+    });
   };
 
-  const cancelarAula = () => {
+  const cancelarAula = async () => {
     if (!selectedAula) return;
 
     setAulas(aulasAtuais => aulasAtuais.filter(aula => aula.id !== selectedAula.id));
     fecharModalEditar();
+    await Swal.fire({
+      icon: 'success',
+      title: 'Aula cancelada!',
+      text: 'A aula foi cancelada com sucesso.',
+      confirmButtonColor: '#0f1f3f'
+    });
   };
 
   const abrirModalRemarcar = () => {
@@ -94,6 +107,27 @@ export default function Agenda() {
 
   const fecharModalRemarcar = () => {
     setIsRescheduleModalOpen(false);
+  };
+
+  const salvarNovoEvento = async () => {
+    fecharModalAdicionar();
+    await Swal.fire({
+      icon: 'success',
+      title: 'Evento adicionado!',
+      text: 'O evento foi adicionado à agenda com sucesso.',
+      confirmButtonColor: '#0f1f3f'
+    });
+  };
+
+  const salvarRemarcacao = async () => {
+    fecharModalRemarcar();
+    setSelectedAula(null);
+    await Swal.fire({
+      icon: 'success',
+      title: 'Aula remarcada!',
+      text: 'A aula foi remarcada com sucesso.',
+      confirmButtonColor: '#0f1f3f'
+    });
   };
 
   useEffect(() => {
@@ -420,6 +454,7 @@ export default function Agenda() {
         <Modal
           title="Adicionar evento"
           onClose={fecharModalAdicionar}
+          onSave={salvarNovoEvento}
         >
           <label>Nome</label>
           <input type="text" placeholder="Nome" />
@@ -450,6 +485,7 @@ export default function Agenda() {
         <Modal
           title="Remarcar aula"
           onClose={fecharModalRemarcar}
+          onSave={salvarRemarcacao}
         >
           <label>Nome</label>
           <input type="text" placeholder="Nome" />
