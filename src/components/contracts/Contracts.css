@@ -343,6 +343,54 @@
   color: #5d6b87;
 }
 
+.contract-dates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 4px 0 8px;
+}
+
+.contract-date-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.contract-date-field span {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6d7a95;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.contract-date-field input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid #d8e2f2;
+  border-radius: 8px;
+  background: #f8fbff;
+  color: #0f1f3f;
+  font-size: 12px;
+  font-weight: 500;
+  height: auto;
+  line-height: 1.4;
+}
+
+.contract-date-field input:focus {
+  outline: none;
+  border-color: #1d4ed8;
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
+}
+
+@media (max-width: 640px) {
+  .contract-dates {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Layout do modal para agenda ocupar 80% */
 .modal-body:has(.mini-schedule) {
   display: flex;
@@ -358,7 +406,8 @@
   flex-shrink: 0;
 }
 
-.modal-body:has(.mini-schedule) .contract-type-options {
+.modal-body:has(.mini-schedule) .contract-type-options,
+.modal-body:has(.mini-schedule) .contract-dates {
   flex-shrink: 0;
 }
 

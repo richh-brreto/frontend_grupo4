@@ -8,6 +8,7 @@ import Container from '../layout/Container';
 import { alunosService } from '../students/components/alunosService';
 import { professoresDisponiveisService } from './professoresDisponiveisService';
 import { turmasDisponiveisService } from './turmasDisponiveisService';
+import { contratosService } from './contratosService';
 import '../agenda/Agenda.css';
 import './Contracts.css';
 
@@ -27,6 +28,15 @@ const DIA_SEMANA_MAP = {
 
 const normalizarDia = (diaSemana) => DIA_SEMANA_MAP[diaSemana] || diaSemana;
 const normalizarHora = (hora) => (hora ? hora.slice(0, 5) : hora);
+const dataHoje = () => new Date().toISOString().split('T')[0];
+
+// O ContratoResponse da API não envia "aluno.ativo"; determina a vigência pela data fim.
+const contratoEhAtivo = (contrato) => {
+  if (typeof contrato?.aluno?.ativo === 'boolean') return contrato.aluno.ativo;
+  const hoje = dataHoje();
+  return Boolean(contrato?.dataInicio && contrato?.dataFim) &&
+    hoje >= contrato.dataInicio && hoje <= contrato.dataFim;
+};
 
 export default function Contracts() {
   const location = useLocation();
@@ -36,6 +46,10 @@ export default function Contracts() {
   );
   const [selectedContract, setSelectedContract] = useState(null);
   const [contractToDelete, setContractToDelete] = useState(null);
+
+  const hoje = dataHoje();
+  const [dataInicioContrato, setDataInicioContrato] = useState(hoje);
+  const [dataFimContrato, setDataFimContrato] = useState(hoje);
 
   // horário selecionado no mini-calendário: { dia, hora, item }
   const [selectedSchedule, setSelectedSchedule] = useState(null);
@@ -54,44 +68,40 @@ export default function Contracts() {
   const [carregandoDisponibilidade, setCarregandoDisponibilidade] = useState(false);
   const [erroDisponibilidade, setErroDisponibilidade] = useState(null);
 
-  const [contratos, setContratos] = useState([
-    {
-      id: 0,
-      tipo: 'Mensal',
-      dataInicio: '2026-07-01',
-      dataFim: '2026-12-31',
-      turma: { id: 1, nome: 'Turma 10' },
-      professor: { id: 1, nome: 'Adriano Oliveira' },
-      aluno: { id: 1, nome: 'Adriano Oliveira', ativo: true },
-      horarios: []
-    },
-    {
-      id: 1,
-      tipo: 'Aula Avulsa',
-      dataInicio: '2026-07-10',
-      dataFim: '2026-07-10',
-      turma: { id: 2, nome: 'Turma 5' },
-      professor: { id: 2, nome: 'Maria Silva' },
-      aluno: { id: 2, nome: 'Maria Silva', ativo: false },
-      horarios: []
-    },
-    {
-      id: 2,
-      tipo: 'Mensal',
-      dataInicio: '2026-06-01',
-      dataFim: '2026-12-01',
-      turma: { id: 3, nome: 'Turma 8' },
-      professor: { id: 3, nome: 'Carlos Souza' },
-      aluno: { id: 3, nome: 'Carlos Souza', ativo: true },
-      horarios: []
-    }
-  ]);
+  const [contratos, setContratos] = useState([]);
+  const [carregandoContratos, setCarregandoContratos] = useState(true);
+  const [erroContratos, setErroContratos] = useState(null);
+  const [carregandoOperacao, setCarregandoOperacao] = useState(false);
 
+  // Carregar alunos
   useEffect(() => {
     alunosService.listar().then((alunosCarregados) => {
       setAlunos(alunosCarregados);
+    }).catch((erro) => {
+      console.error('Erro ao carregar alunos:', erro);
     });
   }, []);
+
+  // Carregar contratos da API
+  useEffect(() => {
+    carregarContratos();
+  }, []);
+
+  const carregarContratos = () => {
+    setCarregandoContratos(true);
+    setErroContratos(null);
+    contratosService.listar()
+      .then((dados) => {
+        setContratos(Array.isArray(dados) ? dados : []);
+      })
+      .catch((erro) => {
+        console.error('Erro ao carregar contratos:', erro);
+        setErroContratos(erro.message || 'Erro ao carregar contratos');
+      })
+      .finally(() => {
+        setCarregandoContratos(false);
+      });
+  };
 
   const alunoSelecionado = alunos.find(
     (aluno) => String(aluno.id) === alunoSelecionadoId
@@ -181,6 +191,65 @@ export default function Contracts() {
     setIsScheduleModalOpen(false);
     setSelectedSchedule(null);
     setOpenSlot(null);
+    setDataInicioContrato(dataHoje());
+    setDataFimContrato(dataHoje());
+  };
+
+  const salvarNovoContrato = async () => {
+    if (!alunoSelecionado || !selectedSchedule) {
+      alert('Por favor, selecione um aluno e um horário');
+      return;
+    }
+
+    if (!dataInicioContrato || !dataFimContrato) {
+      alert('Por favor, preencha as datas de início e fim do contrato');
+      return;
+    }
+
+    if (dataFimContrato < dataInicioContrato) {
+      alert('A data de fim deve ser maior ou igual à data de início');
+      return;
+    }
+
+    setCarregandoOperacao(true);
+    try {
+      // Payload de acordo com o contrato da API
+      const novoContrato = {
+        dataInicio: dataInicioContrato,
+        dataFim: dataFimContrato,
+        tipo: contractType === 'individual' ? 'individual' : 'group',
+        alunoId: parseInt(alunoSelecionado.id),
+        turmaId: 0,
+        professorId: 0,
+        horariosIds: [parseInt(selectedSchedule.item.horarioId)]
+      };
+
+      // Adicionar professor para contratos individuais ou turma para contratos em grupo
+      if (contractType === 'individual') {
+        novoContrato.professorId = parseInt(selectedSchedule.item.id);
+      } else {
+        novoContrato.turmaId = parseInt(selectedSchedule.item.id);
+      }
+
+      console.log('Enviando contrato:', novoContrato);
+
+      const contratoInfo = await contratosService.criar(novoContrato);
+      
+      console.log('Contrato criado:', contratoInfo);
+      
+      // Recarregar a lista de contratos
+      await carregarContratos();
+      
+      fecharModalAgendamento();
+      setAlunoSelecionadoId('');
+      setContractType('individual');
+      alert('Contrato criado com sucesso!');
+    } catch (erro) {
+      console.error('Erro ao criar contrato:', erro.response?.data || erro.message);
+      alert('Erro ao criar contrato: ' + (erro.response?.data?.message || erro.message || 'Tente novamente'));
+    } finally {
+      setCarregandoOperacao(false);
+    }
   };
 
   const trocarTipoContrato = (tipo) => {
@@ -209,9 +278,9 @@ export default function Contracts() {
   const abrirModalEdicao = (contrato) => {
     setSelectedContract({
       ...contrato,
-      turma: { ...contrato.turma },
-      professor: { ...contrato.professor },
-      aluno: { ...contrato.aluno }
+      turma: contrato.turma ? { ...contrato.turma } : null,
+      professor: contrato.professor ? { ...contrato.professor } : null,
+      aluno: contrato.aluno ? { ...contrato.aluno } : {}
     });
   };
 
@@ -220,23 +289,49 @@ export default function Contracts() {
   };
 
   const salvarEdicao = () => {
-    setContratos((items) =>
-      items.map((item) =>
-        item.id === selectedContract.id ? selectedContract : item
-      )
-    );
-    fecharModalEdicao();
+    if (!selectedContract.id) return;
+    
+    setCarregandoOperacao(true);
+    contratosService.atualizar(selectedContract.id, selectedContract)
+      .then((contratoAtualizado) => {
+        setContratos((items) =>
+          items.map((item) =>
+            item.id === contratoAtualizado.id ? contratoAtualizado : item
+          )
+        );
+        fecharModalEdicao();
+      })
+      .catch((erro) => {
+        console.error('Erro ao atualizar contrato:', erro);
+        alert('Erro ao atualizar contrato: ' + (erro.message || 'Tente novamente'));
+      })
+      .finally(() => {
+        setCarregandoOperacao(false);
+      });
   };
 
   const excluirContrato = () => {
-    setContratos((items) =>
-      items.filter((item) => item.id !== contractToDelete.id)
-    );
-    setContractToDelete(null);
+    if (!contractToDelete?.id) return;
+    
+    setCarregandoOperacao(true);
+    contratosService.deletar(contractToDelete.id)
+      .then(() => {
+        setContratos((items) =>
+          items.filter((item) => item.id !== contractToDelete.id)
+        );
+        setContractToDelete(null);
+      })
+      .catch((erro) => {
+        console.error('Erro ao deletar contrato:', erro);
+        alert('Erro ao deletar contrato: ' + (erro.message || 'Tente novamente'));
+      })
+      .finally(() => {
+        setCarregandoOperacao(false);
+      });
   };
 
   const contratosFiltrados = contratos.filter((contrato) =>
-    contractFilter === 'ativos' ? contrato.aluno.ativo : !contrato.aluno.ativo
+    contractFilter === 'ativos' ? contratoEhAtivo(contrato) : !contratoEhAtivo(contrato)
   );
 
   return (
@@ -279,34 +374,45 @@ export default function Contracts() {
           </div>
 
           <div className="agenda-frame">
-            <Container
-              items={contratosFiltrados}
-              className="contracts-grid"
-              getItemKey={(contrato) => contrato.id}
-              renderItem={(contrato) => (
-                <article className="contract-card">
-                  <div className="contract-card-head">
-                    <div>
-                      <p className="contract-eyebrow">Contrato {contrato.id + 1}</p>
-                      <h3>{contrato.tipo}</h3>
-                    </div>
-                    <span className={`contract-status-pill ${contrato.aluno.ativo ? 'ativo' : 'inativo'}`}>
-                      {contrato.aluno.ativo ? 'Ativo' : 'Inativo'}
+            {carregandoContratos && (
+              <p style={{ padding: '20px', textAlign: 'center', color: '#999' }}>
+                Carregando contratos...
+              </p>
+            )}
+            {erroContratos && (
+              <p style={{ padding: '20px', textAlign: 'center', color: '#d00' }}>
+                Erro ao carregar contratos: {erroContratos}
+              </p>
+            )}
+            {!carregandoContratos && !erroContratos && (
+              <Container
+                items={contratosFiltrados}
+                className="contracts-grid"
+                getItemKey={(contrato) => contrato.id}
+                renderItem={(contrato) => (
+                  <article className="contract-card">
+                    <div className="contract-card-head">
+                      <div>
+                        <p className="contract-eyebrow">Contrato {contrato.id + 1}</p>
+                        <h3>{contrato.tipo}</h3>
+                      </div>
+                      <span className={`contract-status-pill ${contratoEhAtivo(contrato) ? 'ativo' : 'inativo'}`}>
+                      {contratoEhAtivo(contrato) ? 'Ativo' : 'Inativo'}
                     </span>
                   </div>
 
                   <div className="contract-meta">
                     <div>
                       <span>Turma</span>
-                      <strong>{contrato.turma.nome}</strong>
+                      <strong>{contrato.turma?.nome || '—'}</strong>
                     </div>
                     <div>
                       <span>Aluno</span>
-                      <strong>{contrato.aluno.nome}</strong>
+                      <strong>{contrato.aluno?.nome || '—'}</strong>
                     </div>
                     <div>
                       <span>Professor</span>
-                      <strong>{contrato.professor.nome}</strong>
+                      <strong>{contrato.professor?.nome || '—'}</strong>
                     </div>
                     <div>
                       <span>Vigência</span>
@@ -321,6 +427,7 @@ export default function Contracts() {
                 </article>
               )}
             />
+            )}
           </div>
         </div>
       </main>
@@ -329,7 +436,7 @@ export default function Contracts() {
         <Modal
           title="Configurar contrato"
           onClose={fecharModalAgendamento}
-          onSave={fecharModalAgendamento}
+          onSave={salvarNovoContrato}
           saveLabel="Continuar"
         >
           <label htmlFor="contract-student">Aluno:</label>
@@ -374,6 +481,33 @@ export default function Contracts() {
                 onChange={() => trocarTipoContrato('group')}
               />
               <span>Aulas em grupo</span>
+            </label>
+          </div>
+
+          <div className="contract-dates">
+            <label className="contract-date-field">
+              <span>Data início:</span>
+              <input
+                type="date"
+                value={dataInicioContrato}
+                min={dataHoje()}
+                onChange={(event) => {
+                  setDataInicioContrato(event.target.value);
+                  if (dataFimContrato < event.target.value) {
+                    setDataFimContrato(event.target.value);
+                  }
+                }}
+              />
+            </label>
+
+            <label className="contract-date-field">
+              <span>Data fim:</span>
+              <input
+                type="date"
+                value={dataFimContrato}
+                min={dataInicioContrato}
+                onChange={(event) => setDataFimContrato(event.target.value)}
+              />
             </label>
           </div>
 
@@ -486,7 +620,7 @@ export default function Contracts() {
           <label>Aluno:</label>
           <input
             type="text"
-            value={selectedContract.aluno.nome}
+            value={selectedContract.aluno?.nome || ''}
             onChange={(event) =>
               setSelectedContract((contrato) => ({
                 ...contrato,
@@ -498,7 +632,7 @@ export default function Contracts() {
           <label>Professor:</label>
           <input
             type="text"
-            value={selectedContract.professor.nome}
+            value={selectedContract.professor?.nome || ''}
             onChange={(event) =>
               setSelectedContract((contrato) => ({
                 ...contrato,

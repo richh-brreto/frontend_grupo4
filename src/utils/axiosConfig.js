@@ -1,18 +1,29 @@
-
-"USAR SEMPRE EM TODAS PAGINAS QUE PRECISAM DE AUTENTICAÇÃO!! ELE MANDA PRO LOGIN DNV QUANDO A SESSÃO EXPIRA"
-
-"import axios from '.../utils/axiosConfig';  basta dar esse import"
-
 import axios from 'axios';
 
 axios.defaults.baseURL = "http://localhost:8080";
 axios.defaults.withCredentials = true;
 
+// Carregar token salvo ao inicializar
 const savedToken = localStorage.getItem("authToken");
 if (savedToken) {
   axios.defaults.headers.common["Authorization"] = `Bearer ${savedToken}`;
 }
 
+// Interceptor para adicionar token em cada requisição
+axios.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Interceptor para tratamento de erros
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
