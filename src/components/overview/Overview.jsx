@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Swal from 'sweetalert2';
 import Sidebar from '../layout/Sidebar';
 import Button from "../layout/Button";
 import ButtonContainer from "../layout/ButtonContainer";
@@ -10,6 +11,7 @@ export default function Overview() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
+  const [novoComunicado, setNovoComunicado] = useState({ titulo: '', texto: '' });
   const [comunicados, setComunicados] = useState([
     {
       titulo: 'Atualização de calendário',
@@ -34,6 +36,28 @@ export default function Overview() {
 
   const fecharModalAdicionar = () => {
     setIsAddModalOpen(false);
+    setNovoComunicado({ titulo: '', texto: '' });
+  };
+
+  const salvarNovoComunicado = async () => {
+    if (!novoComunicado.titulo.trim() || !novoComunicado.texto.trim()) {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Preencha os dados',
+        text: 'Informe o título e o texto do comunicado.',
+        confirmButtonColor: '#0f1f3f'
+      });
+      return;
+    }
+
+    setComunicados((items) => [...items, { ...novoComunicado, data: 'Agora' }]);
+    fecharModalAdicionar();
+    await Swal.fire({
+      icon: 'success',
+      title: 'Comunicado cadastrado!',
+      text: 'O comunicado foi cadastrado com sucesso.',
+      confirmButtonColor: '#0f1f3f'
+    });
   };
 
   const abrirModalEdicao = (index) => {
@@ -44,7 +68,7 @@ export default function Overview() {
     setSelectedAnnouncement(null);
   };
 
-  const salvarEdicao = () => {
+  const salvarEdicao = async () => {
     setComunicados((items) =>
       items.map((item, index) =>
         index === selectedAnnouncement.index
@@ -57,6 +81,36 @@ export default function Overview() {
       )
     );
     fecharModalEdicao();
+    await Swal.fire({
+      icon: 'success',
+      title: 'Comunicado atualizado!',
+      text: 'As alterações foram salvas com sucesso.',
+      confirmButtonColor: '#0f1f3f'
+    });
+  };
+
+  const excluirComunicado = async () => {
+    const resultado = await Swal.fire({
+      icon: 'warning',
+      title: 'Excluir comunicado?',
+      text: `Tem certeza que deseja excluir o comunicado "${selectedAnnouncement.titulo}"? Essa ação não pode ser desfeita.`,
+      showCancelButton: true,
+      confirmButtonText: 'Sim, excluir',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#b91c1c',
+      cancelButtonColor: '#64748b'
+    });
+
+    if (!resultado.isConfirmed) return;
+
+    setComunicados((items) => items.filter((_, index) => index !== selectedAnnouncement.index));
+    fecharModalEdicao();
+    await Swal.fire({
+      icon: 'success',
+      title: 'Comunicado excluído!',
+      text: 'O comunicado foi removido com sucesso.',
+      confirmButtonColor: '#0f1f3f'
+    });
   };
 
   return (
@@ -109,12 +163,23 @@ export default function Overview() {
         <Modal
           title="Adicionar Comunicado"
           onClose={fecharModalAdicionar}
+          onSave={salvarNovoComunicado}
         >
           <label>Título:</label>
-          <input type="text" placeholder="Título" />
+          <input
+            type="text"
+            placeholder="Título"
+            value={novoComunicado.titulo}
+            onChange={(event) => setNovoComunicado((item) => ({ ...item, titulo: event.target.value }))}
+          />
 
           <label>Texto:</label>
-          <input type="text" placeholder="Texto" />
+          <input
+            type="text"
+            placeholder="Texto"
+            value={novoComunicado.texto}
+            onChange={(event) => setNovoComunicado((item) => ({ ...item, texto: event.target.value }))}
+          />
 
           <Button>Adicionar imagem</Button>
         </Modal>
@@ -125,6 +190,7 @@ export default function Overview() {
           title="Editar Comunicado"
           onClose={fecharModalEdicao}
           onSave={salvarEdicao}
+          onDelete={excluirComunicado}
         >
           <label>Título:</label>
           <input
