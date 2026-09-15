@@ -2,7 +2,7 @@ import React from 'react';
 import Button from '../../layout/Button';
 import ButtonContainer from '../../layout/ButtonContainer';
 
-export default function ProfessorCard({ professor, onEditar, onVerPerfil, onExcluir, onAlternarStatus }) {
+export default function ProfessorCard({ professor, onEditar, onVerPerfil, onAlternarStatus }) {
   const iniciais = professor.nome
     .split(' ')
     .map((n) => n[0])
@@ -46,7 +46,6 @@ export default function ProfessorCard({ professor, onEditar, onVerPerfil, onExcl
         <Button onClick={() => onAlternarStatus(professor)}>
           {professor.ativo ? 'Inativar' : 'Reativar'}
         </Button>
-        <Button onClick={() => onExcluir(professor)}>Excluir</Button>
       </ButtonContainer>
     </article>
   );

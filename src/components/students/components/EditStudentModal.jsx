@@ -3,9 +3,9 @@ import Modal from '../../layout/Modal';
 
 const NIVEIS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
-export default function EditStudentModal({ aluno, onClose, onSave, onChange }) {
+export default function EditStudentModal({ aluno, onClose, onSave, onChange, onDelete }) {
   return (
-    <Modal title="Editar Aluno" onClose={onClose} onSave={onSave}>
+    <Modal title="Editar Aluno" onClose={onClose} onSave={onSave} onDelete={onDelete}>
       <label>Nome:</label>
       <input
         type="text"

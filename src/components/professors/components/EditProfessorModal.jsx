@@ -1,9 +1,9 @@
 import React from 'react';
 import Modal from '../../layout/Modal';
 
-export default function EditProfessorModal({ professor, onClose, onSave, onChange }) {
+export default function EditProfessorModal({ professor, onClose, onSave, onChange, onDelete }) {
   return (
-    <Modal title="Editar Professor" onClose={onClose} onSave={onSave}>
+    <Modal title="Editar Professor" onClose={onClose} onSave={onSave} onDelete={onDelete}>
       <label>Nome:</label>
       <input
         type="text"

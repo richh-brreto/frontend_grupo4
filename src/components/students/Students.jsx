@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
 import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
@@ -9,7 +10,6 @@ import StudentCard from './components/StudentCard';
 import AddStudentModal from './components/AddStudentModal';
 import EditStudentModal from './components/EditStudentModal';
 import ScheduleModal from './components/ScheduleModal';
-import DeleteConfirmModal from './components/DeleteConfirmModal';
 import '../agenda/Agenda.css';
 import './Students.css';
 
@@ -25,7 +25,6 @@ export default function Students() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [studentSchedule, setStudentSchedule] = useState(null);
-  const [alunoParaExcluir, setAlunoParaExcluir] = useState(null);
   const [busca, setBusca] = useState('');
 
   const {
@@ -43,8 +42,10 @@ export default function Students() {
   if (loading) return <p>Carregando alunos...</p>;
   if (error) return <p>Erro ao carregar alunos: {error}</p>;
 
-  const salvarNovoAluno = (novoAluno) =>
-    adicionarAluno(novoAluno).then((alunoCriado) => {
+  const salvarNovoAluno = async (novoAluno) => {
+    try {
+      const alunoCriado = await adicionarAluno(novoAluno);
+      await Swal.fire({ icon: 'success', title: 'Aluno cadastrado!', text: 'O aluno foi cadastrado com sucesso.', confirmButtonColor: '#0f1f3f' });
       setIsAddModalOpen(false);
       navigate('/contratos', {
         replace: true,
@@ -54,7 +55,33 @@ export default function Students() {
         },
       });
       return alunoCriado;
-    });
+    } catch (error) {
+      await Swal.fire({ icon: 'error', title: 'Não foi possível cadastrar', text: error.message || 'Tente novamente.', confirmButtonColor: '#0f1f3f' });
+      throw error;
+    }
+  };
+
+  const salvarEdicaoAluno = async () => {
+    try {
+      await editarAluno(selectedStudent);
+      setSelectedStudent(null);
+      await Swal.fire({ icon: 'success', title: 'Aluno atualizado!', text: 'As alterações foram salvas com sucesso.', confirmButtonColor: '#0f1f3f' });
+    } catch (error) {
+      await Swal.fire({ icon: 'error', title: 'Não foi possível salvar', text: error.message || 'Tente novamente.', confirmButtonColor: '#0f1f3f' });
+    }
+  };
+
+  const excluirAlunoComConfirmacao = async () => {
+    const resultado = await Swal.fire({ icon: 'warning', title: 'Excluir aluno?', text: `Tem certeza que deseja excluir o aluno "${selectedStudent.nome}"? Essa ação não pode ser desfeita.`, showCancelButton: true, confirmButtonText: 'Sim, excluir', cancelButtonText: 'Cancelar', confirmButtonColor: '#b91c1c', cancelButtonColor: '#64748b' });
+    if (!resultado.isConfirmed) return;
+    try {
+      await excluirAluno(selectedStudent.id);
+      setSelectedStudent(null);
+      await Swal.fire({ icon: 'success', title: 'Aluno excluído!', text: 'O aluno foi removido com sucesso.', confirmButtonColor: '#0f1f3f' });
+    } catch (error) {
+      await Swal.fire({ icon: 'error', title: 'Não foi possível excluir', text: error.message || 'Tente novamente.', confirmButtonColor: '#0f1f3f' });
+    }
+  };
 
   const buscaNormalizada = normalizar(busca.trim());
   const alunosFiltrados = buscaNormalizada
@@ -111,7 +138,6 @@ export default function Students() {
                   aluno={aluno}
                   onEditar={setSelectedStudent}
                   onVerHorarios={setStudentSchedule}
-                  onExcluir={setAlunoParaExcluir}
                   onAlternarStatus={alternarStatus}
                 />
               )}
@@ -132,7 +158,8 @@ export default function Students() {
           aluno={selectedStudent}
           onChange={setSelectedStudent}
           onClose={() => setSelectedStudent(null)}
-          onSave={() => editarAluno(selectedStudent).then(() => setSelectedStudent(null))}
+          onSave={salvarEdicaoAluno}
+          onDelete={excluirAlunoComConfirmacao}
         />
       )}
 
@@ -140,15 +167,6 @@ export default function Students() {
         <ScheduleModal aluno={studentSchedule} onClose={() => setStudentSchedule(null)} />
       )}
 
-      {alunoParaExcluir && (
-        <DeleteConfirmModal
-          aluno={alunoParaExcluir}
-          onClose={() => setAlunoParaExcluir(null)}
-          onConfirm={() =>
-            excluirAluno(alunoParaExcluir.id).then(() => setAlunoParaExcluir(null))
-          }
-        />
-      )}
     </div>
   );
 }

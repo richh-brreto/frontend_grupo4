@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import Swal from 'sweetalert2';
 import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
@@ -45,7 +46,6 @@ export default function Contracts() {
     () => Boolean(location.state?.openContractSetup)
   );
   const [selectedContract, setSelectedContract] = useState(null);
-  const [contractToDelete, setContractToDelete] = useState(null);
 
   const hoje = dataHoje();
   const [dataInicioContrato, setDataInicioContrato] = useState(hoje);
@@ -243,10 +243,10 @@ export default function Contracts() {
       fecharModalAgendamento();
       setAlunoSelecionadoId('');
       setContractType('individual');
-      alert('Contrato criado com sucesso!');
+      await Swal.fire({ icon: 'success', title: 'Contrato criado!', text: 'O contrato foi cadastrado com sucesso.', confirmButtonColor: '#0f1f3f' });
     } catch (erro) {
       console.error('Erro ao criar contrato:', erro.response?.data || erro.message);
-      alert('Erro ao criar contrato: ' + (erro.response?.data?.message || erro.message || 'Tente novamente'));
+      await Swal.fire({ icon: 'error', title: 'Não foi possível cadastrar', text: erro.response?.data?.message || erro.message || 'Tente novamente', confirmButtonColor: '#0f1f3f' });
     } finally {
       setCarregandoOperacao(false);
     }
@@ -288,46 +288,41 @@ export default function Contracts() {
     setSelectedContract(null);
   };
 
-  const salvarEdicao = () => {
+  const salvarEdicao = async () => {
     if (!selectedContract.id) return;
-    
+
     setCarregandoOperacao(true);
-    contratosService.atualizar(selectedContract.id, selectedContract)
-      .then((contratoAtualizado) => {
-        setContratos((items) =>
-          items.map((item) =>
-            item.id === contratoAtualizado.id ? contratoAtualizado : item
-          )
-        );
-        fecharModalEdicao();
-      })
-      .catch((erro) => {
-        console.error('Erro ao atualizar contrato:', erro);
-        alert('Erro ao atualizar contrato: ' + (erro.message || 'Tente novamente'));
-      })
-      .finally(() => {
-        setCarregandoOperacao(false);
-      });
+    try {
+      const contratoAtualizado = await contratosService.atualizar(selectedContract.id, selectedContract);
+      setContratos((items) => items.map((item) => item.id === contratoAtualizado.id ? contratoAtualizado : item));
+      fecharModalEdicao();
+      await Swal.fire({ icon: 'success', title: 'Contrato atualizado!', text: 'As alterações foram salvas com sucesso.', confirmButtonColor: '#0f1f3f' });
+    } catch (erro) {
+      console.error('Erro ao atualizar contrato:', erro);
+      await Swal.fire({ icon: 'error', title: 'Não foi possível salvar', text: erro.response?.data?.message || erro.message || 'Tente novamente.', confirmButtonColor: '#0f1f3f' });
+    } finally {
+      setCarregandoOperacao(false);
+    }
   };
 
-  const excluirContrato = () => {
-    if (!contractToDelete?.id) return;
-    
+  const excluirContrato = async () => {
+    if (!selectedContract?.id) return;
+
+    const resultado = await Swal.fire({ icon: 'warning', title: 'Excluir contrato?', text: `Tem certeza que deseja excluir o contrato do aluno "${selectedContract.aluno?.nome || 'selecionado'}"? Essa ação não pode ser desfeita.`, showCancelButton: true, confirmButtonText: 'Sim, excluir', cancelButtonText: 'Cancelar', confirmButtonColor: '#b91c1c', cancelButtonColor: '#64748b' });
+    if (!resultado.isConfirmed) return;
+
     setCarregandoOperacao(true);
-    contratosService.deletar(contractToDelete.id)
-      .then(() => {
-        setContratos((items) =>
-          items.filter((item) => item.id !== contractToDelete.id)
-        );
-        setContractToDelete(null);
-      })
-      .catch((erro) => {
-        console.error('Erro ao deletar contrato:', erro);
-        alert('Erro ao deletar contrato: ' + (erro.message || 'Tente novamente'));
-      })
-      .finally(() => {
-        setCarregandoOperacao(false);
-      });
+    try {
+      await contratosService.deletar(selectedContract.id);
+      setContratos((items) => items.filter((item) => item.id !== selectedContract.id));
+      fecharModalEdicao();
+      await Swal.fire({ icon: 'success', title: 'Contrato excluído!', text: 'O contrato foi removido com sucesso.', confirmButtonColor: '#0f1f3f' });
+    } catch (erro) {
+      console.error('Erro ao deletar contrato:', erro);
+      await Swal.fire({ icon: 'error', title: 'Não foi possível excluir', text: erro.response?.data?.message || erro.message || 'Tente novamente.', confirmButtonColor: '#0f1f3f' });
+    } finally {
+      setCarregandoOperacao(false);
+    }
   };
 
   const contratosFiltrados = contratos.filter((contrato) =>
@@ -422,7 +417,6 @@ export default function Contracts() {
 
                   <ButtonContainer>
                     <Button active onClick={() => abrirModalEdicao(contrato)}>Editar</Button>
-                    <Button onClick={() => setContractToDelete(contrato)}>Excluir</Button>
                   </ButtonContainer>
                 </article>
               )}
@@ -607,6 +601,7 @@ export default function Contracts() {
           title="Editar Contrato"
           onClose={fecharModalEdicao}
           onSave={salvarEdicao}
+          onDelete={excluirContrato}
         >
           <label>Tipo:</label>
           <input
@@ -658,19 +653,6 @@ export default function Contracts() {
               setSelectedContract((contrato) => ({ ...contrato, dataFim: event.target.value }))
             }
           />
-        </Modal>
-      )}
-
-      {contractToDelete && (
-        <Modal
-          title="Excluir Contrato"
-          onClose={() => setContractToDelete(null)}
-          onSave={excluirContrato}
-        >
-          <p>
-            Tem certeza que deseja excluir o contrato de{' '}
-            <strong>{contractToDelete.aluno.nome}</strong>?
-          </p>
         </Modal>
       )}
 

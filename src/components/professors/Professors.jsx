@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Swal from 'sweetalert2';
 import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
@@ -8,7 +9,6 @@ import ProfessorCard from './components/ProfessorCard';
 import AddProfessorModal from './components/AddProfessorModal';
 import EditProfessorModal from './components/EditProfessorModal';
 import ProfessorProfileModal from './components/ProfessorProfileModal';
-import DeleteConfirmModal from './components/DeleteConfirmModal';
 import '../agenda/Agenda.css';
 import './Professors.css';
 
@@ -23,7 +23,6 @@ export default function Professors() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedProfessor, setSelectedProfessor] = useState(null);
   const [professorProfile, setProfessorProfile] = useState(null);
-  const [professorParaExcluir, setProfessorParaExcluir] = useState(null);
   const [busca, setBusca] = useState('');
 
   const {
@@ -47,7 +46,39 @@ export default function Professors() {
     : professores;
 
   const abrirModalEdicao = (professor) => {
-    setSelectedProfessor({ ...professor, idTipoProfessor: professor.tipo?.id ?? '' });
+    setSelectedProfessor({ ...professor, idTipoProfessor: professor.tipo?.id ?? professor.idTipoProfessor ?? '' });
+  };
+
+  const salvarNovoProfessor = async (professor) => {
+    try {
+      await adicionarProfessor(professor);
+      await Swal.fire({ icon: 'success', title: 'Professor cadastrado!', text: 'O professor foi cadastrado com sucesso.', confirmButtonColor: '#0f1f3f' });
+    } catch (error) {
+      await Swal.fire({ icon: 'error', title: 'Não foi possível cadastrar', text: error.message || 'Tente novamente.', confirmButtonColor: '#0f1f3f' });
+      throw error;
+    }
+  };
+
+  const salvarEdicaoProfessor = async () => {
+    try {
+      await editarProfessor(selectedProfessor);
+      setSelectedProfessor(null);
+      await Swal.fire({ icon: 'success', title: 'Professor atualizado!', text: 'As alterações foram salvas com sucesso.', confirmButtonColor: '#0f1f3f' });
+    } catch (error) {
+      await Swal.fire({ icon: 'error', title: 'Não foi possível salvar', text: error.response?.data?.message || error.message || 'Tente novamente.', confirmButtonColor: '#0f1f3f' });
+    }
+  };
+
+  const excluirProfessorComConfirmacao = async () => {
+    const resultado = await Swal.fire({ icon: 'warning', title: 'Excluir professor?', text: `Tem certeza que deseja excluir o professor "${selectedProfessor.nome}"? Essa ação não pode ser desfeita.`, showCancelButton: true, confirmButtonText: 'Sim, excluir', cancelButtonText: 'Cancelar', confirmButtonColor: '#b91c1c', cancelButtonColor: '#64748b' });
+    if (!resultado.isConfirmed) return;
+    try {
+      await excluirProfessor(selectedProfessor.id);
+      setSelectedProfessor(null);
+      await Swal.fire({ icon: 'success', title: 'Professor excluído!', text: 'O professor foi removido com sucesso.', confirmButtonColor: '#0f1f3f' });
+    } catch (error) {
+      await Swal.fire({ icon: 'error', title: 'Não foi possível excluir', text: error.message || 'Tente novamente.', confirmButtonColor: '#0f1f3f' });
+    }
   };
 
   return (
@@ -100,7 +131,6 @@ export default function Professors() {
                   professor={professor}
                   onEditar={abrirModalEdicao}
                   onVerPerfil={setProfessorProfile}
-                  onExcluir={setProfessorParaExcluir}
                   onAlternarStatus={alternarStatus}
                 />
               )}
@@ -112,7 +142,7 @@ export default function Professors() {
       {isAddModalOpen && (
         <AddProfessorModal
           onClose={() => setIsAddModalOpen(false)}
-          onSave={adicionarProfessor}
+          onSave={salvarNovoProfessor}
         />
       )}
 
@@ -121,7 +151,8 @@ export default function Professors() {
           professor={selectedProfessor}
           onChange={setSelectedProfessor}
           onClose={() => setSelectedProfessor(null)}
-          onSave={() => editarProfessor(selectedProfessor).then(() => setSelectedProfessor(null))}
+          onSave={salvarEdicaoProfessor}
+          onDelete={excluirProfessorComConfirmacao}
         />
       )}
 
@@ -129,15 +160,6 @@ export default function Professors() {
         <ProfessorProfileModal professor={professorProfile} onClose={() => setProfessorProfile(null)} />
       )}
 
-      {professorParaExcluir && (
-        <DeleteConfirmModal
-          professor={professorParaExcluir}
-          onClose={() => setProfessorParaExcluir(null)}
-          onConfirm={() =>
-            excluirProfessor(professorParaExcluir.id).then(() => setProfessorParaExcluir(null))
-          }
-        />
-      )}
     </div>
   );
 }

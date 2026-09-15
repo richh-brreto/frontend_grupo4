@@ -1,7 +1,7 @@
 import Button from '../../layout/Button';
 import ButtonContainer from '../../layout/ButtonContainer';
 
-export default function StudentCard({ aluno, onEditar, onVerHorarios, onExcluir, onAlternarStatus }) {
+export default function StudentCard({ aluno, onEditar, onVerHorarios, onAlternarStatus }) {
   const iniciais = aluno.nome
     .split(' ')
     .map((n) => n[0])
@@ -41,7 +41,6 @@ export default function StudentCard({ aluno, onEditar, onVerHorarios, onExcluir,
         <Button onClick={() => onAlternarStatus(aluno)}>
           {aluno.ativo ? 'Inativar' : 'Reativar'}
         </Button>
-        <Button onClick={() => onExcluir(aluno)}>Excluir</Button>
       </ButtonContainer>
     </article>
   );
