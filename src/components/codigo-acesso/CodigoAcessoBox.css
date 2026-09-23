@@ -1,0 +1,35 @@
+.codigo-access-box {
+  display: grid;
+  gap: 6px;
+}
+
+.codigo-access-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.codigo-access-row input {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.codigo-access-copy {
+  padding: 12px 16px;
+  border: 1px solid #0f1f3f;
+  border-radius: 12px;
+  background: #0f1f3f;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s;
+}
+
+.codigo-access-copy:hover {
+  background: #1e3a8a;
+}

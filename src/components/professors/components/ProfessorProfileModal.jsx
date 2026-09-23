@@ -1,5 +1,5 @@
-import React from 'react';
 import Modal from '../../layout/Modal';
+import CodigoAcessoBox from '../../codigo-acesso/CodigoAcessoBox';
 
 const cortarSegundos = (hora) => (hora ? hora.slice(0, 5) : '');
 
@@ -25,6 +25,14 @@ export default function ProfessorProfileModal({ professor, onClose }) {
 
       <label>Situação:</label>
       <input type="text" value={professor.ativo ? 'Ativo' : 'Inativo'} readOnly />
+
+      <label>Status de acesso:</label>
+      <input
+        type="text"
+        value={professor.senhaDefinida ? 'Senha configurada' : 'Primeiro acesso pendente'}
+        readOnly
+      />
+      <CodigoAcessoBox codigoAcesso={professor.codigoAcesso} senhaDefinida={professor.senhaDefinida} />
 
       <label>Total de horários: {horarios.length}</label>
       {horarios.length > 0 ? (

@@ -10,6 +10,7 @@ import StudentCard from './components/StudentCard';
 import AddStudentModal from './components/AddStudentModal';
 import EditStudentModal from './components/EditStudentModal';
 import ScheduleModal from './components/ScheduleModal';
+import mostrarCodigoAcesso from '../../utils/mostrarCodigoAcesso';
 import '../agenda/Agenda.css';
 import './Students.css';
 
@@ -45,6 +46,10 @@ export default function Students() {
   const salvarNovoAluno = async (novoAluno) => {
     try {
       const alunoCriado = await adicionarAluno(novoAluno);
+      await mostrarCodigoAcesso({
+        nome: alunoCriado.nome,
+        codigoAcesso: alunoCriado.codigoAcesso,
+      });
       await Swal.fire({ icon: 'success', title: 'Aluno cadastrado!', text: 'O aluno foi cadastrado com sucesso.', confirmButtonColor: '#0f1f3f' });
       setIsAddModalOpen(false);
       navigate('/contratos', {

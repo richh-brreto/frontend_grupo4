@@ -67,6 +67,32 @@
   color: #b91c1c;
 }
 
+.student-card-badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.student-access-pill {
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.student-access-pill.pendente {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.student-access-pill.configurado {
+  background: #dcfce7;
+  color: #15803d;
+}
+
 .student-meta {
   display: grid;
   gap: 10px;

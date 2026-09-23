@@ -1,0 +1,82 @@
+.page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #152048;
+}
+
+.first-access-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #152048;
+}
+
+.logo {
+    width: 450px;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 360px;
+    padding: 32px 28px;
+    background-color: #F0F4F8;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+}
+
+.first-access-card {
+    padding: 32px 28px;
+}
+
+.first-access-title {
+    margin: 0;
+    color: #0f1f3f;
+    font-size: 24px;
+    text-align: center;
+}
+
+.first-access-subtitle {
+    margin: 6px 0 0;
+    color: #64748b;
+    font-size: 14px;
+    line-height: 1.4;
+    text-align: center;
+}
+
+.first-access-error {
+    margin: 0;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: #fde7e7;
+    color: #b91c1c;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.first-access-login-link {
+    text-align: center;
+    font-size: 14px;
+    color: #64748b;
+}
+
+.first-access-login-link a {
+    color: #4f46e5;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.first-access-login-link a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 560px) {
+    .logo {
+        width: 280px;
+    }
+}

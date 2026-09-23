@@ -21,3 +21,19 @@
     border-radius: 12px;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
 }
+
+.login-first-access-link {
+    text-align: center;
+    font-size: 14px;
+    color: #64748b;
+}
+
+.login-first-access-link a {
+    color: #4f46e5;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.login-first-access-link a:hover {
+    text-decoration: underline;
+}

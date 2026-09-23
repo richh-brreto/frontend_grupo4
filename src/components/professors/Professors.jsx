@@ -9,6 +9,7 @@ import ProfessorCard from './components/ProfessorCard';
 import AddProfessorModal from './components/AddProfessorModal';
 import EditProfessorModal from './components/EditProfessorModal';
 import ProfessorProfileModal from './components/ProfessorProfileModal';
+import mostrarCodigoAcesso from '../../utils/mostrarCodigoAcesso';
 import '../agenda/Agenda.css';
 import './Professors.css';
 
@@ -51,7 +52,11 @@ export default function Professors() {
 
   const salvarNovoProfessor = async (professor) => {
     try {
-      await adicionarProfessor(professor);
+      const professorCriado = await adicionarProfessor(professor);
+      await mostrarCodigoAcesso({
+        nome: professorCriado.nome,
+        codigoAcesso: professorCriado.codigoAcesso,
+      });
       await Swal.fire({ icon: 'success', title: 'Professor cadastrado!', text: 'O professor foi cadastrado com sucesso.', confirmButtonColor: '#0f1f3f' });
     } catch (error) {
       await Swal.fire({ icon: 'error', title: 'Não foi possível cadastrar', text: error.message || 'Tente novamente.', confirmButtonColor: '#0f1f3f' });

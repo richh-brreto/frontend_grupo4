@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Modal from '../../layout/Modal';
 import ProfessorScheduleModal from './ProfessorScheduleModal';
 
@@ -6,7 +6,6 @@ const ESTADO_INICIAL = {
   nome: '',
   email: '',
   telefone: '',
-  senha: '',
   idTipoProfessor: '',
 };
 
@@ -29,7 +28,6 @@ export default function AddProfessorModal({ onClose, onSave }) {
       nome: form.nome,
       email: form.email,
       telefone: form.telefone,
-      senha: form.senha,
       idTipoProfessor: Number(form.idTipoProfessor),
       horariosIds,
     };
@@ -65,9 +63,6 @@ export default function AddProfessorModal({ onClose, onSave }) {
 
       <label>Telefone:</label>
       <input type="text" placeholder="Telefone" value={form.telefone} onChange={atualizarCampo('telefone')} />
-
-      <label>Senha:</label>
-      <input type="password" placeholder="Senha" value={form.senha} onChange={atualizarCampo('senha')} />
 
       <label>ID do tipo de professor:</label>
       <input

@@ -1,5 +1,5 @@
-import React from 'react';
 import Modal from '../../layout/Modal';
+import CodigoAcessoBox from '../../codigo-acesso/CodigoAcessoBox';
 
 const cortarSegundos = (hora) => (hora ? hora.slice(0, 5) : '');
 
@@ -16,6 +16,14 @@ export default function ScheduleModal({ aluno, onClose }) {
 
       <label>Nível:</label>
       <input type="text" value={aluno.nivel ?? '-'} readOnly />
+
+      <label>Status de acesso:</label>
+      <input
+        type="text"
+        value={aluno.senhaDefinida ? 'Senha configurada' : 'Primeiro acesso pendente'}
+        readOnly
+      />
+      <CodigoAcessoBox codigoAcesso={aluno.codigoAcesso} senhaDefinida={aluno.senhaDefinida} />
 
       <label>Total de horários: {horarios.length}</label>
       {horarios.length > 0 ? (

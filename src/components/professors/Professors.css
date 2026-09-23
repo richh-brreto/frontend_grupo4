@@ -67,6 +67,32 @@
   color: #b91c1c;
 }
 
+.professor-card-badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.professor-access-pill {
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.professor-access-pill.pendente {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.professor-access-pill.configurado {
+  background: #dcfce7;
+  color: #15803d;
+}
+
 .professor-meta {
   display: grid;
   gap: 10px;

@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 
 import Home from "./components/home/Home";
 import Card from "./components/login/card-form/Card";
+import FirstAccess from "./components/first-access/FirstAccess";
 import Dashboard from "./components/dashboard1/Dashboard1";
 import Agenda from "./components/agenda/Agenda";
 import Contracts from "./components/contracts/Contracts";
@@ -37,6 +38,7 @@ function App() {
                         )
                     }
                 />
+                <Route path="/primeiro-acesso" element={<FirstAccess />} />
 
                 {/* Rotas protegidas */}
                 {isLoggedIn && (

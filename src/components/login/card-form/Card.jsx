@@ -1,12 +1,27 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
+import { useLocation, Link } from "react-router-dom";
+import Swal from "sweetalert2";
 import "./Card.css";
 import Input from "../input/Input";
 import Button from "../button/Button";
 
 function Card({ onLoginSuccess }) {
+    const location = useLocation();
     const [email, setEmail] = useState("");
     const [senha, setSenha] = useState("");
+
+    useEffect(() => {
+        if (location.state?.primeiroAcessoSucesso) {
+            Swal.fire({
+                icon: "success",
+                title: "Senha configurada com sucesso!",
+                text: "Agora entre com seu e-mail e sua nova senha.",
+                confirmButtonColor: "#0f1f3f",
+            });
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
 
     async function handleSubmit(event) {
         event.preventDefault();
@@ -35,7 +50,7 @@ function Card({ onLoginSuccess }) {
     return (
         <div className="page">
             <img className="logo" src="src/assets/Boost-White.png" alt="Boost Logo" />
-            <div className="card">
+            <form className="card" onSubmit={handleSubmit}>
                 <Input
                     label="E-mail"
                     type="email"
@@ -52,8 +67,11 @@ function Card({ onLoginSuccess }) {
                     value={senha}
                     onChange={(e) => setSenha(e.target.value)}
                 />
-                <Button onClick={handleSubmit}>Entrar</Button>
-            </div>
+                <Button type="submit">Entrar</Button>
+                <div className="login-first-access-link">
+                    Primeiro acesso? <Link to="/primeiro-acesso">Definir senha</Link>
+                </div>
+            </form>
         </div>
     );
 }
