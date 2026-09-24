@@ -5,7 +5,7 @@ import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
 import Modal from '../layout/Modal';
 import { aulasService } from './aulasService';
-import { isCoordenador } from '../../utils/auth';
+import { useIsCoordenador } from '../../utils/auth';
 import './Agenda.css';
 
 const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
@@ -115,7 +115,7 @@ export default function Agenda() {
   const [alunosAusentes, setAlunosAusentes] = useState([]);
   const [remarcacao, setRemarcacao] = useState({ novaData: '', novaHoraInicio: '', novaHoraFim: '', motivo: '' });
   const [versaoAulas, setVersaoAulas] = useState(0);
-  const podeGerenciar = isCoordenador();
+  const podeGerenciar = useIsCoordenador();
 
   const abrirModalAdicionar = (dia) => {
     setSelectedDay(dia);

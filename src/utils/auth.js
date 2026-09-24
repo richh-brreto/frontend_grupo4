@@ -1,18 +1,27 @@
-// Lê as authorities do JWT salvo apenas para ajustar a interface
-// (ex.: esconder botões). A autorização real é sempre feita no backend.
-function lerAuthorities() {
-  const token = localStorage.getItem('authToken');
-  if (!token) return [];
+import { useEffect, useState } from 'react';
+import axios from './axiosConfig';
 
-  try {
-    const payloadBase64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-    const payload = JSON.parse(atob(payloadBase64));
-    return String(payload.authorities || '').split(',');
-  } catch {
-    return [];
-  }
-}
+// O token fica só no cookie HttpOnly, então o perfil vem do backend (GET /me).
+// Serve apenas para ajustar a interface (ex.: esconder botões);
+// a autorização real é sempre feita no backend.
+export function useIsCoordenador() {
+  const [isCoordenador, setIsCoordenador] = useState(false);
 
-export function isCoordenador() {
-  return lerAuthorities().includes('ROLE_COORDENADOR');
+  useEffect(() => {
+    let ignorar = false;
+
+    axios.get('/me')
+      .then((res) => {
+        if (!ignorar) setIsCoordenador(res.data?.perfil === 'COORDENADOR');
+      })
+      .catch(() => {
+        if (!ignorar) setIsCoordenador(false);
+      });
+
+    return () => {
+      ignorar = true;
+    };
+  }, []);
+
+  return isCoordenador;
 }

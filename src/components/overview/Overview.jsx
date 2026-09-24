@@ -5,7 +5,7 @@ import Button from "../layout/Button";
 import ButtonContainer from "../layout/ButtonContainer";
 import Modal from '../layout/Modal';
 import { comunicadosService } from './comunicadosService';
-import { isCoordenador } from '../../utils/auth';
+import { useIsCoordenador } from '../../utils/auth';
 import '../agenda/Agenda.css';
 import './Overview.css';
 
@@ -29,7 +29,7 @@ const formatarData = (dataIso) => {
 };
 
 export default function Overview() {
-  const podeGerenciar = isCoordenador();
+  const podeGerenciar = useIsCoordenador();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
