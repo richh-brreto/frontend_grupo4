@@ -4,21 +4,105 @@ import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
 import Modal from '../layout/Modal';
+import { aulasService } from './aulasService';
+import { useIsCoordenador } from '../../utils/auth';
 import './Agenda.css';
 
 const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 const HORAS = Array.from({ length: 24 }, (_, i) => `${String(0 + i).padStart(2, '0')}:00`);
 const ALTURA_HORA = 48; // pixels por hora
-const ALUNOS_POR_TURMA = {
-  'Turma 5': ['Beatriz Lima', 'Gabriel Alves', 'Juliana Costa', 'Rafael Souza'],
-  'Turma 8': ['Amanda Rocha', 'Caio Martins', 'Larissa Freitas', 'Vinicius Nunes'],
-  'Turma 10': ['Ana Silva', 'Bruno Oliveira', 'Camila Santos', 'Diego Pereira']
+
+// YYYY-MM-DD no fuso local (toISOString converte para UTC e pode trocar o dia)
+const formatarDataLocal = (data) => [
+  data.getFullYear(),
+  String(data.getMonth() + 1).padStart(2, '0'),
+  String(data.getDate()).padStart(2, '0')
+].join('-');
+
+// Em contratos de grupo cada aluno tem o próprio contrato e, portanto, as próprias aulas.
+// Na agenda, as aulas da mesma turma no mesmo dia e horário viram um único evento.
+const agruparAulas = (aulas) => {
+  const grupos = new Map();
+
+  aulas.forEach(aula => {
+    const horaInicio = aula.horaInicio?.slice(0, 5);
+    const horaFim = aula.horaFim?.slice(0, 5);
+    const chave = aula.turmaId
+      ? `turma-${aula.turmaId}-${aula.data}-${horaInicio}-${horaFim}`
+      : `aula-${aula.id}`;
+
+    if (!grupos.has(chave)) {
+      grupos.set(chave, {
+        ...aula,
+        id: chave,
+        horaInicio,
+        horaFim,
+        aulaIds: [],
+        participantes: [],
+        professor: aula.professor || 'Sem professor'
+      });
+    }
+
+    const grupo = grupos.get(chave);
+    grupo.aulaIds.push(aula.id);
+    grupo.participantes.push({
+      aulaId: aula.id,
+      alunoId: aula.alunoId,
+      aluno: aula.aluno,
+      presenca: aula.presenca,
+      status: aula.status
+    });
+  });
+
+  return [...grupos.values()].map(grupo => {
+    // O encontro só aparece como cancelado quando todas as aulas estão canceladas
+    const ativos = grupo.participantes.filter(p => p.status !== 'CANCELADA');
+    return { ...grupo, status: ativos.length ? ativos[0].status : 'CANCELADA', ativos };
+  }).map(grupo => (
+    grupo.turmaId
+      ? {
+          ...grupo,
+          conta: grupo.turma,
+          turma: `${grupo.participantes.length} aluno${grupo.participantes.length === 1 ? '' : 's'}`
+        }
+      : {
+          ...grupo,
+          conta: grupo.aluno || `Contrato #${grupo.contratoId}`,
+          turma: 'Individual'
+        }
+  ));
+};
+
+const formatarDiaMes = (dataIso) => {
+  const [, mes, dia] = dataIso.split('-');
+  return `${dia}/${mes}`;
+};
+
+const obterDiasSemana = (dataAtual) => {
+  const dias = [];
+  const dataInicio = new Date(dataAtual);
+  const diaSemana = dataInicio.getDay();
+  const segunda = new Date(dataInicio);
+  segunda.setDate(dataInicio.getDate() - (diaSemana === 0 ? 6 : diaSemana - 1));
+
+  for (let i = 0; i < 7; i++) {
+    const dia = new Date(segunda);
+    dia.setDate(segunda.getDate() + i);
+    dias.push({
+      data: formatarDataLocal(dia),
+      diaSemana: DIAS_SEMANA[i],
+      dia: dia.getDate(),
+      mes: dia.getMonth() + 1
+    });
+  }
+
+  return dias;
 };
 
 export default function Agenda() {
   const [aulas, setAulas] = useState([]);
   const [carregando, setCarregando] = useState(true);
-  const [dataAtual, setDataAtual] = useState(new Date('2026-07-08'));
+  const [dataAtual, setDataAtual] = useState(new Date());
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [filtros, setFiltros] = useState({ dataInicio: '', dataFim: '', conta: '', professor: '' });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -29,6 +113,9 @@ export default function Agenda() {
   const [selectedDay, setSelectedDay] = useState(null);
   const [selectedAula, setSelectedAula] = useState(null);
   const [alunosAusentes, setAlunosAusentes] = useState([]);
+  const [remarcacao, setRemarcacao] = useState({ novaData: '', novaHoraInicio: '', novaHoraFim: '', motivo: '' });
+  const [versaoAulas, setVersaoAulas] = useState(0);
+  const podeGerenciar = useIsCoordenador();
 
   const abrirModalAdicionar = (dia) => {
     setSelectedDay(dia);
@@ -50,10 +137,19 @@ export default function Agenda() {
     setSelectedAula(null);
   };
 
+  const recarregarAulas = () => setVersaoAulas(versao => versao + 1);
+
+  const mostrarErro = (error, titulo) => Swal.fire({
+    icon: 'error',
+    title: titulo,
+    text: error.response?.data?.error || 'Não foi possível concluir a operação.',
+    confirmButtonColor: '#0f1f3f'
+  });
+
   const abrirModalAusencia = () => {
     if (!selectedAula) return;
 
-    setAlunosAusentes(selectedAula.ausencias || []);
+    setAlunosAusentes([]);
     setIsEditModalOpen(false);
     setIsAusenciaModalOpen(true);
   };
@@ -64,49 +160,86 @@ export default function Agenda() {
     setAlunosAusentes([]);
   };
 
-  const alternarAusencia = (aluno) => {
+  const alternarAusencia = (alunoId) => {
     setAlunosAusentes(ausenciasAtuais => (
-      ausenciasAtuais.includes(aluno)
-        ? ausenciasAtuais.filter(alunoAusente => alunoAusente !== aluno)
-        : [...ausenciasAtuais, aluno]
+      ausenciasAtuais.includes(alunoId)
+        ? ausenciasAtuais.filter(id => id !== alunoId)
+        : [...ausenciasAtuais, alunoId]
     ));
   };
 
   const salvarAusencias = async () => {
     if (!selectedAula) return;
 
-    setAulas(aulasAtuais => aulasAtuais.map(aula => (
-      aula.id === selectedAula.id ? { ...aula, ausencias: alunosAusentes } : aula
-    )));
-    fecharModalAusencia();
-    await Swal.fire({
-      icon: 'success',
-      title: 'Ausências salvas!',
-      text: 'A lista de ausências foi atualizada com sucesso.',
-      confirmButtonColor: '#0f1f3f'
-    });
+    try {
+      await aulasService.registrarAusencias(selectedAula, alunosAusentes);
+      fecharModalAusencia();
+      recarregarAulas();
+      await Swal.fire({
+        icon: 'success',
+        title: 'Ausências salvas!',
+        text: 'A presença dos alunos foi registrada com sucesso.',
+        confirmButtonColor: '#0f1f3f'
+      });
+    } catch (error) {
+      await mostrarErro(error, 'Erro ao salvar ausências');
+    }
   };
 
   const cancelarAula = async () => {
     if (!selectedAula) return;
 
-    setAulas(aulasAtuais => aulasAtuais.filter(aula => aula.id !== selectedAula.id));
-    fecharModalEditar();
-    await Swal.fire({
-      icon: 'success',
-      title: 'Aula cancelada!',
-      text: 'A aula foi cancelada com sucesso.',
-      confirmButtonColor: '#0f1f3f'
+    const resultado = await Swal.fire({
+      icon: 'warning',
+      title: 'Cancelar aula?',
+      text: selectedAula.turmaId
+        ? `A aula será cancelada para todos os alunos de ${selectedAula.conta}.`
+        : 'A aula será cancelada.',
+      input: 'textarea',
+      inputPlaceholder: 'Motivo (opcional)',
+      inputAttributes: { maxlength: '500' },
+      showCancelButton: true,
+      confirmButtonText: 'Sim, cancelar aula',
+      cancelButtonText: 'Voltar',
+      confirmButtonColor: '#b91c1c',
+      cancelButtonColor: '#64748b'
     });
+
+    if (!resultado.isConfirmed) return;
+
+    try {
+      await aulasService.cancelar(selectedAula, resultado.value?.trim() || null);
+      fecharModalEditar();
+      recarregarAulas();
+      await Swal.fire({
+        icon: 'success',
+        title: 'Aula cancelada!',
+        text: 'A aula foi cancelada com sucesso.',
+        confirmButtonColor: '#0f1f3f'
+      });
+    } catch (error) {
+      await mostrarErro(error, 'Erro ao cancelar');
+    }
   };
 
   const abrirModalRemarcar = () => {
+    setRemarcacao({
+      novaData: selectedAula.data,
+      novaHoraInicio: selectedAula.horaInicio,
+      novaHoraFim: selectedAula.horaFim,
+      motivo: ''
+    });
     setIsEditModalOpen(false);
     setIsRescheduleModalOpen(true);
   };
 
   const fecharModalRemarcar = () => {
     setIsRescheduleModalOpen(false);
+    setSelectedAula(null);
+  };
+
+  const atualizarRemarcacao = (campo, valor) => {
+    setRemarcacao(atual => ({ ...atual, [campo]: valor }));
   };
 
   const salvarNovoEvento = async () => {
@@ -120,118 +253,77 @@ export default function Agenda() {
   };
 
   const salvarRemarcacao = async () => {
-    fecharModalRemarcar();
-    setSelectedAula(null);
-    await Swal.fire({
-      icon: 'success',
-      title: 'Aula remarcada!',
-      text: 'A aula foi remarcada com sucesso.',
-      confirmButtonColor: '#0f1f3f'
-    });
+    if (!selectedAula) return;
+
+    const { novaData, novaHoraInicio, novaHoraFim, motivo } = remarcacao;
+    if (!novaData || !novaHoraInicio || !novaHoraFim) {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Preencha os dados',
+        text: 'Informe a nova data e os novos horários de início e fim.',
+        confirmButtonColor: '#0f1f3f'
+      });
+      return;
+    }
+    if (novaHoraInicio >= novaHoraFim) {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Horário inválido',
+        text: 'A hora de início deve ser anterior à hora de fim.',
+        confirmButtonColor: '#0f1f3f'
+      });
+      return;
+    }
+
+    try {
+      await aulasService.remarcar(selectedAula, {
+        novaData,
+        novaHoraInicio,
+        novaHoraFim,
+        motivo: motivo.trim() || null
+      });
+      fecharModalRemarcar();
+      recarregarAulas();
+      await Swal.fire({
+        icon: 'success',
+        title: 'Aula remarcada!',
+        text: 'A aula foi remarcada com sucesso.',
+        confirmButtonColor: '#0f1f3f'
+      });
+    } catch (error) {
+      await mostrarErro(error, 'Erro ao remarcar');
+    }
   };
 
   useEffect(() => {
     const fetchAulas = async () => {
       try {
         setCarregando(true);
-        // Por enquanto usando dados mockados
-        // const response = await axios.get('/aulas');
-        // setAulas(response.data);
+        const semana = obterDiasSemana(dataAtual);
+        const resposta = await aulasService.listarPorPeriodo(semana[0].data, semana[semana.length - 1].data);
 
-        const exemploAulas = [
-          {
-            id: 0,
-            data: '2026-07-08',
-            horaInicio: '08:00',
-            horaFim: '10:00',
-            status: 'AGENDADA',
-            presenca: true,
-            contratoId: 0,
-            conta: 'Conta 1',
-            professor: 'Prof. João',
-            turma: 'Turma 10'
-          },
-          {
-            id: 1,
-            data: '2026-07-08',
-            horaInicio: '10:00',
-            horaFim: '12:00',
-            status: 'AGENDADA',
-            presenca: true,
-            contratoId: 1,
-            conta: 'Conta 2',
-            professor: 'Prof. Maria',
-            turma: 'Turma 5'
-          },
-          {
-            id: 2,
-            data: '2026-07-08',
-            horaInicio: '16:00',
-            horaFim: '18:00',
-            status: 'AGENDADA',
-            presenca: false,
-            contratoId: 2,
-            conta: 'Conta 1',
-            professor: 'Prof. Carlos',
-            turma: 'Turma 10'
-          },
-          {
-            id: 3,
-            data: '2026-07-10',
-            horaInicio: '09:00',
-            horaFim: '11:00',
-            status: 'AGENDADA',
-            presenca: true,
-            contratoId: 3,
-            conta: 'Conta 3',
-            professor: 'Prof. Ana',
-            turma: 'Turma 8'
-          },
-          {
-            id: 4,
-            data: '2026-07-12',
-            horaInicio: '15:00',
-            horaFim: '17:00',
-            status: 'AGENDADA',
-            presenca: true,
-            contratoId: 4,
-            conta: 'Conta 2',
-            professor: 'Prof. Pedro',
-            turma: 'Turma 10'
-          }
-        ];
-
-        setAulas(exemploAulas);
+        if (!ignorar) setAulas(agruparAulas(resposta));
       } catch (error) {
+        if (ignorar) return;
         console.error('Erro ao buscar aulas:', error);
+        await Swal.fire({
+          icon: 'error',
+          title: 'Erro ao carregar',
+          text: error.response?.data?.error || 'Não foi possível carregar as aulas.',
+          confirmButtonColor: '#0f1f3f'
+        });
       } finally {
-        setCarregando(false);
+        if (!ignorar) setCarregando(false);
       }
     };
 
+    // Descarta a resposta se o usuário já mudou de semana antes dela chegar
+    let ignorar = false;
     fetchAulas();
-  }, [dataAtual]);
-
-  const obterDiasSemana = () => {
-    const dias = [];
-    const dataInicio = new Date(dataAtual);
-    const diaSemana = dataInicio.getDay();
-    const segunda = new Date(dataInicio);
-    segunda.setDate(dataInicio.getDate() - (diaSemana === 0 ? 6 : diaSemana - 1));
-
-    for (let i = 0; i < 7; i++) {
-      const dia = new Date(segunda);
-      dia.setDate(segunda.getDate() + i);
-      dias.push({
-        data: dia.toISOString().split('T')[0],
-        diaSemana: DIAS_SEMANA[i],
-        dia: dia.getDate(),
-        mes: dia.getMonth() + 1
-      });
-    }
-
-    return dias;
-  };
+    return () => {
+      ignorar = true;
+    };
+  }, [dataAtual, versaoAulas]);
 
   const calcularEstiloEvento = (horaInicio, horaFim) => {
     const [horaI, minutoI] = horaInicio.split(':').map(Number);
@@ -297,11 +389,17 @@ export default function Agenda() {
     }));
   };
 
-  const diasSemana = obterDiasSemana();
+  const diasSemana = obterDiasSemana(dataAtual);
+  const intervaloSemana = `${formatarDiaMes(diasSemana[0].data)} – ${formatarDiaMes(diasSemana[6].data)}/${diasSemana[6].data.slice(0, 4)}`;
 
-  if (carregando) {
-    return <div className="agenda-container">Carregando...</div>;
-  }
+  const mudarSemana = (deslocamento) => {
+    setDataAtual(dataAnterior => {
+      const novaData = new Date(dataAnterior);
+      novaData.setDate(novaData.getDate() + deslocamento * 7);
+      return novaData;
+    });
+  };
+
 
   return (
     <div className="agenda-page">
@@ -326,6 +424,20 @@ export default function Agenda() {
               <h1>Agenda</h1>
             </div>
             <div className="agenda-tabs">
+              <div className="agenda-semana-nav">
+                <button type="button" className="tab-button" onClick={() => mudarSemana(-1)} aria-label="Semana anterior">
+                  ‹
+                </button>
+                <button type="button" className="tab-button" onClick={() => setDataAtual(new Date())}>
+                  Hoje
+                </button>
+                <button type="button" className="tab-button" onClick={() => mudarSemana(1)} aria-label="Próxima semana">
+                  ›
+                </button>
+                <span className="agenda-semana-label">
+                  {carregando ? 'Carregando...' : intervaloSemana}
+                </span>
+              </div>
               <button
                 className={`tab-button ${isFiltersOpen ? 'active' : ''}`}
                 type="button"
@@ -373,7 +485,7 @@ export default function Agenda() {
                         {obterAulasComPosicao(dia.data).map((aula) => (
                           <div
                             key={aula.id}
-                            className="evento"
+                            className={`evento ${aula.status === 'CANCELADA' ? 'evento-cancelado' : ''}`.trim()}
                             style={{
                               ...aula.estilo,
                               width: `calc((100% - ${(aula.numColunas - 1) * 4}px) / ${aula.numColunas})`,
@@ -381,14 +493,18 @@ export default function Agenda() {
                             }}
                           >
                             <div className="evento-label">{aula.conta}</div>
-                            <div className="evento-label">{aula.turma}</div>
-                            <button
-                              type="button"
-                              className="evento-action"
-                              onClick={() => abrirModalEditar(aula)}
-                            >
-                              Editar
-                            </button>
+                            <div className="evento-label">
+                              {aula.status === 'CANCELADA' ? 'Cancelada' : aula.turma}
+                            </div>
+                            {podeGerenciar && aula.status !== 'CANCELADA' && (
+                              <button
+                                type="button"
+                                className="evento-action"
+                                onClick={() => abrirModalEditar(aula)}
+                              >
+                                Editar
+                              </button>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -481,42 +597,64 @@ export default function Agenda() {
         </Modal>
       )}
 
-      {isRescheduleModalOpen && (
+      {isRescheduleModalOpen && selectedAula && (
         <Modal
-          title="Remarcar aula"
+          title={`Remarcar aula - ${selectedAula.conta}`}
           onClose={fecharModalRemarcar}
           onSave={salvarRemarcacao}
         >
-          <label>Nome</label>
-          <input type="text" placeholder="Nome" />
+          <label htmlFor="nova-data">Nova data</label>
+          <input
+            id="nova-data"
+            type="date"
+            value={remarcacao.novaData}
+            onChange={event => atualizarRemarcacao('novaData', event.target.value)}
+          />
 
-          <label>Descrição</label>
-          <input type="text" placeholder="Descrição" />
+          <label htmlFor="nova-hora-inicio">Hora de início</label>
+          <input
+            id="nova-hora-inicio"
+            type="time"
+            value={remarcacao.novaHoraInicio}
+            onChange={event => atualizarRemarcacao('novaHoraInicio', event.target.value)}
+          />
 
-          <label>Adicionar professor</label>
-          <input type="text" placeholder="Adicionar professor" />
+          <label htmlFor="nova-hora-fim">Hora de fim</label>
+          <input
+            id="nova-hora-fim"
+            type="time"
+            value={remarcacao.novaHoraFim}
+            onChange={event => atualizarRemarcacao('novaHoraFim', event.target.value)}
+          />
 
-          <label>Dia e horário</label>
-          <input type="text" placeholder="Dia e horário" />
+          <label htmlFor="motivo-remarcacao">Motivo</label>
+          <input
+            id="motivo-remarcacao"
+            type="text"
+            placeholder="Motivo (opcional)"
+            maxLength={500}
+            value={remarcacao.motivo}
+            onChange={event => atualizarRemarcacao('motivo', event.target.value)}
+          />
         </Modal>
       )}
 
       {isAusenciaModalOpen && (
         <Modal
-          title={`Marcar ausências - ${selectedAula?.turma}`}
+          title={`Marcar ausências - ${selectedAula?.conta}`}
           onClose={fecharModalAusencia}
           onSave={salvarAusencias}
         >
           <p className="ausencia-instrucao">Selecione os alunos que estavam ausentes.</p>
           <div className="lista-alunos-ausencia">
-            {(ALUNOS_POR_TURMA[selectedAula?.turma] || []).map(aluno => (
-              <label key={aluno} className="aluno-ausencia-item">
+            {(selectedAula?.ativos || []).map(participante => (
+              <label key={participante.aulaId} className="aluno-ausencia-item">
                 <input
                   type="checkbox"
-                  checked={alunosAusentes.includes(aluno)}
-                  onChange={() => alternarAusencia(aluno)}
+                  checked={alunosAusentes.includes(participante.alunoId)}
+                  onChange={() => alternarAusencia(participante.alunoId)}
                 />
-                <span>{aluno}</span>
+                <span>{participante.aluno}</span>
               </label>
             ))}
           </div>

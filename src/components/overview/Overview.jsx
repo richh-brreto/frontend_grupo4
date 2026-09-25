@@ -1,34 +1,60 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import Sidebar from '../layout/Sidebar';
 import Button from "../layout/Button";
 import ButtonContainer from "../layout/ButtonContainer";
 import Modal from '../layout/Modal';
+import { comunicadosService } from './comunicadosService';
+import { useIsCoordenador } from '../../utils/auth';
 import '../agenda/Agenda.css';
 import './Overview.css';
 
+const TITULO_MAX = 100;
+const TEXTO_MAX = 5000;
+
+const mensagemErro = (error, padrao) => error.response?.data?.error || padrao;
+
+const formatarData = (dataIso) => {
+  if (!dataIso) return '';
+
+  const data = new Date(dataIso);
+  const hora = data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const hoje = new Date();
+  const ontem = new Date();
+  ontem.setDate(hoje.getDate() - 1);
+
+  if (data.toDateString() === hoje.toDateString()) return `Hoje • ${hora}`;
+  if (data.toDateString() === ontem.toDateString()) return `Ontem • ${hora}`;
+  return `${data.toLocaleDateString('pt-BR')} • ${hora}`;
+};
+
 export default function Overview() {
+  const podeGerenciar = useIsCoordenador();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
   const [novoComunicado, setNovoComunicado] = useState({ titulo: '', texto: '' });
-  const [comunicados, setComunicados] = useState([
-    {
-      titulo: 'Atualização de calendário',
-      data: 'Hoje • 08:30',
-      texto: 'As aulas da semana estarão reorganizadas para melhor distribuição dos horários.'
-    },
-    {
-      titulo: 'Nova turma disponível',
-      data: 'Ontem • 16:10',
-      texto: 'Uma nova turma de conversação foi aberta e já está disponível para inscrição.'
-    },
-    {
-      titulo: 'Lembrete de documentação',
-      data: 'Ontem • 10:00',
-      texto: 'Professores devem enviar os documentos pendentes até o fim da tarde.'
-    }
-  ]);
+  const [comunicados, setComunicados] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+
+  useEffect(() => {
+    const carregarComunicados = async () => {
+      try {
+        setComunicados(await comunicadosService.listar());
+      } catch (error) {
+        await Swal.fire({
+          icon: 'error',
+          title: 'Erro ao carregar',
+          text: mensagemErro(error, 'Não foi possível carregar os comunicados.'),
+          confirmButtonColor: '#0f1f3f'
+        });
+      } finally {
+        setCarregando(false);
+      }
+    };
+
+    carregarComunicados();
+  }, []);
 
   const abrirModalAdicionar = () => {
     setIsAddModalOpen(true);
@@ -39,29 +65,47 @@ export default function Overview() {
     setNovoComunicado({ titulo: '', texto: '' });
   };
 
-  const salvarNovoComunicado = async () => {
-    if (!novoComunicado.titulo.trim() || !novoComunicado.texto.trim()) {
+  const validarComunicado = async ({ titulo, texto }) => {
+    if (!titulo.trim() || !texto.trim()) {
       await Swal.fire({
         icon: 'warning',
         title: 'Preencha os dados',
         text: 'Informe o título e o texto do comunicado.',
         confirmButtonColor: '#0f1f3f'
       });
-      return;
+      return false;
     }
-
-    setComunicados((items) => [...items, { ...novoComunicado, data: 'Agora' }]);
-    fecharModalAdicionar();
-    await Swal.fire({
-      icon: 'success',
-      title: 'Comunicado cadastrado!',
-      text: 'O comunicado foi cadastrado com sucesso.',
-      confirmButtonColor: '#0f1f3f'
-    });
+    return true;
   };
 
-  const abrirModalEdicao = (index) => {
-    setSelectedAnnouncement({ ...comunicados[index], index });
+  const salvarNovoComunicado = async () => {
+    if (!(await validarComunicado(novoComunicado))) return;
+
+    try {
+      const criado = await comunicadosService.criar({
+        titulo: novoComunicado.titulo.trim(),
+        texto: novoComunicado.texto.trim()
+      });
+      setComunicados((items) => [criado, ...items]);
+      fecharModalAdicionar();
+      await Swal.fire({
+        icon: 'success',
+        title: 'Comunicado cadastrado!',
+        text: 'O comunicado foi cadastrado com sucesso.',
+        confirmButtonColor: '#0f1f3f'
+      });
+    } catch (error) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Erro ao cadastrar',
+        text: mensagemErro(error, 'Não foi possível cadastrar o comunicado.'),
+        confirmButtonColor: '#0f1f3f'
+      });
+    }
+  };
+
+  const abrirModalEdicao = (comunicado) => {
+    setSelectedAnnouncement({ ...comunicado });
   };
 
   const fecharModalEdicao = () => {
@@ -69,24 +113,31 @@ export default function Overview() {
   };
 
   const salvarEdicao = async () => {
-    setComunicados((items) =>
-      items.map((item, index) =>
-        index === selectedAnnouncement.index
-          ? {
-              titulo: selectedAnnouncement.titulo,
-              data: item.data,
-              texto: selectedAnnouncement.texto
-            }
-          : item
-      )
-    );
-    fecharModalEdicao();
-    await Swal.fire({
-      icon: 'success',
-      title: 'Comunicado atualizado!',
-      text: 'As alterações foram salvas com sucesso.',
-      confirmButtonColor: '#0f1f3f'
-    });
+    if (!(await validarComunicado(selectedAnnouncement))) return;
+
+    try {
+      const atualizado = await comunicadosService.atualizar(selectedAnnouncement.id, {
+        titulo: selectedAnnouncement.titulo.trim(),
+        texto: selectedAnnouncement.texto.trim()
+      });
+      setComunicados((items) =>
+        items.map((item) => (item.id === atualizado.id ? atualizado : item))
+      );
+      fecharModalEdicao();
+      await Swal.fire({
+        icon: 'success',
+        title: 'Comunicado atualizado!',
+        text: 'As alterações foram salvas com sucesso.',
+        confirmButtonColor: '#0f1f3f'
+      });
+    } catch (error) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Erro ao atualizar',
+        text: mensagemErro(error, 'Não foi possível atualizar o comunicado.'),
+        confirmButtonColor: '#0f1f3f'
+      });
+    }
   };
 
   const excluirComunicado = async () => {
@@ -103,14 +154,24 @@ export default function Overview() {
 
     if (!resultado.isConfirmed) return;
 
-    setComunicados((items) => items.filter((_, index) => index !== selectedAnnouncement.index));
-    fecharModalEdicao();
-    await Swal.fire({
-      icon: 'success',
-      title: 'Comunicado excluído!',
-      text: 'O comunicado foi removido com sucesso.',
-      confirmButtonColor: '#0f1f3f'
-    });
+    try {
+      await comunicadosService.excluir(selectedAnnouncement.id);
+      setComunicados((items) => items.filter((item) => item.id !== selectedAnnouncement.id));
+      fecharModalEdicao();
+      await Swal.fire({
+        icon: 'success',
+        title: 'Comunicado excluído!',
+        text: 'O comunicado foi removido com sucesso.',
+        confirmButtonColor: '#0f1f3f'
+      });
+    } catch (error) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Erro ao excluir',
+        text: mensagemErro(error, 'Não foi possível excluir o comunicado.'),
+        confirmButtonColor: '#0f1f3f'
+      });
+    }
   };
 
   return (
@@ -135,20 +196,26 @@ export default function Overview() {
             <div>
               <h1>Comunicados</h1>
             </div>
-            <ButtonContainer>
-              <Button onClick={abrirModalAdicionar}>Adicionar comunicado</Button>
-            </ButtonContainer>
+            {podeGerenciar && (
+              <ButtonContainer>
+                <Button onClick={abrirModalAdicionar}>Adicionar comunicado</Button>
+              </ButtonContainer>
+            )}
           </div>
 
           <div className="agenda-frame">
             <div className="overview-board">
-              {comunicados.map((item, index) => (
-                <article key={`${item.titulo}-${index}`} className="announcement-card">
+              {carregando && <p>Carregando...</p>}
+              {!carregando && comunicados.length === 0 && <p>Nenhum comunicado cadastrado.</p>}
+              {comunicados.map((item) => (
+                <article key={item.id} className="announcement-card">
                   <div className="announcement-header">
                     <h2>{item.titulo}</h2>
                     <ButtonContainer>
-                      <span>{item.data}</span>
-                      <Button onClick={() => abrirModalEdicao(index)}>Editar</Button>
+                      <span>{formatarData(item.dataCriacao)}</span>
+                      {podeGerenciar && (
+                        <Button onClick={() => abrirModalEdicao(item)}>Editar</Button>
+                      )}
                     </ButtonContainer>
                   </div>
                   <p>{item.texto}</p>
@@ -169,6 +236,7 @@ export default function Overview() {
           <input
             type="text"
             placeholder="Título"
+            maxLength={TITULO_MAX}
             value={novoComunicado.titulo}
             onChange={(event) => setNovoComunicado((item) => ({ ...item, titulo: event.target.value }))}
           />
@@ -177,6 +245,7 @@ export default function Overview() {
           <input
             type="text"
             placeholder="Texto"
+            maxLength={TEXTO_MAX}
             value={novoComunicado.texto}
             onChange={(event) => setNovoComunicado((item) => ({ ...item, texto: event.target.value }))}
           />
@@ -195,6 +264,7 @@ export default function Overview() {
           <label>Título:</label>
           <input
             type="text"
+            maxLength={TITULO_MAX}
             value={selectedAnnouncement.titulo}
             onChange={(event) =>
               setSelectedAnnouncement((item) => ({
@@ -207,6 +277,7 @@ export default function Overview() {
           <label>Texto:</label>
           <input
             type="text"
+            maxLength={TEXTO_MAX}
             value={selectedAnnouncement.texto}
             onChange={(event) =>
               setSelectedAnnouncement((item) => ({
