@@ -3,8 +3,12 @@ import axios from '../../utils/axiosConfig';
 import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
+import { useItensMenu } from '../../utils/menuItems';
+import { usePermissoes } from '../../utils/permissions';
 import '../agenda/Agenda.css';
 import './Dashboard1.css';
+
+
 
 const defaultPayload = {
   totalProfessores: 24,
@@ -62,6 +66,9 @@ function getStatusClass(status) {
 
 export default function Dashboard1({ dashboardData: externalDashboardData = null }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // Itens do menu sao filtrados pelas telas liberadas no cadastro do professor
+  const itensMenu = useItensMenu('/dashboard');
+  const { carregando: carregandoPermissoes } = usePermissoes();
   const [periodo, setPeriodo] = useState({ dataInicio: '', dataFim: '' });
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -146,15 +153,8 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
         <Sidebar
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(prev => !prev)}
-          items={[
-            { to: '/overview', label: 'Geral', short: 'Geral' },
-            { to: '/aulas', label: 'Agenda', short: 'AG' },
-            { to: '/dashboard', label: 'Dashboard', short: 'Dash', active: true },
-            { to: '/professores', label: 'Professores', short: 'Prof' },
-            { to: '/turmas', label: 'Turmas', short: 'Tur' },
-            { to: '/alunos', label: 'Alunos', short: 'Alu' },
-            { to: '/contratos', label: 'Contratos', short: 'Cont' }
-          ]}
+          items={itensMenu}
+          carregando={carregandoPermissoes}
         />
         <main className="agenda-content">
           <div className="agenda-panel dashboard1-panel">
@@ -171,15 +171,8 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
         <Sidebar
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(prev => !prev)}
-          items={[
-            { to: '/overview', label: 'Geral', short: 'Geral' },
-            { to: '/aulas', label: 'Agenda', short: 'AG' },
-            { to: '/dashboard', label: 'Dashboard', short: 'Dash', active: true },
-            { to: '/professores', label: 'Professores', short: 'Prof' },
-            { to: '/turmas', label: 'Turmas', short: 'Tur' },
-            { to: '/alunos', label: 'Alunos', short: 'Alu' },
-            { to: '/contratos', label: 'Contratos', short: 'Cont' }
-          ]}
+          items={itensMenu}
+          carregando={carregandoPermissoes}
         />
         <main className="agenda-content">
           <div className="agenda-panel dashboard1-panel">
@@ -195,15 +188,8 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(prev => !prev)}
-        items={[
-          { to: '/overview', label: 'Geral', short: 'Geral' },
-          { to: '/aulas', label: 'Agenda', short: 'AG' },
-          { to: '/dashboard', label: 'Dashboard', short: 'Dash', active: true },
-          { to: '/professores', label: 'Professores', short: 'Prof' },
-          { to: '/turmas', label: 'Turmas', short: 'Tur' },
-          { to: '/alunos', label: 'Alunos', short: 'Alu' },
-          { to: '/contratos', label: 'Contratos', short: 'Cont' }
-        ]}
+        items={itensMenu}
+        carregando={carregandoPermissoes}
       />
 
       <main className="agenda-content">

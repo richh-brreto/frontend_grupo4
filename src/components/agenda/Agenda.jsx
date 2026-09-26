@@ -5,8 +5,11 @@ import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
 import Modal from '../layout/Modal';
 import { aulasService } from './aulasService';
-import { useIsCoordenador } from '../../utils/auth';
+import { useItensMenu } from '../../utils/menuItems';
+import { usePermissoes } from '../../utils/permissions';
 import './Agenda.css';
+
+
 
 const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 const HORAS = Array.from({ length: 24 }, (_, i) => `${String(0 + i).padStart(2, '0')}:00`);
@@ -106,6 +109,8 @@ export default function Agenda() {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [filtros, setFiltros] = useState({ dataInicio: '', dataFim: '', conta: '', professor: '' });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // Itens do menu sao filtrados pelas telas liberadas no cadastro do professor
+  const itensMenu = useItensMenu('/aulas');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -115,7 +120,9 @@ export default function Agenda() {
   const [alunosAusentes, setAlunosAusentes] = useState([]);
   const [remarcacao, setRemarcacao] = useState({ novaData: '', novaHoraInicio: '', novaHoraFim: '', motivo: '' });
   const [versaoAulas, setVersaoAulas] = useState(0);
-  const podeGerenciar = useIsCoordenador();
+  // Quem enxerga a agenda é quem tem a tela liberada (o menu já protege a rota).
+  const { podeAcessar, carregando: carregandoPermissoes } = usePermissoes();
+  const podeGerenciar = podeAcessar('TELA_AGENDA');
 
   const abrirModalAdicionar = (dia) => {
     setSelectedDay(dia);
@@ -406,15 +413,8 @@ export default function Agenda() {
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(prev => !prev)}
-        items={[
-          { to: '/overview', label: 'Geral', short: 'Geral' },
-          { to: '/aulas', label: 'Agenda', short: 'AG', active: true },
-          { to: '/dashboard', label: 'Dashboard', short: 'Dash' },
-          { to: '/professores', label: 'Professores', short: 'Prof' },
-          { to: '/turmas', label: 'Turmas', short: 'Tur' },
-          { to: '/alunos', label: 'Alunos', short: 'Alu' },
-          { to: '/contratos', label: 'Contratos', short: 'Cont' }
-        ]}
+        items={itensMenu}
+        carregando={carregandoPermissoes}
       />
 
       <main className="agenda-content">
