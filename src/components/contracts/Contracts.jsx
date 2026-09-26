@@ -10,8 +10,12 @@ import { alunosService } from '../students/components/alunosService';
 import { professoresDisponiveisService } from './professoresDisponiveisService';
 import { turmasDisponiveisService } from './turmasDisponiveisService';
 import { contratosService } from './contratosService';
+import { useItensMenu } from '../../utils/menuItems';
+import { usePermissoes } from '../../utils/permissions';
 import '../agenda/Agenda.css';
 import './Contracts.css';
+
+
 
 const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 const HORARIOS_MODAL = Array.from({ length: 24 }, (_, index) => `${String(index).padStart(2, '0')}:00`);
@@ -42,6 +46,9 @@ const contratoEhAtivo = (contrato) => {
 export default function Contracts() {
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // Itens do menu sao filtrados pelas telas liberadas no cadastro do professor
+  const itensMenu = useItensMenu('/contratos');
+  const { carregando: carregandoPermissoes } = usePermissoes();
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(
     () => Boolean(location.state?.openContractSetup)
   );
@@ -165,7 +172,7 @@ export default function Contracts() {
         nome: tipo === 'individual' ? item.nome : item.nome,
         detalhe:
           tipo === 'individual'
-            ? item.tipo?.tipoProfessor
+            ? item.email
             : `${item.nivel} · ${item.nomeProfessor}`
       });
     };
@@ -334,15 +341,8 @@ export default function Contracts() {
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(prev => !prev)}
-        items={[
-          { to: '/overview', label: 'Geral', short: 'Geral' },
-          { to: '/aulas', label: 'Agenda', short: 'AG' },
-          { to: '/dashboard', label: 'Dashboard', short: 'Dash' },
-          { to: '/professores', label: 'Professores', short: 'Prof' },
-          { to: '/turmas', label: 'Turmas', short: 'Tur' },
-          { to: '/alunos', label: 'Alunos', short: 'Alu' },
-          { to: '/contratos', label: 'Contratos', short: 'Cont', active: true }
-        ]}
+        items={itensMenu}
+        carregando={carregandoPermissoes}
       />
 
       <main className="agenda-content">

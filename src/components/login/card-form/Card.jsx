@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { useLocation, Link } from "react-router-dom";
 import Swal from "sweetalert2";
+import { registrarSessao, salvarPermissoes } from "../../../utils/permissions";
 import "./Card.css";
 import Input from "../input/Input";
 import Button from "../button/Button";
@@ -33,13 +34,16 @@ function Card({ onLoginSuccess }) {
                 { withCredentials: true }
             );
 
+            // O token chega no cookie HttpOnly; o corpo traz as telas liberadas
             const token = response.data?.token || response.data?.accessToken || response.data?.jwt;
             if (token) {
                 localStorage.setItem("authToken", token);
                 axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
             }
 
-            console.log("Login bem-sucedido:", response.data);
+            salvarPermissoes(response.data?.permissoes ?? []);
+            registrarSessao();
+
             onLoginSuccess(true);
         } catch (error) {
             console.error("Erro no login:", error.response?.data ?? error.message);

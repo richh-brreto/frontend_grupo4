@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { encerrarSessao } from './permissionStorage';
+import { recarregarPermissoes } from './permissions';
 
 axios.defaults.baseURL = "http://localhost:8080";
 axios.defaults.withCredentials = true;
@@ -30,6 +32,9 @@ axios.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       localStorage.removeItem("authToken");
       delete axios.defaults.headers.common["Authorization"];
+      // Sessão morta: as permissões cacheadas não podem continuar valendo
+      encerrarSessao();
+      recarregarPermissoes();
       window.location.href = "/";
     }
     return Promise.reject(error);
