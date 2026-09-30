@@ -14,9 +14,6 @@ export default function ProfessorProfileModal({ professor, onClose }) {
       <label>Nome:</label>
       <input type="text" value={professor.nome} readOnly />
 
-      <label>Tipo:</label>
-      <input type="text" value={professor.tipo?.tipoProfessor ?? '-'} readOnly />
-
       <label>Email:</label>
       <input type="email" value={professor.email} readOnly />
 

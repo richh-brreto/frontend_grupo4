@@ -19,7 +19,7 @@ export function useProfessores() {
     carregarProfessores();
   }, [carregarProfessores]);
 
-  // O POST devolve a entidade crua (com senha e tipo em outro formato), então
+  // O POST devolve a entidade crua (com a senha fora do formato de tela), então
   // recarregamos a lista para manter o mesmo formato usado pelo GET
   const adicionarProfessor = (novoProfessor) => {
     return professoresService.criar(novoProfessor).then((professorCriado) => {
@@ -33,7 +33,7 @@ export function useProfessores() {
       nome: professor.nome,
       email: professor.email,
       telefone: professor.telefone,
-      idTipoProfessor: Number(professor.idTipoProfessor),
+      permissoes: professor.permissoes,
     };
 
     return professoresService.atualizar(professor.id, payload).then((professorAtualizado) => {

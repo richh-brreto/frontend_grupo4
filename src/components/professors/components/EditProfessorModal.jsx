@@ -1,5 +1,6 @@
 import React from 'react';
 import Modal from '../../layout/Modal';
+import SeletorPermissoes from './SeletorPermissoes';
 
 export default function EditProfessorModal({ professor, onClose, onSave, onChange, onDelete }) {
   return (
@@ -25,11 +26,9 @@ export default function EditProfessorModal({ professor, onClose, onSave, onChang
         onChange={(e) => onChange({ ...professor, telefone: e.target.value })}
       />
 
-      <label>ID do tipo de professor:</label>
-      <input
-        type="text"
-        value={professor.idTipoProfessor}
-        onChange={(e) => onChange({ ...professor, idTipoProfessor: e.target.value })}
+      <SeletorPermissoes
+        selecionadas={professor.permissoes ?? []}
+        onChange={(novas) => onChange({ ...professor, permissoes: novas })}
       />
     </Modal>
   );

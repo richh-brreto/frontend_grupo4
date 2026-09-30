@@ -5,9 +5,12 @@ import Button from "../layout/Button";
 import ButtonContainer from "../layout/ButtonContainer";
 import Modal from '../layout/Modal';
 import { comunicadosService } from './comunicadosService';
-import { useIsCoordenador } from '../../utils/auth';
+import { useItensMenu } from '../../utils/menuItems';
+import { usePermissoes } from '../../utils/permissions';
 import '../agenda/Agenda.css';
 import './Overview.css';
+
+
 
 const TITULO_MAX = 100;
 const TEXTO_MAX = 5000;
@@ -29,8 +32,12 @@ const formatarData = (dataIso) => {
 };
 
 export default function Overview() {
-  const podeGerenciar = useIsCoordenador();
+  // A tela de comunicados é a TELA_GERAL; quem a vê pode manter os avisos.
+  const { podeAcessar, carregando: carregandoPermissoes } = usePermissoes();
+  const podeGerenciar = podeAcessar('TELA_GERAL');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // Itens do menu sao filtrados pelas telas liberadas no cadastro do professor
+  const itensMenu = useItensMenu('/overview');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
   const [novoComunicado, setNovoComunicado] = useState({ titulo: '', texto: '' });
@@ -179,15 +186,8 @@ export default function Overview() {
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(prev => !prev)}
-        items={[
-          { to: '/overview', label: 'Geral', short: 'Geral', active: true },
-          { to: '/aulas', label: 'Agenda', short: 'AG' },
-          { to: '/dashboard', label: 'Dashboard', short: 'Dash' },
-          { to: '/professores', label: 'Professores', short: 'Prof' },
-          { to: '/turmas', label: 'Turmas', short: 'Tur' },
-          { to: '/alunos', label: 'Alunos', short: 'Alu' },
-          { to: '/contratos', label: 'Contratos', short: 'Cont' }
-        ]}
+        items={itensMenu}
+        carregando={carregandoPermissoes}
       />
 
       <main className="agenda-content">

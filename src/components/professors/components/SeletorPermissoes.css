@@ -1,0 +1,79 @@
+.permissoes-seletor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.permissoes-seletor-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #0f1f3f;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.permissoes-seletor-acoes {
+  display: flex;
+  gap: 8px;
+}
+
+.permissoes-seletor-acoes button {
+  padding: 6px 10px;
+  border: 1px solid #d8d8d8;
+  border-radius: 10px;
+  background: #fff;
+  color: #0f1f3f;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.permissoes-seletor-acoes button:hover {
+  background: #eef2ff;
+}
+
+.permissoes-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+/* o input padrão do modal ocupa 100% da largura; aqui vira caixinha */
+.permissoes-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.permissoes-item input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 auto;
+  accent-color: #0f1f3f;
+  cursor: pointer;
+}
+
+.permissoes-status,
+.permissoes-contagem {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.permissoes-status.erro {
+  color: #b91c1c;
+}

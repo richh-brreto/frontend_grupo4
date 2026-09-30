@@ -8,8 +8,12 @@ import Container from '../layout/Container';
 import { horariosService } from '../contracts/horariosService';
 import { professoresService } from '../professors/components/professoresService';
 import { turmasService } from "./turmasService";
+import { useItensMenu } from '../../utils/menuItems';
+import { usePermissoes } from '../../utils/permissions';
 import '../agenda/Agenda.css';
 import './Classes.css';
+
+
 
 const normalizar = (texto) =>
   texto
@@ -34,6 +38,9 @@ const normalizarHora = (hora) => (hora ? hora.slice(0, 5) : hora);
 
 export default function Classes() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // Itens do menu sao filtrados pelas telas liberadas no cadastro do professor
+  const itensMenu = useItensMenu('/turmas');
+  const { carregando: carregandoPermissoes } = usePermissoes();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
   const [classDetails, setClassDetails] = useState(null);
@@ -241,15 +248,8 @@ export default function Classes() {
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(prev => !prev)}
-        items={[
-          { to: '/overview', label: 'Geral', short: 'Geral' },
-          { to: '/aulas', label: 'Agenda', short: 'AG' },
-          { to: '/dashboard', label: 'Dashboard', short: 'Dash' },
-          { to: '/professores', label: 'Professores', short: 'Prof' },
-          { to: '/turmas', label: 'Turmas', short: 'Tur', active: true },
-          { to: '/alunos', label: 'Alunos', short: 'Alu' },
-          { to: '/contratos', label: 'Contratos', short: 'Cont' }
-        ]}
+        items={itensMenu}
+        carregando={carregandoPermissoes}
       />
 
       <main className="agenda-content">

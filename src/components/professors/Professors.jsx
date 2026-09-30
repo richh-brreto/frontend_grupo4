@@ -10,8 +10,12 @@ import AddProfessorModal from './components/AddProfessorModal';
 import EditProfessorModal from './components/EditProfessorModal';
 import ProfessorProfileModal from './components/ProfessorProfileModal';
 import mostrarCodigoAcesso from '../../utils/mostrarCodigoAcesso';
+import { useItensMenu } from '../../utils/menuItems';
+import { usePermissoes } from '../../utils/permissions';
 import '../agenda/Agenda.css';
 import './Professors.css';
+
+
 
 const normalizar = (texto) =>
   texto
@@ -21,6 +25,9 @@ const normalizar = (texto) =>
 
 export default function Professors() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // Itens do menu sao filtrados pelas telas liberadas no cadastro do professor
+  const itensMenu = useItensMenu('/professores');
+  const { carregando: carregandoPermissoes } = usePermissoes();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedProfessor, setSelectedProfessor] = useState(null);
   const [professorProfile, setProfessorProfile] = useState(null);
@@ -47,7 +54,7 @@ export default function Professors() {
     : professores;
 
   const abrirModalEdicao = (professor) => {
-    setSelectedProfessor({ ...professor, idTipoProfessor: professor.tipo?.id ?? professor.idTipoProfessor ?? '' });
+    setSelectedProfessor({ ...professor });
   };
 
   const salvarNovoProfessor = async (professor) => {
@@ -91,15 +98,8 @@ export default function Professors() {
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed((prev) => !prev)}
-        items={[
-          { to: '/overview', label: 'Geral', short: 'Geral' },
-          { to: '/aulas', label: 'Agenda', short: 'AG' },
-          { to: '/dashboard', label: 'Dashboard', short: 'Dash' },
-          { to: '/professores', label: 'Professores', short: 'Prof', active: true },
-          { to: '/turmas', label: 'Turmas', short: 'Tur' },
-          { to: '/alunos', label: 'Alunos', short: 'Alu' },
-          { to: '/contratos', label: 'Contratos', short: 'Cont' },
-        ]}
+        items={itensMenu}
+        carregando={carregandoPermissoes}
       />
 
       <main className="agenda-content">

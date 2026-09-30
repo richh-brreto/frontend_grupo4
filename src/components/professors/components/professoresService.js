@@ -15,6 +15,10 @@ export const professoresService = {
     return axios.put(`${BASE_URL}/${id}`, professor).then((res) => res.data);
   },
 
+  atualizarPermissoes(id, permissoes) {
+    return axios.put(`${BASE_URL}/${id}/permissoes`, { permissoes }).then((res) => res.data);
+  },
+
   excluir(id) {
     return axios.delete(`${BASE_URL}/${id}`);
   },

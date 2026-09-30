@@ -11,8 +11,12 @@ import AddStudentModal from './components/AddStudentModal';
 import EditStudentModal from './components/EditStudentModal';
 import ScheduleModal from './components/ScheduleModal';
 import mostrarCodigoAcesso from '../../utils/mostrarCodigoAcesso';
+import { useItensMenu } from '../../utils/menuItems';
+import { usePermissoes } from '../../utils/permissions';
 import '../agenda/Agenda.css';
 import './Students.css';
+
+
 
 const normalizar = (texto) =>
   texto
@@ -23,6 +27,9 @@ const normalizar = (texto) =>
 export default function Students() {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // Itens do menu sao filtrados pelas telas liberadas no cadastro do professor
+  const itensMenu = useItensMenu('/alunos');
+  const { carregando: carregandoPermissoes } = usePermissoes();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [studentSchedule, setStudentSchedule] = useState(null);
@@ -98,15 +105,8 @@ export default function Students() {
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed((prev) => !prev)}
-        items={[
-          { to: '/overview', label: 'Geral', short: 'Geral' },
-          { to: '/aulas', label: 'Agenda', short: 'AG' },
-          { to: '/dashboard', label: 'Dashboard', short: 'Dash' },
-          { to: '/professores', label: 'Professores', short: 'Prof' },
-          { to: '/turmas', label: 'Turmas', short: 'Tur' },
-          { to: '/alunos', label: 'Alunos', short: 'Alu', active: true },
-          { to: '/contratos', label: 'Contratos', short: 'Cont' },
-        ]}
+        items={itensMenu}
+        carregando={carregandoPermissoes}
       />
 
       <main className="agenda-content">

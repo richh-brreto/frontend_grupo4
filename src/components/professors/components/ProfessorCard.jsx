@@ -28,7 +28,11 @@ export default function ProfessorCard({ professor, onEditar, onVerPerfil, onAlte
 
         <div className="professor-main-info">
           <h3>{professor.nome}</h3>
-          <p>{professor.tipo?.tipoProfessor ?? '-'}</p>
+          <p>
+            {professor.permissoes?.length
+              ? `${professor.permissoes.length} tela(s) liberada(s)`
+              : 'sem telas liberadas'}
+          </p>
         </div>
 
         <div className="professor-card-badges">

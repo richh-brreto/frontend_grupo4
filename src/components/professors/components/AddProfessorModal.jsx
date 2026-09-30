@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import Modal from '../../layout/Modal';
 import ProfessorScheduleModal from './ProfessorScheduleModal';
+import SeletorPermissoes from './SeletorPermissoes';
 
 const ESTADO_INICIAL = {
   nome: '',
   email: '',
   telefone: '',
-  idTipoProfessor: '',
+  permissoes: [],
 };
 
 export default function AddProfessorModal({ onClose, onSave }) {
@@ -28,8 +29,9 @@ export default function AddProfessorModal({ onClose, onSave }) {
       nome: form.nome,
       email: form.email,
       telefone: form.telefone,
-      idTipoProfessor: Number(form.idTipoProfessor),
       horariosIds,
+      // Telas escolhidas aqui viram linhas em professor_permissao
+      permissoes: form.permissoes,
     };
 
     setSalvando(true);
@@ -64,12 +66,9 @@ export default function AddProfessorModal({ onClose, onSave }) {
       <label>Telefone:</label>
       <input type="text" placeholder="Telefone" value={form.telefone} onChange={atualizarCampo('telefone')} />
 
-      <label>ID do tipo de professor:</label>
-      <input
-        type="text"
-        placeholder="Ex: 1"
-        value={form.idTipoProfessor}
-        onChange={atualizarCampo('idTipoProfessor')}
+      <SeletorPermissoes
+        selecionadas={form.permissoes}
+        onChange={(novas) => setForm((atual) => ({ ...atual, permissoes: novas }))}
       />
 
       {erro && <p className="student-form-error">{erro}</p>}
