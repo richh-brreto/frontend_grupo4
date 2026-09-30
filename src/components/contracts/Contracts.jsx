@@ -18,7 +18,7 @@ import './Contracts.css';
 
 
 const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
-const HORARIOS_MODAL = Array.from({ length: 24 }, (_, index) => `${String(index).padStart(2, '0')}:00`);
+const HORARIOS_MODAL = Array.from({ length: 15 }, (_, index) => `${String(index + 7).padStart(2, '0')}:00`);
 
 // A API manda "Segunda-feira", "Terça-feira" etc. Normaliza pro formato curto usado no grid.
 const DIA_SEMANA_MAP = {
@@ -58,8 +58,8 @@ export default function Contracts() {
   const [dataInicioContrato, setDataInicioContrato] = useState(hoje);
   const [dataFimContrato, setDataFimContrato] = useState(hoje);
 
-  // horário selecionado no mini-calendário: { dia, hora, item }
-  const [selectedSchedule, setSelectedSchedule] = useState(null);
+  // horários selecionados no mini-calendário: [{ dia, hora, item }]
+  const [selectedSchedule, setSelectedSchedule] = useState([]);
   // quando um slot tem mais de uma opção (professores/turmas), guarda qual slot está "aberto" pra escolher
   const [openSlot, setOpenSlot] = useState(null); // { dia, hora }
 
@@ -196,14 +196,14 @@ export default function Contracts() {
 
   const fecharModalAgendamento = () => {
     setIsScheduleModalOpen(false);
-    setSelectedSchedule(null);
+    setSelectedSchedule([]);
     setOpenSlot(null);
     setDataInicioContrato(dataHoje());
     setDataFimContrato(dataHoje());
   };
 
   const salvarNovoContrato = async () => {
-    if (!alunoSelecionado || !selectedSchedule) {
+    if (!alunoSelecionado || selectedSchedule.length === 0) {
       alert('Por favor, selecione um aluno e um horário');
       return;
     }
@@ -228,14 +228,14 @@ export default function Contracts() {
         alunoId: parseInt(alunoSelecionado.id),
         turmaId: 0,
         professorId: 0,
-        horariosIds: [parseInt(selectedSchedule.item.horarioId)]
+        horariosIds: selectedSchedule.map(({ item }) => parseInt(item.horarioId))
       };
 
       // Adicionar professor para contratos individuais ou turma para contratos em grupo
       if (contractType === 'individual') {
-        novoContrato.professorId = parseInt(selectedSchedule.item.id);
+        novoContrato.professorId = parseInt(selectedSchedule[0].item.id);
       } else {
-        novoContrato.turmaId = parseInt(selectedSchedule.item.id);
+        novoContrato.turmaId = parseInt(selectedSchedule[0].item.id);
       }
 
       console.log('Enviando contrato:', novoContrato);
@@ -261,12 +261,16 @@ export default function Contracts() {
 
   const trocarTipoContrato = (tipo) => {
     setContractType(tipo);
-    setSelectedSchedule(null);
+    setSelectedSchedule([]);
     setOpenSlot(null);
   };
 
   const selecionarOpcaoSlot = (dia, hora, opcao) => {
-    setSelectedSchedule({ dia, hora, item: opcao });
+    setSelectedSchedule((atual) => {
+      const indice = atual.findIndex((selecionado) => selecionado.item.horarioId === opcao.horarioId);
+      if (indice >= 0) return atual.filter((_, itemIndex) => itemIndex !== indice);
+      return [...atual, { dia, hora, item: opcao }];
+    });
     setOpenSlot(null);
   };
 
@@ -432,7 +436,9 @@ export default function Contracts() {
           onClose={fecharModalAgendamento}
           onSave={salvarNovoContrato}
           saveLabel="Continuar"
+          className="contract-create-modal"
         >
+          <div className="contract-form-panel">
           <label htmlFor="contract-student">Aluno:</label>
           <select
             id="contract-student"
@@ -454,6 +460,7 @@ export default function Contracts() {
             </p>
           )}
 
+          <span className="contract-type-label">Tipo de aula</span>
           <div className="contract-type-options">
             <label className={`contract-option ${contractType === 'individual' ? 'selected' : ''}`}>
               <input
@@ -463,7 +470,7 @@ export default function Contracts() {
                 checked={contractType === 'individual'}
                 onChange={() => trocarTipoContrato('individual')}
               />
-              <span>Aulas individuais</span>
+              <span>Individual</span>
             </label>
 
             <label className={`contract-option ${contractType === 'grupo' ? 'selected' : ''}`}>
@@ -474,7 +481,7 @@ export default function Contracts() {
                 checked={contractType === 'grupo'}
                 onChange={() => trocarTipoContrato('grupo')}
               />
-              <span>Aulas em grupo</span>
+              <span>Em grupo</span>
             </label>
           </div>
 
@@ -514,17 +521,25 @@ export default function Contracts() {
             </p>
           )}
 
-          {selectedSchedule && (
-            <p className="contract-selected-student">
-              Selecionado: <strong>{selectedSchedule.dia} {selectedSchedule.item.horaInicio} - {selectedSchedule.item.horaFim}</strong>
-              {' · '}
-              <strong>{selectedSchedule.item.nome}</strong>
-            </p>
+          {selectedSchedule.length > 0 && (
+            <div className="contract-selected-schedule">
+              <span className="contract-selected-schedule-title">Selecionado</span>
+              <div className="contract-selected-schedule-list">
+                {selectedSchedule.map(({ dia, item }) => (
+                  <div key={item.horarioId} className="contract-selected-schedule-item">
+                    <strong>{dia}</strong>
+                    <span>{item.horaInicio} - {item.horaFim}</span>
+                    <small>{item.nome}</small>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
+          </div>
 
-          <div className="mini-schedule">
+          <div className="contract-schedule-panel mini-schedule">
             <div className="mini-week-grid">
-              <div className="mini-hours-header">Horários</div>
+              <div className="mini-hours-header" aria-hidden="true" />
               {DIAS_SEMANA.map((dia) => (
                 <div key={dia} className="mini-day-header">{dia}</div>
               ))}
@@ -541,8 +556,9 @@ export default function Contracts() {
                     const chave = `${dia}-${hora}`;
                     const opcoes = gradeDisponibilidade[chave] || [];
                     const temOpcoes = opcoes.length > 0;
-                    const isSelected =
-                      selectedSchedule?.dia === dia && selectedSchedule?.hora === hora;
+                    const isSelected = selectedSchedule.some(
+                      (selecionado) => selecionado.dia === dia && selecionado.hora === hora
+                    );
                     const estaAberto = openSlot?.dia === dia && openSlot?.hora === hora;
 
                     return (
@@ -563,12 +579,10 @@ export default function Contracts() {
                             ) : (
                               <>
                                 <span>{opcoes[0].horaInicio} - {opcoes[0].horaFim}</span>
-                                <strong>{opcoes.length} disponíveis</strong>
+                                <strong>{opcoes.length} opções</strong>
                               </>
                             )
-                          ) : (
-                            <span>Horário não disponível</span>
-                          )}
+                          ) : null}
                         </button>
 
                         {estaAberto && (

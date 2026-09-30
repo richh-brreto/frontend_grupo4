@@ -2,20 +2,34 @@
   width: min(920px, calc(100% - 40px));
 }
 
+.modal-content.professor-create-modal {
+  width: min(1500px, calc(100vw - 32px));
+  max-height: 92vh;
+  padding: 24px 28px 20px;
+}
+
 .schedule-instrucao {
   color: #64748b;
-  margin: 0 0 12px;
+  margin: 0;
+  padding: 12px 12px 0;
 }
 
 .schedule-scroll {
-  max-height: 55vh;
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  max-height: none;
   overflow: auto;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  border: none;
+  border-radius: 0;
+  background: #f8fbff;
+  padding: 8px;
 }
 
 .schedule-grid {
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 8px 6px;
+  table-layout: fixed;
   width: 100%;
 }
 
@@ -24,14 +38,20 @@
   text-align: center;
 }
 
+.schedule-grid th:first-child,
+.schedule-grid td:first-child {
+  width: 72px;
+}
+
 .schedule-grid thead th {
   position: sticky;
   top: 0;
-  background: #f8fafc;
-  color: #0f1f3f;
+  background: #0f1f3f;
+  color: #fff;
   font-size: 13px;
   font-weight: 700;
   padding: 10px 6px;
+  border-radius: 10px;
   border-bottom: 1px solid #e2e8f0;
   z-index: 1;
 }
@@ -41,11 +61,16 @@
   font-size: 12px;
   color: #64748b;
   padding: 0 10px;
-  background: #f8fafc;
+  background: #f8fbff;
   position: sticky;
   left: 0;
   z-index: 1;
   border-right: 1px solid #e2e8f0;
+  line-height: 1.5;
+}
+
+.schedule-hora-label span {
+  display: block;
 }
 
 .schedule-slot-cell {
@@ -55,17 +80,19 @@
 
 .schedule-slot {
   width: 100%;
-  height: 26px;
+  height: 56px;
+  min-height: 56px;
   border: 1px solid #d8e0ec;
-  border-radius: 6px;
-  background: #eef3fb;
+  border-radius: 8px;
+  background: #ffffff;
   cursor: pointer;
   padding: 0;
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .schedule-slot:hover {
-  background: #d7e4fb;
+  background: #ffffff;
+  border-color: #0f1f3f;
 }
 
 .schedule-slot.selecionado {
@@ -74,11 +101,12 @@
 }
 
 .schedule-slot-vazio {
-  background: transparent;
+  background: #f8fbff;
 }
 
 .schedule-contador {
-  margin: 12px 0 0;
+  margin: 0;
+  padding: 0 12px 12px;
   font-weight: 600;
   color: #0f1f3f;
   font-size: 13px;
@@ -89,4 +117,110 @@
   gap: 12px;
   justify-content: flex-end;
   margin-top: 24px;
+}
+
+.modal-content.professor-create-modal .modal-body {
+  display: grid;
+  grid-template-columns: minmax(230px, 280px) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 24px;
+  min-height: 0;
+  height: calc(92vh - 185px);
+  max-height: none;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.modal-content.professor-create-modal .professor-form-panel {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin: 0 -24px 0 -40px;
+  padding: 16px 28px 16px 56px;
+  border-top: 1px solid #e2eaf4;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.modal-content.professor-create-modal .professor-schedule-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  margin-top: 0;
+  border-top: 1px solid #e2eaf4;
+  border-left: 1px solid #e2eaf4;
+  background: #f8fbff;
+  overflow: hidden;
+}
+
+.professor-selected-schedule {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  padding: 14px;
+  border: 1px solid #e1e9f5;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.professor-selected-schedule-title {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.professor-selected-schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.professor-selected-schedule-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid #dfe8f7;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f1f3f;
+  font-size: 11px;
+}
+
+.professor-selected-schedule-item span {
+  color: #64748b;
+}
+
+.modal-content.professor-create-modal .schedule-grid {
+  min-width: 920px;
+}
+
+.modal-content.professor-create-modal .schedule-grid thead th:first-child {
+  background: transparent;
+  color: transparent;
+  border: none;
+}
+
+@media (max-width: 900px) {
+  .modal-content.professor-create-modal .modal-body {
+    grid-template-columns: 1fr;
+    height: auto;
+    max-height: calc(92vh - 130px);
+  }
+
+  .modal-content.professor-create-modal .professor-form-panel {
+    margin: 0;
+    padding: 16px;
+  }
+
+  .modal-content.professor-create-modal .professor-schedule-panel {
+    height: 48vh;
+  }
 }

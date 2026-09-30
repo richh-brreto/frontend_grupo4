@@ -22,7 +22,7 @@ const normalizar = (texto) =>
     .toLowerCase();
 
 const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
-const HORARIOS_MODAL = Array.from({ length: 24 }, (_, index) => `${String(index).padStart(2, '0')}:00`);
+const HORARIOS_MODAL = Array.from({ length: 15 }, (_, index) => `${String(index + 7).padStart(2, '0')}:00`);
 const DIA_SEMANA_MAP = {
   'Segunda-feira': 'Segunda',
   'Terça-feira': 'Terça',
@@ -339,7 +339,9 @@ export default function Classes() {
           onClose={fecharModalAdicionar}
           onSave={salvarNovaTurma}
           saveLabel={salvandoTurma ? 'Salvando...' : 'Salvar'}
+          className="class-create-modal"
         >
+          <div className="class-form-panel">
           <label>Nome:</label>
           <input
             type="text" placeholder="Nome" value={novaTurma.nome}
@@ -395,9 +397,28 @@ export default function Classes() {
           {horariosError && <p className="classes-load-error">{horariosError}</p>}
           {cadastroError && <p className="classes-load-error">{cadastroError}</p>}
 
-          <div className="class-schedule">
+          <div className="class-selected-schedule">
+            <span className="class-selected-schedule-title">Selecionados</span>
+            {horariosSelecionados.length > 0 ? (
+              <div className="class-selected-schedule-list">
+                {horarios
+                  .filter((horario) => horariosSelecionados.includes(horario.id))
+                  .map((horario) => (
+                    <div key={horario.id} className="class-selected-schedule-item">
+                      <strong>{normalizarDia(horario.diaSemana)}</strong>
+                      <span>{normalizarHora(horario.horaInicio)} - {normalizarHora(horario.horaFim)}</span>
+                    </div>
+                  ))}
+              </div>
+            ) : (
+              <span className="class-selected-schedule-empty">Nenhum horário selecionado</span>
+            )}
+          </div>
+          </div>
+
+          <div className="class-schedule class-schedule-panel">
             <div className="class-week-grid">
-              <div className="class-hours-header">Horários</div>
+              <div className="class-hours-header" aria-hidden="true" />
               {DIAS_SEMANA.map((dia) => (
                 <div key={dia} className="class-day-header">{dia}</div>
               ))}
@@ -423,14 +444,6 @@ export default function Classes() {
                         onClick={() => horario && alternarHorario(horario)}
                         disabled={!horario}
                       >
-                        {horario ? (
-                          <>
-                            <span>{normalizarHora(horario.horaInicio)} - {normalizarHora(horario.horaFim)}</span>
-                            <strong>{isSelected ? 'Selecionado' : 'Disponível'}</strong>
-                          </>
-                        ) : (
-                          <span>Horário não disponível</span>
-                        )}
                       </button>
                     );
                   })}
