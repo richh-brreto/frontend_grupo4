@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios from "./utils/axiosConfig";
 import { useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
@@ -13,12 +13,7 @@ import Classes from "./components/classes/Classes.jsx";
 import Professors from "./components/professors/Professors";
 import Overview from "./components/overview/Overview";
 
-axios.defaults.baseURL = "http://localhost:8080";
-axios.defaults.withCredentials = true;
 const savedToken = localStorage.getItem("authToken");
-if (savedToken) {
-    axios.defaults.headers.common["Authorization"] = `Bearer ${savedToken}`;
-}
 
 function App() {
     const [isLoggedIn, setIsLoggedIn] = useState(!!savedToken);
