@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Modal from '../../layout/Modal';
 import ProfessorScheduleSelector from './ProfessorScheduleSelector';
 import SeletorPermissoes from './SeletorPermissoes';
+import { ordenarHorarios } from '../../../utils/ordenarHorarios';
 
 const ESTADO_INICIAL = {
   nome: '',
@@ -45,7 +46,7 @@ export default function AddProfessorModal({ onClose, onSave }) {
   };
 
   return (
-    <Modal title="Adicionar Professor" onClose={onClose} onSave={handleSalvar} saveLabel={salvando ? 'Salvando...' : 'Concluir cadastro'} className="professor-create-modal">
+    <Modal title="Adicionar Professor" onClose={onClose} onSave={handleSalvar} saveLabel={salvando ? 'Salvando...' : 'Salvar'} className="professor-create-modal">
       <div className="professor-form-panel">
         <label>Nome:</label>
         <input type="text" placeholder="Nome" value={form.nome} onChange={atualizarCampo('nome')} />
@@ -61,19 +62,21 @@ export default function AddProfessorModal({ onClose, onSave }) {
           onChange={(novas) => setForm((atual) => ({ ...atual, permissoes: novas }))}
         />
 
-        {horariosSelecionados.length > 0 && (
-          <div className="professor-selected-schedule">
-            <span className="professor-selected-schedule-title">Selecionados</span>
+        <div className="professor-selected-schedule">
+          <span className="professor-selected-schedule-title">Selecionados</span>
+          {horariosSelecionados.length > 0 ? (
             <div className="professor-selected-schedule-list">
-              {horariosSelecionados.map((horario) => (
+              {[...horariosSelecionados].sort(ordenarHorarios).map((horario) => (
                 <div key={horario.id} className="professor-selected-schedule-item">
                   <strong>{horario.diaSemana.replace('-feira', '')}</strong>
                   <span>{horario.horaInicio.slice(0, 5)} - {horario.horaFim.slice(0, 5)}</span>
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <span className="professor-selected-schedule-empty">Nenhum horário selecionado</span>
+          )}
+        </div>
 
         {erro && <p className="student-form-error">{erro}</p>}
       </div>

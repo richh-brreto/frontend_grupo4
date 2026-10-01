@@ -12,6 +12,7 @@ import { turmasDisponiveisService } from './turmasDisponiveisService';
 import { contratosService } from './contratosService';
 import { useItensMenu } from '../../utils/menuItems';
 import { usePermissoes } from '../../utils/permissions';
+import { ordenarHorarios } from '../../utils/ordenarHorarios';
 import '../agenda/Agenda.css';
 import './Contracts.css';
 
@@ -435,7 +436,7 @@ export default function Contracts() {
           title="Configurar contrato"
           onClose={fecharModalAgendamento}
           onSave={salvarNovoContrato}
-          saveLabel="Continuar"
+          saveLabel="Salvar"
           className="contract-create-modal"
         >
           <div className="contract-form-panel">
@@ -521,11 +522,11 @@ export default function Contracts() {
             </p>
           )}
 
-          {selectedSchedule.length > 0 && (
-            <div className="contract-selected-schedule">
-              <span className="contract-selected-schedule-title">Selecionado</span>
+          <div className="contract-selected-schedule">
+            <span className="contract-selected-schedule-title">Selecionados</span>
+            {selectedSchedule.length > 0 ? (
               <div className="contract-selected-schedule-list">
-                {selectedSchedule.map(({ dia, item }) => (
+                {[...selectedSchedule].sort(ordenarHorarios).map(({ dia, item }) => (
                   <div key={item.horarioId} className="contract-selected-schedule-item">
                     <strong>{dia}</strong>
                     <span>{item.horaInicio} - {item.horaFim}</span>
@@ -533,12 +534,18 @@ export default function Contracts() {
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            ) : (
+              <span className="contract-selected-schedule-empty">Nenhum horário selecionado</span>
+            )}
+          </div>
           </div>
 
           <div className="contract-schedule-panel mini-schedule">
-            <div className="mini-week-grid">
+            <p className="contract-schedule-instruction">
+              Clique nos blocos para marcar os horários em que o aluno terá aulas.
+            </p>
+            <div className="contract-schedule-scroll">
+              <div className="mini-week-grid">
               <div className="mini-hours-header" aria-hidden="true" />
               {DIAS_SEMANA.map((dia) => (
                 <div key={dia} className="mini-day-header">{dia}</div>
@@ -605,7 +612,11 @@ export default function Contracts() {
                   })}
                 </div>
               ))}
+              </div>
             </div>
+            <p className="contract-schedule-counter">
+              {selectedSchedule.length} horário(s) selecionado(s)
+            </p>
           </div>
         </Modal>
       )}

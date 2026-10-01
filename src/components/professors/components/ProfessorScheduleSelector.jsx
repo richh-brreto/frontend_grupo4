@@ -77,11 +77,10 @@ export default function ProfessorScheduleSelector({ selecionados, onChange }) {
             </tr>
           </thead>
           <tbody>
-            {horasLinhas.map(({ horaInicio, horaFim }) => (
+            {horasLinhas.map(({ horaInicio }) => (
               <tr key={horaInicio}>
                 <td className="schedule-hora-label">
                   <span>{formatarHora(horaInicio)}</span>
-                  <span>{formatarHora(horaFim)}</span>
                 </td>
                 {dias.map((dia) => {
                   const horario = grade.get(`${dia}|${horaInicio}`);

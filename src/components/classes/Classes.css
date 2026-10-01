@@ -288,7 +288,9 @@
 }
 
 .modal-content.class-create-modal .class-schedule-panel {
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   overflow-x: hidden;
   margin-top: 0;
   min-height: 0;
@@ -296,6 +298,26 @@
   border-left: 1px solid #e2eaf4;
   border-radius: 0;
   background: #f8fbff;
+}
+
+.class-schedule-instruction {
+  color: #64748b;
+  margin: 0;
+  padding: 12px 12px 12px;
+}
+
+.class-schedule-counter {
+  margin: 0;
+  font-weight: 600;
+  color: #0f1f3f;
+  font-size: 13px;
+  padding: 12px 12px 12px;
+}
+
+.class-schedule-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
 }
 
 .class-selected-schedule {

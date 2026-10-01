@@ -149,7 +149,8 @@
 }
 
 .contract-selected-schedule-item span,
-.contract-selected-schedule-item small {
+.contract-selected-schedule-item small,
+.contract-selected-schedule-empty {
   color: #64748b;
   font-size: 11px;
 }
@@ -200,14 +201,36 @@
 }
 
 .mini-schedule {
+  display: flex;
+  flex-direction: column;
   border: 1px solid #edf2fb;
   border-radius: 12px;
   background: #f8fbff;
   padding: 8px;
-  overflow: auto;
+  overflow: hidden;
   flex: 1;
   min-height: 0;
   margin-top: 0;
+}
+
+.contract-schedule-instruction {
+  color: #64748b;
+  margin: 0;
+  padding: 12px 12px 12px;
+}
+
+.contract-schedule-counter {
+  margin: 0;
+  font-weight: 600;
+  color: #0f1f3f;
+  font-size: 13px;
+  padding: 12px 12px 12px;
+}
+
+.contract-schedule-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
 }
 
 .mini-week-grid {

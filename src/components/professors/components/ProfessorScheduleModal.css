@@ -11,7 +11,7 @@
 .schedule-instrucao {
   color: #64748b;
   margin: 0;
-  padding: 12px 12px 0;
+  padding: 12px 12px 12px;
 }
 
 .schedule-scroll {
@@ -65,7 +65,6 @@
   position: sticky;
   left: 0;
   z-index: 1;
-  border-right: 1px solid #e2e8f0;
   line-height: 1.5;
 }
 
@@ -75,7 +74,6 @@
 
 .schedule-slot-cell {
   padding: 3px;
-  border-bottom: 1px solid #f1f5f9;
 }
 
 .schedule-slot {
@@ -106,7 +104,7 @@
 
 .schedule-contador {
   margin: 0;
-  padding: 0 12px 12px;
+  padding: 12px 12px 12px;
   font-weight: 600;
   color: #0f1f3f;
   font-size: 13px;
@@ -194,7 +192,8 @@
   font-size: 11px;
 }
 
-.professor-selected-schedule-item span {
+.professor-selected-schedule-item span,
+.professor-selected-schedule-empty {
   color: #64748b;
 }
 
