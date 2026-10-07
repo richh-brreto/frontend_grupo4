@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import Sidebar from '../layout/Sidebar';
@@ -10,19 +10,12 @@ import StudentCard from './components/StudentCard';
 import AddStudentModal from './components/AddStudentModal';
 import EditStudentModal from './components/EditStudentModal';
 import ScheduleModal from './components/ScheduleModal';
+import Pagination from './components/Pagination';
 import mostrarCodigoAcesso from '../../utils/mostrarCodigoAcesso';
 import { useItensMenu } from '../../utils/menuItems';
 import { usePermissoes } from '../../utils/permissions';
 import '../agenda/Agenda.css';
 import './Students.css';
-
-
-
-const normalizar = (texto) =>
-  texto
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
 
 export default function Students() {
   const navigate = useNavigate();
@@ -33,7 +26,7 @@ export default function Students() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [studentSchedule, setStudentSchedule] = useState(null);
-  const [busca, setBusca] = useState('');
+  const frameRef = useRef(null);
 
   const {
     alunos,
@@ -41,14 +34,23 @@ export default function Students() {
     error,
     filtro,
     setFiltro,
+    busca,
+    setBusca,
+    pagina,
+    setPagina,
+    tamanhoPagina,
+    paginacao,
+    recarregar,
     adicionarAluno,
     editarAluno,
     excluirAluno,
     alternarStatus,
   } = useAlunos();
 
-  if (loading) return <p>Carregando alunos...</p>;
-  if (error) return <p>Erro ao carregar alunos: {error}</p>;
+  // Ao trocar de página, a lista nova começa do topo
+  useEffect(() => {
+    frameRef.current?.scrollTo({ top: 0 });
+  }, [pagina]);
 
   const salvarNovoAluno = async (novoAluno) => {
     try {
@@ -95,10 +97,46 @@ export default function Students() {
     }
   };
 
-  const buscaNormalizada = normalizar(busca.trim());
-  const alunosFiltrados = buscaNormalizada
-    ? alunos.filter((aluno) => normalizar(aluno.nome).includes(buscaNormalizada))
-    : alunos;
+  const renderizarLista = () => {
+    if (error) {
+      return (
+        <div className="student-list-state">
+          <p>Erro ao carregar alunos: {error}</p>
+          <Button onClick={recarregar}>Tentar novamente</Button>
+        </div>
+      );
+    }
+
+    if (loading && alunos.length === 0) {
+      return <p className="student-list-state">Carregando alunos...</p>;
+    }
+
+    if (alunos.length === 0) {
+      return (
+        <p className="student-list-state">
+          {busca.trim()
+            ? `Nenhum aluno ${filtro === 'ativos' ? 'ativo' : 'inativo'} encontrado para "${busca.trim()}".`
+            : `Nenhum aluno ${filtro === 'ativos' ? 'ativo' : 'inativo'} cadastrado.`}
+        </p>
+      );
+    }
+
+    return (
+      <Container
+        items={alunos}
+        className={`students-grid ${loading ? 'carregando' : ''}`}
+        getItemKey={(aluno) => aluno.id}
+        renderItem={(aluno) => (
+          <StudentCard
+            aluno={aluno}
+            onEditar={setSelectedStudent}
+            onVerHorarios={setStudentSchedule}
+            onAlternarStatus={alternarStatus}
+          />
+        )}
+      />
+    );
+  };
 
   return (
     <div className="agenda-page students-page">
@@ -133,21 +171,20 @@ export default function Students() {
             </ButtonContainer>
           </div>
 
-          <div className="agenda-frame">
-            <Container
-              items={alunosFiltrados}
-              className="students-grid"
-              getItemKey={(aluno) => aluno.id}
-              renderItem={(aluno) => (
-                <StudentCard
-                  aluno={aluno}
-                  onEditar={setSelectedStudent}
-                  onVerHorarios={setStudentSchedule}
-                  onAlternarStatus={alternarStatus}
-                />
-              )}
-            />
+          <div className="agenda-frame" ref={frameRef}>
+            {renderizarLista()}
           </div>
+
+          {!error && (
+            <Pagination
+              pagina={pagina}
+              totalPaginas={paginacao.totalPages}
+              totalItens={paginacao.totalElements}
+              tamanhoPagina={tamanhoPagina}
+              onChange={setPagina}
+              disabled={loading}
+            />
+          )}
         </div>
       </main>
 
