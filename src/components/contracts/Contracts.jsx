@@ -6,6 +6,7 @@ import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
 import Modal from '../layout/Modal';
 import Container from '../layout/Container';
+import ScheduleGrid from '../schedule/ScheduleGrid';
 import { alunosService } from '../students/components/alunosService';
 import { professoresDisponiveisService } from './professoresDisponiveisService';
 import { turmasDisponiveisService } from './turmasDisponiveisService';
@@ -31,6 +32,13 @@ const DIA_SEMANA_MAP = {
   'Sábado': 'Sábado',
   'Domingo': 'Domingo'
 };
+
+const normalizarNivel = (nivel) =>
+  String(nivel || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
 
 const normalizarDia = (diaSemana) => DIA_SEMANA_MAP[diaSemana] || diaSemana;
 const normalizarHora = (hora) => (hora ? hora.slice(0, 5) : hora);
@@ -183,13 +191,18 @@ export default function Contracts() {
         (professor.horarios || []).forEach((horario) => registrarHorario(professor, horario, 'individual'));
       });
     } else {
-      turmasDisponiveis.forEach((turma) => {
+      const nivelAluno = normalizarNivel(alunoSelecionado?.nivel);
+      const turmasDoNivel = turmasDisponiveis.filter(
+        (turma) => nivelAluno && normalizarNivel(turma.nivel) === nivelAluno
+      );
+
+      turmasDoNivel.forEach((turma) => {
         (turma.horarios || []).forEach((horario) => registrarHorario(turma, horario, 'grupo'));
       });
     }
 
     return grade;
-  }, [contractType, professoresDisponiveis, turmasDisponiveis]);
+  }, [alunoSelecionado?.nivel, contractType, professoresDisponiveis, turmasDisponiveis]);
 
   const abrirModalAdicionar = () => {
     setIsScheduleModalOpen(true);
@@ -262,6 +275,12 @@ export default function Contracts() {
 
   const trocarTipoContrato = (tipo) => {
     setContractType(tipo);
+    setSelectedSchedule([]);
+    setOpenSlot(null);
+  };
+
+  const trocarAluno = (event) => {
+    setAlunoSelecionadoId(event.target.value);
     setSelectedSchedule([]);
     setOpenSlot(null);
   };
@@ -445,7 +464,7 @@ export default function Contracts() {
             id="contract-student"
             className="contract-student-select"
             value={alunoSelecionadoId}
-            onChange={(event) => setAlunoSelecionadoId(event.target.value)}
+            onChange={trocarAluno}
           >
             <option value="">Selecione um aluno</option>
             {alunos.map((aluno) => (
@@ -545,74 +564,66 @@ export default function Contracts() {
               Clique nos blocos para marcar os horários em que o aluno terá aulas.
             </p>
             <div className="contract-schedule-scroll">
-              <div className="mini-week-grid">
-              <div className="mini-hours-header" aria-hidden="true" />
-              {DIAS_SEMANA.map((dia) => (
-                <div key={dia} className="mini-day-header">{dia}</div>
-              ))}
+              <ScheduleGrid
+                className="mini-week-grid"
+                hoursHeaderClassName="mini-hours-header"
+                dayHeaderClassName="mini-day-header"
+                hourLabelClassName="mini-hours-column"
+                hourItemClassName="mini-hour-label"
+                dayColumnClassName="mini-day-column"
+                days={DIAS_SEMANA}
+                hours={HORARIOS_MODAL.map((hora) => ({ value: hora, label: hora, key: `hora-${hora}` }))}
+                getSlot={(dia, hora) => gradeDisponibilidade[`${dia}-${hora}`] || []}
+                renderSlot={({ slot: opcoes, day: dia, hour: hora, key }) => {
+                  const temOpcoes = opcoes.length > 0;
+                  const isSelected = selectedSchedule.some(
+                    (selecionado) => selecionado.dia === dia && selecionado.hora === hora
+                  );
+                  const estaAberto = openSlot?.dia === dia && openSlot?.hora === hora;
 
-              <div className="mini-hours-column">
-                {HORARIOS_MODAL.map((hora) => (
-                  <div key={`hora-${hora}`} className="mini-hour-label">{hora}</div>
-                ))}
-              </div>
+                  return (
+                    <div key={key} className="mini-slot-wrapper">
+                      <button
+                        type="button"
+                        className={`mini-slot-cell ${temOpcoes ? 'filled' : 'empty'} ${isSelected ? 'selected' : ''}`}
+                        onClick={() => clicarSlot(dia, hora, opcoes)}
+                        disabled={!temOpcoes}
+                      >
+                        {temOpcoes ? (
+                          opcoes.length === 1 ? (
+                            <>
+                              <span>{opcoes[0].horaInicio} - {opcoes[0].horaFim}</span>
+                              <strong>{opcoes[0].nome}</strong>
+                              <small>{opcoes[0].detalhe}</small>
+                            </>
+                          ) : (
+                            <>
+                              <span>{opcoes[0].horaInicio} - {opcoes[0].horaFim}</span>
+                              <strong>{opcoes.length} opções</strong>
+                            </>
+                          )
+                        ) : null}
+                      </button>
 
-              {DIAS_SEMANA.map((dia) => (
-                <div key={dia} className="mini-day-column">
-                  {HORARIOS_MODAL.map((hora) => {
-                    const chave = `${dia}-${hora}`;
-                    const opcoes = gradeDisponibilidade[chave] || [];
-                    const temOpcoes = opcoes.length > 0;
-                    const isSelected = selectedSchedule.some(
-                      (selecionado) => selecionado.dia === dia && selecionado.hora === hora
-                    );
-                    const estaAberto = openSlot?.dia === dia && openSlot?.hora === hora;
-
-                    return (
-                      <div key={`${dia}-${hora}`} className="mini-slot-wrapper">
-                        <button
-                          type="button"
-                          className={`mini-slot-cell ${temOpcoes ? 'filled' : 'empty'} ${isSelected ? 'selected' : ''}`}
-                          onClick={() => clicarSlot(dia, hora, opcoes)}
-                          disabled={!temOpcoes}
-                        >
-                          {temOpcoes ? (
-                            opcoes.length === 1 ? (
-                              <>
-                                <span>{opcoes[0].horaInicio} - {opcoes[0].horaFim}</span>
-                                <strong>{opcoes[0].nome}</strong>
-                                <small>{opcoes[0].detalhe}</small>
-                              </>
-                            ) : (
-                              <>
-                                <span>{opcoes[0].horaInicio} - {opcoes[0].horaFim}</span>
-                                <strong>{opcoes.length} opções</strong>
-                              </>
-                            )
-                          ) : null}
-                        </button>
-
-                        {estaAberto && (
-                          <div className="mini-slot-options">
-                            {opcoes.map((opcao) => (
-                              <button
-                                key={`${opcao.tipo}-${opcao.id}-${opcao.horarioId}`}
-                                type="button"
-                                className="mini-slot-option"
-                                onClick={() => selecionarOpcaoSlot(dia, hora, opcao)}
-                              >
-                                <strong>{opcao.nome}</strong>
-                                <small>{opcao.detalhe}</small>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-              </div>
+                      {estaAberto && (
+                        <div className="mini-slot-options">
+                          {opcoes.map((opcao) => (
+                            <button
+                              key={`${opcao.tipo}-${opcao.id}-${opcao.horarioId}`}
+                              type="button"
+                              className="mini-slot-option"
+                              onClick={() => selecionarOpcaoSlot(dia, hora, opcao)}
+                            >
+                              <strong>{opcao.nome}</strong>
+                              <small>{opcao.detalhe}</small>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }}
+              />
             </div>
             <p className="contract-schedule-counter">
               {selectedSchedule.length} horário(s) selecionado(s)

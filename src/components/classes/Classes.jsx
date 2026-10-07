@@ -5,6 +5,7 @@ import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
 import Modal from '../layout/Modal';
 import Container from '../layout/Container';
+import ScheduleGrid from '../schedule/ScheduleGrid';
 import { horariosService } from '../contracts/horariosService';
 import { professoresService } from '../professors/components/professoresService';
 import { turmasService } from "./turmasService";
@@ -91,13 +92,32 @@ export default function Classes() {
   };
 
   const salvarNovaTurma = async () => {
-    if (!novaTurma.nome || !novaTurma.nivel || !novaTurma.tipo || !novaTurma.limiteAlunos) {
-      setCadastroError('Preencha todos os dados da turma.');
-      return;
-    }
+    const limiteAlunos = Number(novaTurma.limiteAlunos);
+    const camposInvalidos = [];
 
-    if (horariosSelecionados.length === 0) {
-      setCadastroError('Selecione pelo menos um dia e horário.');
+    if (!novaTurma.nome.trim()) camposInvalidos.push('nome');
+    if (!novaTurma.nivel) camposInvalidos.push('nível de inglês');
+    if (!novaTurma.tipo) camposInvalidos.push('tipo de turma');
+    if (
+      !novaTurma.limiteAlunos ||
+      Number.isNaN(limiteAlunos) ||
+      limiteAlunos < 1 ||
+      limiteAlunos > 10
+    ) {
+      camposInvalidos.push('limite de alunos (entre 1 e 10)');
+    }
+    if (horariosSelecionados.length === 0) camposInvalidos.push('horários');
+
+    if (camposInvalidos.length > 0) {
+      const campos = camposInvalidos.join(', ').replace(/, ([^,]*)$/, ' e $1');
+      const mensagem = `Verifique os seguintes campos: ${campos}.`;
+      setCadastroError(mensagem);
+      await Swal.fire({
+        icon: 'error',
+        title: 'Dados inválidos',
+        text: mensagem,
+        confirmButtonColor: '#0f1f3f'
+      });
       return;
     }
 
@@ -107,7 +127,7 @@ export default function Classes() {
     try {
       const turmaCriada = await turmasService.criar({
         ...novaTurma,
-        limiteAlunos: Number(novaTurma.limiteAlunos),
+        limiteAlunos,
         horariosIds: horariosSelecionados,
       });
 
@@ -127,7 +147,17 @@ export default function Classes() {
       fecharModalAdicionar();
     } catch (error) {
       console.error('Erro ao cadastrar turma:', error.response?.data ?? error.message);
-      setCadastroError('Não foi possível cadastrar a turma. Verifique os dados e tente novamente.');
+      const mensagem = error.response?.data?.message
+        || error.response?.data?.error
+        || error.message
+        || 'Não foi possível cadastrar a turma. Verifique os dados e tente novamente.';
+      setCadastroError(mensagem);
+      await Swal.fire({
+        icon: 'error',
+        title: 'Não foi possível cadastrar',
+        text: mensagem,
+        confirmButtonColor: '#0f1f3f'
+      });
     } finally {
       setSalvandoTurma(false);
     }
@@ -364,7 +394,7 @@ export default function Classes() {
               })
             }
           >
-            <option value="">Selecione um nível de inglês</option>
+            <option value="Selecione um nível de inglês">Selecione um nível de inglês</option>
             <option value="A1 - Iniciante">A1 - Iniciante</option>
             <option value="A2 - Iniciante-intermediário">A2 - Iniciante-intermediário</option>
             <option value="B1 - Intermediário">B1 - Intermediário</option>
@@ -428,39 +458,31 @@ export default function Classes() {
               Clique nos blocos para marcar os horários em que a turma estará disponível.
             </p>
             <div className="class-schedule-scroll">
-              <div className="class-week-grid">
-              <div className="class-hours-header" aria-hidden="true" />
-              {DIAS_SEMANA.map((dia) => (
-                <div key={dia} className="class-day-header">{dia}</div>
-              ))}
+              <ScheduleGrid
+                className="class-week-grid"
+                hoursHeaderClassName="class-hours-header"
+                dayHeaderClassName="class-day-header"
+                hourLabelClassName="class-hours-column"
+                hourItemClassName="class-hour-label"
+                dayColumnClassName="class-day-column"
+                days={DIAS_SEMANA}
+                hours={HORARIOS_MODAL.map((hora) => ({ value: hora, label: hora, key: `hora-${hora}` }))}
+                getSlot={(dia, hora) => (horariosPorSlot[`${dia}-${hora}`] || [])[0]}
+                renderSlot={({ slot: horario, day, hour, key }) => {
+                  const opcoes = horariosPorSlot[`${day}-${hour}`] || [];
+                  const isSelected = opcoes.some((item) => horariosSelecionados.includes(item.id));
 
-              <div className="class-hours-column">
-                {HORARIOS_MODAL.map((hora) => (
-                  <div key={`hora-${hora}`} className="class-hour-label">{hora}</div>
-                ))}
-              </div>
-
-              {DIAS_SEMANA.map((dia) => (
-                <div key={dia} className="class-day-column">
-                  {HORARIOS_MODAL.map((hora) => {
-                    const opcoes = horariosPorSlot[`${dia}-${hora}`] || [];
-                    const horario = opcoes[0];
-                    const isSelected = opcoes.some((item) => horariosSelecionados.includes(item.id));
-
-                    return (
-                      <button
-                        key={`${dia}-${hora}`}
-                        type="button"
-                        className={`class-slot-cell ${horario ? 'filled' : 'empty'} ${isSelected ? 'selected' : ''}`}
-                        onClick={() => horario && alternarHorario(horario)}
-                        disabled={!horario}
-                      >
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-              </div>
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      className={`class-slot-cell ${horario ? 'filled' : 'empty'} ${isSelected ? 'selected' : ''}`}
+                      onClick={() => horario && alternarHorario(horario)}
+                      disabled={!horario}
+                    />
+                  );
+                }}
+              />
             </div>
             <p className="class-schedule-counter">
               {horariosSelecionados.length} horário(s) selecionado(s)

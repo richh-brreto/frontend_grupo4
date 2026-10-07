@@ -57,7 +57,6 @@ export default function Students() {
         nome: alunoCriado.nome,
         codigoAcesso: alunoCriado.codigoAcesso,
       });
-      await Swal.fire({ icon: 'success', title: 'Aluno cadastrado!', text: 'O aluno foi cadastrado com sucesso.', confirmButtonColor: '#0f1f3f' });
       setIsAddModalOpen(false);
       navigate('/contratos', {
         replace: true,

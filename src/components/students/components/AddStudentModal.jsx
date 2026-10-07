@@ -1,7 +1,16 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import Swal from 'sweetalert2';
 import Modal from '../../layout/Modal';
 
-const NIVEIS = ['A1', 'A2', 'B1', 'B2'];
+const NIVEIS = [
+  "Selecione um nível de inglês",
+  "A1 - Iniciante",
+  "A2 - Iniciante-intermediário",
+  "B1 - Intermediário",
+  "B2 - Intermediário-avançado",
+  "C1 - Avançado",
+  "C2 - Proficiente"
+  ];
 
 const ESTADO_INICIAL = {
   nome: '',
@@ -19,7 +28,32 @@ export default function AddStudentModal({ onClose, onSave }) {
   const atualizarCampo = (campo) => (event) =>
     setForm((atual) => ({ ...atual, [campo]: event.target.value }));
 
-  const handleSalvar = () => {
+  const handleSalvar = async () => {
+    const telefoneNumeros = form.telefone.replace(/\D/g, '');
+    const camposInvalidos = [];
+
+    if (!form.nome.trim()) camposInvalidos.push('nome');
+    if (!form.email.trim() || !form.email.includes('@') || !form.email.includes('.')) {
+      camposInvalidos.push('e-mail');
+    }
+    if (![10, 11].includes(telefoneNumeros.length)) {
+      camposInvalidos.push('telefone com DDD');
+    }
+    if (!form.nivel || form.nivel === NIVEIS[0]) camposInvalidos.push('nível de inglês');
+
+    if (camposInvalidos.length > 0) {
+      const campos = camposInvalidos.join(', ').replace(/, ([^,]*)$/, ' e $1');
+      const mensagem = `Verifique os seguintes campos: ${campos}.`;
+      setErro(mensagem);
+      await Swal.fire({
+        icon: 'error',
+        title: 'Dados inválidos',
+        text: mensagem,
+        confirmButtonColor: '#0f1f3f'
+      });
+      return;
+    }
+
     const payload = {
       nome: form.nome,
       email: form.email,
@@ -43,10 +77,10 @@ export default function AddStudentModal({ onClose, onSave }) {
       <input type="text" placeholder="Nome" value={form.nome} onChange={atualizarCampo('nome')} />
 
       <label>Email:</label>
-      <input type="text" placeholder="Email" value={form.email} onChange={atualizarCampo('email')} />
+      <input type="email" placeholder="Email" value={form.email} onChange={atualizarCampo('email')} />
 
       <label>Telefone:</label>
-      <input type="text" placeholder="Telefone" value={form.telefone} onChange={atualizarCampo('telefone')} />
+      <input type="tel" placeholder="Telefone" value={form.telefone} onChange={atualizarCampo('telefone')} />
 
       <label>Nível:</label>
       <select value={form.nivel} onChange={atualizarCampo('nivel')}>

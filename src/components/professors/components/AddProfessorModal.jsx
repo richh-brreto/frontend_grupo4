@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Swal from 'sweetalert2';
 import Modal from '../../layout/Modal';
 import ProfessorScheduleSelector from './ProfessorScheduleSelector';
 import SeletorPermissoes from './SeletorPermissoes';
@@ -21,9 +22,28 @@ export default function AddProfessorModal({ onClose, onSave }) {
   const atualizarCampo = (campo) => (event) =>
     setForm((atual) => ({ ...atual, [campo]: event.target.value }));
 
-  const handleSalvar = () => {
-    if (horariosIds.length === 0) {
-      setErro('Selecione pelo menos um horário.');
+  const handleSalvar = async () => {
+    const telefoneNumeros = form.telefone.replace(/\D/g, '');
+    const camposInvalidos = [];
+
+    if (!form.nome.trim()) camposInvalidos.push('nome');
+    if (!form.email.trim() || !form.email.includes('@') || !form.email.includes('.')) {
+      camposInvalidos.push('e-mail');
+    }
+    if (![10, 11].includes(telefoneNumeros.length)) camposInvalidos.push('telefone com DDD');
+    if (form.permissoes.length === 0) camposInvalidos.push('telas liberadas');
+    if (horariosIds.length === 0) camposInvalidos.push('horários');
+
+    if (camposInvalidos.length > 0) {
+      const campos = camposInvalidos.join(', ').replace(/, ([^,]*)$/, ' e $1');
+      const mensagem = `Verifique os seguintes campos: ${campos}.`;
+      setErro(mensagem);
+      await Swal.fire({
+        icon: 'error',
+        title: 'Dados inválidos',
+        text: mensagem,
+        confirmButtonColor: '#0f1f3f'
+      });
       return;
     }
 
@@ -52,10 +72,10 @@ export default function AddProfessorModal({ onClose, onSave }) {
         <input type="text" placeholder="Nome" value={form.nome} onChange={atualizarCampo('nome')} />
 
         <label>Email:</label>
-        <input type="text" placeholder="Email" value={form.email} onChange={atualizarCampo('email')} />
+        <input type="email" placeholder="Email" value={form.email} onChange={atualizarCampo('email')} />
 
         <label>Telefone:</label>
-        <input type="text" placeholder="Telefone" value={form.telefone} onChange={atualizarCampo('telefone')} />
+        <input type="tel" placeholder="Telefone" value={form.telefone} onChange={atualizarCampo('telefone')} />
 
         <SeletorPermissoes
           selecionadas={form.permissoes}

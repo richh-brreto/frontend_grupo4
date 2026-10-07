@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { horariosService } from './horariosService';
+import ScheduleGrid from '../../schedule/ScheduleGrid';
 import './ProfessorScheduleModal.css';
 
 const ORDEM_DIAS = [
@@ -69,39 +70,34 @@ export default function ProfessorScheduleSelector({ selecionados, onChange }) {
       </p>
 
       <div className="schedule-scroll">
-        <table className="schedule-grid">
-          <thead>
-            <tr>
-              <th className="schedule-hora-label"></th>
-              {dias.map((dia) => <th key={dia}>{LABEL_DIA_CURTO[dia] ?? dia}</th>)}
-            </tr>
-          </thead>
-          <tbody>
-            {horasLinhas.map(({ horaInicio }) => (
-              <tr key={horaInicio}>
-                <td className="schedule-hora-label">
-                  <span>{formatarHora(horaInicio)}</span>
-                </td>
-                {dias.map((dia) => {
-                  const horario = grade.get(`${dia}|${horaInicio}`);
-                  if (!horario) return <td key={dia} className="schedule-slot schedule-slot-vazio" />;
+        <ScheduleGrid
+          variant="table"
+          className="schedule-grid"
+          hourLabelClassName="schedule-hora-label"
+          days={dias.map((dia) => ({ value: dia, label: LABEL_DIA_CURTO[dia] ?? dia }))}
+          hours={horasLinhas.map(({ horaInicio }) => ({
+            value: horaInicio,
+            label: <span>{formatarHora(horaInicio)}</span>,
+          }))}
+          getSlot={(dia, horaInicio) => grade.get(`${dia}|${horaInicio}`)}
+          renderSlot={({ slot: horario, key }) => {
+            if (!horario) {
+              return <td key={key} className="schedule-slot schedule-slot-vazio" />;
+            }
 
-                  const selecionado = selecionados.includes(horario.id);
-                  return (
-                    <td key={dia} className="schedule-slot-cell">
-                      <button
-                        type="button"
-                        className={`schedule-slot ${selecionado ? 'selecionado' : ''}`}
-                        onClick={() => alternarSlot(horario)}
-                        aria-pressed={selecionado}
-                      />
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+            const selecionado = selecionados.includes(horario.id);
+            return (
+              <td key={key} className="schedule-slot-cell">
+                <button
+                  type="button"
+                  className={`schedule-slot ${selecionado ? 'selecionado' : ''}`}
+                  onClick={() => alternarSlot(horario)}
+                  aria-pressed={selecionado}
+                />
+              </td>
+            );
+          }}
+        />
       </div>
 
       <p className="schedule-contador">{selecionados.length} horário(s) selecionado(s)</p>
