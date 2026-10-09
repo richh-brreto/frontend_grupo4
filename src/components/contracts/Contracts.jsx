@@ -83,7 +83,7 @@ export default function Contracts() {
 
   // Carregar alunos
   useEffect(() => {
-    alunosService.listar().then((alunosCarregados) => {
+    alunosService.listarTodos().then((alunosCarregados) => {
       setAlunos(alunosCarregados);
     }).catch((erro) => {
       console.error('Erro ao carregar alunos:', erro);
