@@ -2,7 +2,7 @@ import axios from 'axios';
 import { encerrarSessao } from './permissionStorage';
 import { recarregarPermissoes } from './permissions';
 
-axios.defaults.baseURL = "http://localhost:8080";
+axios.defaults.baseURL = "/api";
 axios.defaults.withCredentials = true;
 
 // Carregar token salvo ao inicializar

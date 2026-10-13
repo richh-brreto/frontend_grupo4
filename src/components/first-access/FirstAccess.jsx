@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import axios from '../../utils/axiosConfig';
+import logo from '../../assets/Boost-White.png';
 import Input from '../login/input/Input';
 import Button from '../login/button/Button';
 import './FirstAccess.css';
@@ -37,7 +38,7 @@ export default function FirstAccess() {
 
     setEnviando(true);
     try {
-      await axios.post('http://localhost:8080/first-access', {
+      await axios.post('/first-access', {
         email: form.email,
         codigoAcesso: form.codigoAcesso,
         novaSenha: form.novaSenha,
@@ -53,7 +54,7 @@ export default function FirstAccess() {
 
   return (
     <div className="page first-access-page">
-      <img className="logo" src="src/assets/Boost-White.png" alt="Boost Logo" />
+      <img className="logo" src={logo} alt="Boost Logo" />
 
       <form className="card first-access-card" onSubmit={handleSubmit}>
         <h1 className="first-access-title">Primeiro Acesso</h1>
