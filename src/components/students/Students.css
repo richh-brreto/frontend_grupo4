@@ -213,6 +213,90 @@
   box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.12);
 }
 
+/* Enquanto a próxima página carrega, mantém a atual na tela em vez de piscar um "carregando" */
+.students-grid.carregando {
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.student-list-state {
+  margin: auto;
+  padding: 40px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  color: #64748b;
+  font-size: 15px;
+  text-align: center;
+}
+
+.student-list-state p {
+  margin: 0;
+}
+
+/* Fica fora da área com scroll, então a barra está sempre visível sem roubar espaço dos cards */
+.student-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  padding-top: 16px;
+  flex-shrink: 0;
+}
+
+.student-pagination-info {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.student-pagination-info strong {
+  color: #0f1f3f;
+}
+
+.student-pagination-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.student-pagination-button {
+  min-width: 38px;
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid #d9d9d9;
+  border-radius: 10px;
+  background: transparent;
+  color: #0f1f3f;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.student-pagination-button.numero {
+  padding: 0 10px;
+}
+
+.student-pagination-button:hover:not(:disabled),
+.student-pagination-button.active {
+  background: #0f1f3f;
+  border-color: #0f1f3f;
+  color: #fff;
+}
+
+.student-pagination-button:disabled:not(.active) {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.student-pagination-gap {
+  padding: 0 4px;
+  color: #94a3b8;
+}
+
 @media (max-width: 1000px) {
   .students-grid {
     grid-template-columns: 1fr;
