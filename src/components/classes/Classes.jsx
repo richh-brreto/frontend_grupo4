@@ -8,8 +8,13 @@ import Container from '../layout/Container';
 import { horariosService } from '../contracts/horariosService';
 import { professoresService } from '../professors/components/professoresService';
 import { turmasService } from "./turmasService";
+import { useItensMenu } from '../../utils/menuItems';
+import { usePermissoes } from '../../utils/permissions';
+import { ordenarHorarios } from '../../utils/ordenarHorarios';
 import '../agenda/Agenda.css';
 import './Classes.css';
+
+
 
 const normalizar = (texto) =>
   texto
@@ -18,7 +23,7 @@ const normalizar = (texto) =>
     .toLowerCase();
 
 const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
-const HORARIOS_MODAL = Array.from({ length: 24 }, (_, index) => `${String(index).padStart(2, '0')}:00`);
+const HORARIOS_MODAL = Array.from({ length: 15 }, (_, index) => `${String(index + 7).padStart(2, '0')}:00`);
 const DIA_SEMANA_MAP = {
   'Segunda-feira': 'Segunda',
   'Terça-feira': 'Terça',
@@ -34,6 +39,9 @@ const normalizarHora = (hora) => (hora ? hora.slice(0, 5) : hora);
 
 export default function Classes() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // Itens do menu sao filtrados pelas telas liberadas no cadastro do professor
+  const itensMenu = useItensMenu('/turmas');
+  const { carregando: carregandoPermissoes } = usePermissoes();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
   const [classDetails, setClassDetails] = useState(null);
@@ -241,15 +249,8 @@ export default function Classes() {
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(prev => !prev)}
-        items={[
-          { to: '/overview', label: 'Geral', short: 'Geral' },
-          { to: '/aulas', label: 'Agenda', short: 'AG' },
-          { to: '/dashboard', label: 'Dashboard', short: 'Dash' },
-          { to: '/professores', label: 'Professores', short: 'Prof' },
-          { to: '/turmas', label: 'Turmas', short: 'Tur', active: true },
-          { to: '/alunos', label: 'Alunos', short: 'Alu' },
-          { to: '/contratos', label: 'Contratos', short: 'Cont' }
-        ]}
+        items={itensMenu}
+        carregando={carregandoPermissoes}
       />
 
       <main className="agenda-content">
@@ -339,7 +340,9 @@ export default function Classes() {
           onClose={fecharModalAdicionar}
           onSave={salvarNovaTurma}
           saveLabel={salvandoTurma ? 'Salvando...' : 'Salvar'}
+          className="class-create-modal"
         >
+          <div className="class-form-panel">
           <label>Nome:</label>
           <input
             type="text" placeholder="Nome" value={novaTurma.nome}
@@ -351,7 +354,7 @@ export default function Classes() {
             }
           />
 
-          <label>Nível:</label>
+          <label>Nível de Inglês:</label>
           <select
             value={novaTurma.nivel}
             onChange={(event) =>
@@ -361,18 +364,18 @@ export default function Classes() {
               })
             }
           >
-            <option value="">Selecione um nível</option>
-            <option value="Iniciante - A1">Iniciante - A1</option>
-            <option value="Iniciante-intermediário - A2">Iniciante-intermediário - A2</option>
-            <option value="Intermediário - B1">Intermediário - B1</option>
-            <option value="Intermediário-avançado - B2">Intermediário-avançado - B2</option>
-            <option value="Avançado - C1">Avançado - C1</option>
-            <option value="Proficiente - C2">Proficiente - C2</option>
+            <option value="">Selecione um nível de inglês</option>
+            <option value="A1 - Iniciante">A1 - Iniciante</option>
+            <option value="A2 - Iniciante-intermediário">A2 - Iniciante-intermediário</option>
+            <option value="B1 - Intermediário">B1 - Intermediário</option>
+            <option value="B2 - Intermediário-avançado">B2 - Intermediário-avançado</option>
+            <option value="C1 - Avançado">C1 - Avançado</option>
+            <option value="C2 - Proficiente">C2 - Proficiente</option>
           </select>
 
           <label>Limite de alunos:</label>
           <input
-            type="text" placeholder="Limite de alunos" value={novaTurma.limiteAlunos}
+            type="number" min={1} max={10} placeholder="Limite de alunos" value={novaTurma.limiteAlunos}
             onChange={(event) =>
               setNovaTurma({
                 ...novaTurma,
@@ -381,23 +384,52 @@ export default function Classes() {
             }
           />
 
-          <label>Tipo:</label>
-          <input
-            type="text" placeholder="Tipo" value={novaTurma.tipo}
+          <label>Tipo de turma:</label>
+          <select
+            value={novaTurma.tipo}
             onChange={(event) =>
               setNovaTurma({
                 ...novaTurma,
                 tipo: event.target.value
               })
             }
-          />
+          >
+            <option value="">Selecione um tipo de turma</option>
+            <option value="Inglês para negócios">Inglês para negócios</option>
+            <option value="Inglês geral">Inglês geral</option>
+          </select>
+
 
           {horariosError && <p className="classes-load-error">{horariosError}</p>}
           {cadastroError && <p className="classes-load-error">{cadastroError}</p>}
 
-          <div className="class-schedule">
-            <div className="class-week-grid">
-              <div className="class-hours-header">Horários</div>
+          <div className="class-selected-schedule">
+            <span className="class-selected-schedule-title">Selecionados</span>
+            {horariosSelecionados.length > 0 ? (
+              <div className="class-selected-schedule-list">
+                {[...horarios]
+                  .filter((horario) => horariosSelecionados.includes(horario.id))
+                  .sort(ordenarHorarios)
+                  .map((horario) => (
+                    <div key={horario.id} className="class-selected-schedule-item">
+                      <strong>{normalizarDia(horario.diaSemana)}</strong>
+                      <span>{normalizarHora(horario.horaInicio)} - {normalizarHora(horario.horaFim)}</span>
+                    </div>
+                  ))}
+              </div>
+            ) : (
+              <span className="class-selected-schedule-empty">Nenhum horário selecionado</span>
+            )}
+          </div>
+          </div>
+
+          <div className="class-schedule class-schedule-panel">
+            <p className="class-schedule-instruction">
+              Clique nos blocos para marcar os horários em que a turma estará disponível.
+            </p>
+            <div className="class-schedule-scroll">
+              <div className="class-week-grid">
+              <div className="class-hours-header" aria-hidden="true" />
               {DIAS_SEMANA.map((dia) => (
                 <div key={dia} className="class-day-header">{dia}</div>
               ))}
@@ -423,20 +455,16 @@ export default function Classes() {
                         onClick={() => horario && alternarHorario(horario)}
                         disabled={!horario}
                       >
-                        {horario ? (
-                          <>
-                            <span>{normalizarHora(horario.horaInicio)} - {normalizarHora(horario.horaFim)}</span>
-                            <strong>{isSelected ? 'Selecionado' : 'Disponível'}</strong>
-                          </>
-                        ) : (
-                          <span>Horário não disponível</span>
-                        )}
                       </button>
                     );
                   })}
                 </div>
               ))}
+              </div>
             </div>
+            <p className="class-schedule-counter">
+              {horariosSelecionados.length} horário(s) selecionado(s)
+            </p>
           </div>
 
         </Modal>

@@ -85,6 +85,12 @@
   gap: 10px;
 }
 
+.sidebar-status {
+  margin: 12px 14px;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
 .agenda-sidebar.collapsed .sidebar-nav,
 .agenda-sidebar.collapsed .sidebar-footer {
   gap: 8px;

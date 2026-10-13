@@ -1,35 +1,39 @@
 import { useState } from 'react';
 import Modal from '../../layout/Modal';
-import ProfessorScheduleModal from './ProfessorScheduleModal';
+import ProfessorScheduleSelector from './ProfessorScheduleSelector';
+import SeletorPermissoes from './SeletorPermissoes';
+import { ordenarHorarios } from '../../../utils/ordenarHorarios';
 
 const ESTADO_INICIAL = {
   nome: '',
   email: '',
   telefone: '',
-  idTipoProfessor: '',
+  permissoes: [],
 };
 
 export default function AddProfessorModal({ onClose, onSave }) {
-  const [etapa, setEtapa] = useState('dados');
   const [form, setForm] = useState(ESTADO_INICIAL);
+  const [horariosIds, setHorariosIds] = useState([]);
+  const [horariosSelecionados, setHorariosSelecionados] = useState([]);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
 
   const atualizarCampo = (campo) => (event) =>
     setForm((atual) => ({ ...atual, [campo]: event.target.value }));
 
-  const avancarParaAgenda = () => {
-    setErro(null);
-    setEtapa('agenda');
-  };
+  const handleSalvar = () => {
+    if (horariosIds.length === 0) {
+      setErro('Selecione pelo menos um horário.');
+      return;
+    }
 
-  const handleConfirmarAgenda = (horariosIds) => {
     const payload = {
       nome: form.nome,
       email: form.email,
       telefone: form.telefone,
-      idTipoProfessor: Number(form.idTipoProfessor),
-      horariosIds,
+      horariosIds: horariosIds,
+      // Telas escolhidas aqui viram linhas em professor_permissao
+      permissoes: form.permissoes,
     };
 
     setSalvando(true);
@@ -41,38 +45,50 @@ export default function AddProfessorModal({ onClose, onSave }) {
       .finally(() => setSalvando(false));
   };
 
-  if (etapa === 'agenda') {
-    return (
-      <ProfessorScheduleModal
-        onBack={() => setEtapa('dados')}
-        onClose={onClose}
-        onConfirm={handleConfirmarAgenda}
-        salvando={salvando}
-        erro={erro}
-      />
-    );
-  }
-
   return (
-    <Modal title="Adicionar Professor" onClose={onClose} onSave={avancarParaAgenda}>
-      <label>Nome:</label>
-      <input type="text" placeholder="Nome" value={form.nome} onChange={atualizarCampo('nome')} />
+    <Modal title="Adicionar Professor" onClose={onClose} onSave={handleSalvar} saveLabel={salvando ? 'Salvando...' : 'Salvar'} className="professor-create-modal">
+      <div className="professor-form-panel">
+        <label>Nome:</label>
+        <input type="text" placeholder="Nome" value={form.nome} onChange={atualizarCampo('nome')} />
 
-      <label>Email:</label>
-      <input type="text" placeholder="Email" value={form.email} onChange={atualizarCampo('email')} />
+        <label>Email:</label>
+        <input type="text" placeholder="Email" value={form.email} onChange={atualizarCampo('email')} />
 
-      <label>Telefone:</label>
-      <input type="text" placeholder="Telefone" value={form.telefone} onChange={atualizarCampo('telefone')} />
+        <label>Telefone:</label>
+        <input type="text" placeholder="Telefone" value={form.telefone} onChange={atualizarCampo('telefone')} />
 
-      <label>ID do tipo de professor:</label>
-      <input
-        type="text"
-        placeholder="Ex: 1"
-        value={form.idTipoProfessor}
-        onChange={atualizarCampo('idTipoProfessor')}
-      />
+        <SeletorPermissoes
+          selecionadas={form.permissoes}
+          onChange={(novas) => setForm((atual) => ({ ...atual, permissoes: novas }))}
+        />
 
-      {erro && <p className="student-form-error">{erro}</p>}
+        <div className="professor-selected-schedule">
+          <span className="professor-selected-schedule-title">Selecionados</span>
+          {horariosSelecionados.length > 0 ? (
+            <div className="professor-selected-schedule-list">
+              {[...horariosSelecionados].sort(ordenarHorarios).map((horario) => (
+                <div key={horario.id} className="professor-selected-schedule-item">
+                  <strong>{horario.diaSemana.replace('-feira', '')}</strong>
+                  <span>{horario.horaInicio.slice(0, 5)} - {horario.horaFim.slice(0, 5)}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <span className="professor-selected-schedule-empty">Nenhum horário selecionado</span>
+          )}
+        </div>
+
+        {erro && <p className="student-form-error">{erro}</p>}
+      </div>
+      <div className="professor-schedule-panel">
+        <ProfessorScheduleSelector
+          selecionados={horariosIds}
+          onChange={(ids, horarios) => {
+            setHorariosIds(ids);
+            setHorariosSelecionados(horarios);
+          }}
+        />
+      </div>
     </Modal>
   );
 }
