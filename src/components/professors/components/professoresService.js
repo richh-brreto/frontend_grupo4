@@ -23,6 +23,10 @@ export const professoresService = {
     return axios.delete(`${BASE_URL}/${id}`);
   },
 
+  inativar(id) {
+    return axios.delete(`${BASE_URL}/${id}`);
+  },
+
   reativar(id) {
     return axios.patch(`${BASE_URL}/${id}/reativar`).then((res) => res.data);
   },

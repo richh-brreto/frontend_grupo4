@@ -10,7 +10,7 @@ export default function ScheduleModal({ aluno, onClose }) {
   const horarios = aluno.horarios ?? [];
 
   return (
-    <Modal title="Horários do Aluno" onClose={onClose} showSave={false}>
+    <Modal title="Informações do Aluno" onClose={onClose} showSave={false}>
       <label>Aluno:</label>
       <input type="text" value={aluno.nome} readOnly />
 
@@ -29,7 +29,12 @@ export default function ScheduleModal({ aluno, onClose }) {
       {horarios.length > 0 ? (
         <ul className="student-absence-list">
           {horarios.map((h) => (
-            <li key={h.id}>{formatarHorario(h)}</li>
+            <li key={`${h.id}-${h.tipoContrato || ''}`}>
+              <strong>{formatarHorario(h)}</strong>
+              <span>
+                {h.tipoContrato || 'Aula'} · {h.responsavel || 'Responsável não informado'}
+              </span>
+            </li>
           ))}
         </ul>
       ) : (

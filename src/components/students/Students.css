@@ -135,6 +135,14 @@
   background: #f8fafc;
   color: #0f1f3f;
   font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.student-absence-list li span {
+  color: #64748b;
+  font-size: 12px;
 }
 
 .student-no-absences {

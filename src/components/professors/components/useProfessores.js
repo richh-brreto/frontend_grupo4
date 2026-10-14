@@ -53,7 +53,7 @@ export function useProfessores() {
   // Inativa (soft delete) ou reativa o professor conforme o estado atual
   const alternarStatus = (professor) => {
     const chamada = professor.ativo
-      ? professoresService.excluir(professor.id)
+      ? professoresService.inativar(professor.id)
       : professoresService.reativar(professor.id);
 
     return chamada

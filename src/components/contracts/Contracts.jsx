@@ -61,6 +61,9 @@ export default function Contracts() {
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(
     () => Boolean(location.state?.openContractSetup)
   );
+  const [alunoFixoNoCadastro, setAlunoFixoNoCadastro] = useState(
+    () => location.state?.openContractSetup ? location.state?.alunoCadastro || null : null
+  );
   const [selectedContract, setSelectedContract] = useState(null);
 
   const hoje = dataHoje();
@@ -92,12 +95,21 @@ export default function Contracts() {
 
   // Carregar alunos
   useEffect(() => {
+    const alunoDoCadastro = location.state?.openContractSetup
+      ? location.state?.alunoCadastro
+      : null;
+
+    if (alunoDoCadastro) {
+      setAlunos([alunoDoCadastro]);
+      return;
+    }
+
     alunosService.listarTodos().then((alunosCarregados) => {
       setAlunos(alunosCarregados);
     }).catch((erro) => {
       console.error('Erro ao carregar alunos:', erro);
     });
-  }, []);
+  }, [location.state]);
 
   // Carregar contratos da API
   useEffect(() => {
@@ -122,7 +134,7 @@ export default function Contracts() {
 
   const alunoSelecionado = alunos.find(
     (aluno) => String(aluno.id) === alunoSelecionadoId
-  ) || location.state?.alunoCadastro;
+  ) || alunoFixoNoCadastro;
 
   // Busca as duas listas quando o modal de agendamento abre
   useEffect(() => {
@@ -233,11 +245,14 @@ export default function Contracts() {
   }, [alunoSelecionado?.nivel, contractType, professoresDisponiveis, turmasDisponiveis]);
 
   const abrirModalAdicionar = () => {
+    setAlunoFixoNoCadastro(null);
+    setAlunoSelecionadoId('');
     setIsScheduleModalOpen(true);
   };
 
   const fecharModalAgendamento = () => {
     setIsScheduleModalOpen(false);
+    setAlunoFixoNoCadastro(null);
     setSelectedSchedule([]);
     setOpenSlot(null);
     setDataInicioContrato(dataHoje());
@@ -527,19 +542,29 @@ export default function Contracts() {
         >
           <div className="contract-form-panel">
           <label htmlFor="contract-student">Aluno:</label>
-          <select
-            id="contract-student"
-            className="contract-student-select"
-            value={alunoSelecionadoId}
-            onChange={trocarAluno}
-          >
-            <option value="">Selecione um aluno</option>
-            {alunos.map((aluno) => (
-              <option key={aluno.id} value={aluno.id}>
-                {aluno.nome}
-              </option>
-            ))}
-          </select>
+          {alunoFixoNoCadastro ? (
+            <input
+              id="contract-student"
+              className="contract-student-select"
+              type="text"
+              value={alunoSelecionado?.nome || ''}
+              readOnly
+            />
+          ) : (
+            <select
+              id="contract-student"
+              className="contract-student-select"
+              value={alunoSelecionadoId}
+              onChange={trocarAluno}
+            >
+              <option value="">Selecione um aluno</option>
+              {alunos.map((aluno) => (
+                <option key={aluno.id} value={aluno.id}>
+                  {aluno.nome}
+                </option>
+              ))}
+            </select>
+          )}
 
           {alunoSelecionado?.nome && (
             <p className="contract-selected-student">

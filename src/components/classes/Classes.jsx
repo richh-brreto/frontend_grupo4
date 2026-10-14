@@ -37,6 +37,28 @@ const DIA_SEMANA_MAP = {
 
 const normalizarDia = (diaSemana) => DIA_SEMANA_MAP[diaSemana] || diaSemana;
 const normalizarHora = (hora) => (hora ? hora.slice(0, 5) : hora);
+const abreviarDia = (diaSemana) => {
+  const dia = normalizarDia(diaSemana);
+  return dia.slice(0, 3);
+};
+
+const agruparHorariosPorDia = (horarios = []) => {
+  const grupos = [];
+
+  [...horarios].sort(ordenarHorarios).forEach((horario) => {
+    const dia = normalizarDia(horario.diaSemana);
+    let grupo = grupos.find((item) => item.dia === dia);
+    if (!grupo) {
+      grupo = { dia, horarios: [] };
+      grupos.push(grupo);
+    }
+    grupo.horarios.push(
+      `${normalizarHora(horario.horaInicio)}-${normalizarHora(horario.horaFim)}`
+    );
+  });
+
+  return grupos;
+};
 
 export default function Classes() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -365,10 +387,10 @@ export default function Classes() {
                     <div>
                       <span>Horário</span>
                       <strong>
-                        {turma.horarios?.map((horario, index) => (
-                          <a key={horario.id}>
+                        {agruparHorariosPorDia(turma.horarios).map((grupo, index) => (
+                          <a key={grupo.dia}>
                             {index > 0 && ' | '}
-                            {horario.diaSemana} das {horario.horaInicio} às {horario.horaFim}
+                            {abreviarDia(grupo.dia)}: {grupo.horarios.join(' · ')}
                           </a>
                         ))}
                       </strong>
@@ -603,11 +625,11 @@ export default function Classes() {
           <input type="text" value={classDetails.nomeProfessor} readOnly />
 
           <label>Horário:</label>
-          {classDetails.horarios?.map((horario) => (
+          {agruparHorariosPorDia(classDetails.horarios).map((grupo) => (
             <input
-              key={horario.id}
+              key={grupo.dia}
               type="text"
-              value={`${horario.diaSemana} das ${horario.horaInicio} às ${horario.horaFim}`}
+              value={`${abreviarDia(grupo.dia)}: ${grupo.horarios.join(' · ')}`}
               readOnly
             />
           ))}

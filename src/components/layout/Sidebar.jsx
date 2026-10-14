@@ -1,10 +1,25 @@
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import axios from '../../utils/axiosConfig';
 import { encerrarSessao } from '../../utils/permissionStorage';
 import { recarregarPermissoes } from '../../utils/permissions';
 import '../agenda/Agenda.css';
 
 export default function Sidebar({ collapsed, onToggle, items, carregando }) {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    const salvo = localStorage.getItem('sidebar-collapsed');
+    return salvo === null ? collapsed : salvo === 'true';
+  });
+
+  const alternarSidebar = () => {
+    setSidebarCollapsed((atual) => {
+      const novoEstado = !atual;
+      localStorage.setItem('sidebar-collapsed', String(novoEstado));
+      return novoEstado;
+    });
+    onToggle();
+  };
+
   function handleLogout() {
     const encerrar = () => {
       encerrarSessao();
@@ -16,16 +31,16 @@ export default function Sidebar({ collapsed, onToggle, items, carregando }) {
   }
 
   return (
-    <aside className={`agenda-sidebar ${collapsed ? 'collapsed' : ''}`}>
+    <aside className={`agenda-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
         <div className="sidebar-logo">Logo</div>
         <button
           type="button"
           className="sidebar-collapse"
-          onClick={onToggle}
+          onClick={alternarSidebar}
           aria-label="toggle sidebar"
         >
-          {collapsed ? '›' : '‹'}
+          {sidebarCollapsed ? '›' : '‹'}
         </button>
       </div>
 

@@ -11,6 +11,7 @@ import AddStudentModal from './components/AddStudentModal';
 import EditStudentModal from './components/EditStudentModal';
 import ScheduleModal from './components/ScheduleModal';
 import Pagination from './components/Pagination';
+import { contratosService } from '../contracts/contratosService';
 import mostrarCodigoAcesso from '../../utils/mostrarCodigoAcesso';
 import { useItensMenu } from '../../utils/menuItems';
 import { usePermissoes } from '../../utils/permissions';
@@ -84,6 +85,42 @@ export default function Students() {
     }
   };
 
+  const verHorariosAluno = async (aluno) => {
+    try {
+      const resposta = await contratosService.listar();
+      const contratos = Array.isArray(resposta)
+        ? resposta
+        : Array.isArray(resposta?.content)
+          ? resposta.content
+          : [];
+      const contratosDoAluno = contratos.filter((contrato) =>
+        String(contrato.aluno?.id ?? contrato.alunoId) === String(aluno.id)
+      );
+      const horarios = contratosDoAluno.flatMap((contrato) =>
+        (contrato.horarios ?? (contrato.horario ? [contrato.horario] : [])).map((horario) => ({
+          ...horario,
+          tipoContrato: contrato.tipo === 'grupo' ? 'Em grupo' : 'Individual',
+          responsavel: contrato.tipo === 'grupo'
+            ? contrato.turma?.nome || 'Turma não informada'
+            : contrato.professor?.nome
+              ? `Professor(a) ${contrato.professor.nome}`
+              : 'Professor(a) não informado',
+          dataInicioContrato: contrato.dataInicio,
+          dataFimContrato: contrato.dataFim,
+        }))
+      );
+
+      setStudentSchedule({ ...aluno, horarios });
+    } catch (error) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Não foi possível carregar as informações',
+        text: error.message || 'Tente novamente.',
+        confirmButtonColor: '#0f1f3f',
+      });
+    }
+  };
+
   const excluirAlunoComConfirmacao = async () => {
     const resultado = await Swal.fire({ icon: 'warning', title: 'Excluir aluno?', text: `Tem certeza que deseja excluir o aluno "${selectedStudent.nome}"? Essa ação não pode ser desfeita.`, showCancelButton: true, confirmButtonText: 'Sim, excluir', cancelButtonText: 'Cancelar', confirmButtonColor: '#b91c1c', cancelButtonColor: '#64748b' });
     if (!resultado.isConfirmed) return;
@@ -129,7 +166,7 @@ export default function Students() {
           <StudentCard
             aluno={aluno}
             onEditar={setSelectedStudent}
-            onVerHorarios={setStudentSchedule}
+            onVerHorarios={verHorariosAluno}
             onAlternarStatus={alternarStatus}
           />
         )}
