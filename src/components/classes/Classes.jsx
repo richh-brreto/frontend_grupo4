@@ -46,10 +46,10 @@ export default function Classes() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
   const [classDetails, setClassDetails] = useState(null);
-  const [classFilter, setClassFilter] = useState('todas');
   const [turmas, setTurmas] = useState([]);
   const [horarios, setHorarios] = useState([]);
   const [horariosSelecionados, setHorariosSelecionados] = useState([]);
+  const [horariosEdicaoSelecionados, setHorariosEdicaoSelecionados] = useState([]);
   const [horariosError, setHorariosError] = useState('');
   const [cadastroError, setCadastroError] = useState('');
   const [salvandoTurma, setSalvandoTurma] = useState(false);
@@ -168,9 +168,12 @@ export default function Classes() {
       ...turma,
       professorId: turma.professorId ?? turma.professor?.id ?? '',
     });
+    setHorariosEdicaoSelecionados(turma.horarios?.map((horario) => horario.id) ?? []);
     setProfessoresError('');
 
     try {
+      const horariosData = await horariosService.listar();
+      setHorarios(Array.isArray(horariosData) ? horariosData : horariosData.content ?? []);
       const data = await professoresService.listar();
       setProfessores(Array.isArray(data) ? data : data.content ?? []);
     } catch (error) {
@@ -181,18 +184,42 @@ export default function Classes() {
 
   const fecharModalEdicao = () => {
     setSelectedClass(null);
+    setHorariosEdicaoSelecionados([]);
   };
 
   const salvarEdicao = async () => {
     if (!selectedClass) return;
+
+    const limiteAlunos = Number(selectedClass.limiteAlunos);
+    const camposInvalidos = [];
+    const nivelInvalido = !selectedClass.nivel
+      || /^Selecione\b/i.test(String(selectedClass.nivel).trim());
+    const tipoInvalido = !selectedClass.tipo
+      || /^Selecione\b/i.test(String(selectedClass.tipo).trim());
+    const professorInvalido = !selectedClass.professorId
+      || /^Selecione\b/i.test(String(selectedClass.professorId).trim());
+
+    if (!selectedClass.nome?.trim()) camposInvalidos.push('nome');
+    if (nivelInvalido) camposInvalidos.push('nível de inglês');
+    if (tipoInvalido) camposInvalidos.push('tipo de turma');
+    if (professorInvalido) camposInvalidos.push('professor');
+    if (!selectedClass.limiteAlunos || Number.isNaN(limiteAlunos) || limiteAlunos < 1 || limiteAlunos > 10) {
+      camposInvalidos.push('limite de alunos (entre 1 e 10)');
+    }
+    if (horariosEdicaoSelecionados.length === 0) camposInvalidos.push('horários');
+    if (camposInvalidos.length > 0) {
+      const mensagem = `Verifique os seguintes campos: ${camposInvalidos.join(', ').replace(/, ([^,]*)$/, ' e $1')}.`;
+      await Swal.fire({ icon: 'error', title: 'Dados inválidos', text: mensagem, confirmButtonColor: '#0f1f3f' });
+      return;
+    }
 
     try {
       const turmaAtualizada = await turmasService.atualizar(selectedClass.id, {
         nome: selectedClass.nome,
         nivel: selectedClass.nivel,
         tipo: selectedClass.tipo,
-        limiteAlunos: Number(selectedClass.limiteAlunos),
-        horariosIds: selectedClass.horarios?.map((horario) => horario.id) ?? [],
+        limiteAlunos,
+        horariosIds: horariosEdicaoSelecionados,
         professorId: selectedClass.professorId || null,
       });
       setTurmas((items) =>
@@ -297,12 +324,7 @@ export default function Classes() {
                 onChange={(event) => setBusca(event.target.value)}
                 className="class-search-input"
               />
-              <Button
-                active={classFilter === 'todas'}
-                onClick={() => setClassFilter('todas')}
-              >
-                Todas
-              </Button>
+            
               <Button onClick={abrirModalAdicionar}>Adicionar turma</Button>
               
             </ButtonContainer>
@@ -498,58 +520,63 @@ export default function Classes() {
           onClose={fecharModalEdicao}
           onSave={salvarEdicao}
           onDelete={excluirTurma}
+          className="class-create-modal"
         >
-          <label>Nome:</label>
-          <input
-            type="text"
-            value={selectedClass.nome}
-            onChange={(event) =>
-              setSelectedClass((turma) => ({ ...turma, nome: event.target.value }))
-            }
-          />
-
-          <label>Nível:</label>
-          <select
-            value={selectedClass.nivel}
-            onChange={(event) =>
-              setSelectedClass((turma) => ({ ...turma, nivel: event.target.value }))
-            }
-          >
-            <option value="">Selecione um nível</option>
-            <option value="Iniciante - A1">Iniciante - A1</option>
-            <option value="Iniciante-intermediário - A2">Iniciante-intermediário - A2</option>
-            <option value="Intermediário - B1">Intermediário - B1</option>
-            <option value="Intermediário-avançado - B2">Intermediário-avançado - B2</option>
-            <option value="Avançado - C1">Avançado - C1</option>
-            <option value="Proficiente - C2">Proficiente - C2</option>
-          </select>
-
-          <label>Professor:</label>
-          <select
-            value={selectedClass.professorId}
-            onChange={(event) =>
-              setSelectedClass((turma) => ({ ...turma, professorId: Number(event.target.value) || '' }))
-            }
-          >
-            <option value="">Selecione um professor</option>
-            {professores.map((professor) => (
-              <option key={professor.id} value={professor.id}>
-                {professor.nome}
-              </option>
-            ))}
-          </select>
-
-          {professoresError && <p className="classes-load-error">{professoresError}</p>}
-
-          <label>Horário:</label>
-          {selectedClass.horarios?.map((horario) => (
-            <input
-              key={horario.id}
-              type="text"
-              value={`${horario.diaSemana} das ${horario.horaInicio} às ${horario.horaFim}`}
-              readOnly
-            />
-          ))}
+          <div className="class-form-panel">
+            <label>Nome:</label>
+            <input type="text" value={selectedClass.nome} onChange={(event) => setSelectedClass((turma) => ({ ...turma, nome: event.target.value }))} />
+            <label>Nível:</label>
+            <select value={selectedClass.nivel} onChange={(event) => setSelectedClass((turma) => ({ ...turma, nivel: event.target.value }))}>
+              <option value="">Selecione um nível</option>
+              <option value="Iniciante - A1">Iniciante - A1</option>
+              <option value="Iniciante-intermediário - A2">Iniciante-intermediário - A2</option>
+              <option value="Intermediário - B1">Intermediário - B1</option>
+              <option value="Intermediário-avançado - B2">Intermediário-avançado - B2</option>
+              <option value="Avançado - C1">Avançado - C1</option>
+              <option value="Proficiente - C2">Proficiente - C2</option>
+            </select>
+            <label>Limite de alunos:</label>
+            <input type="number" min={1} max={10} value={selectedClass.limiteAlunos} onChange={(event) => setSelectedClass((turma) => ({ ...turma, limiteAlunos: event.target.value }))} />
+            <label>Tipo de turma:</label>
+            <select value={selectedClass.tipo ?? ''} onChange={(event) => setSelectedClass((turma) => ({ ...turma, tipo: event.target.value }))}>
+              <option value="">Selecione um tipo de turma</option>
+              <option value="Inglês para negócios">Inglês para negócios</option>
+              <option value="Inglês geral">Inglês geral</option>
+            </select>
+            <label>Professor:</label>
+            <select value={selectedClass.professorId} onChange={(event) => setSelectedClass((turma) => ({ ...turma, professorId: Number(event.target.value) || '' }))}>
+              <option value="">Selecione um professor</option>
+              {professores.map((professor) => <option key={professor.id} value={professor.id}>{professor.nome}</option>)}
+            </select>
+            {professoresError && <p className="classes-load-error">{professoresError}</p>}
+            <div className="class-selected-schedule">
+              <span className="class-selected-schedule-title">Selecionados</span>
+              {horariosEdicaoSelecionados.length > 0 ? horarios.filter((horario) => horariosEdicaoSelecionados.includes(horario.id)).sort(ordenarHorarios).map((horario) => (
+                <div key={horario.id} className="class-selected-schedule-item"><strong>{normalizarDia(horario.diaSemana)}</strong><span>{normalizarHora(horario.horaInicio)} - {normalizarHora(horario.horaFim)}</span></div>
+              )) : <span className="class-selected-schedule-empty">Nenhum horário selecionado</span>}
+            </div>
+          </div>
+          <div className="class-schedule class-schedule-panel">
+            <p className="class-schedule-instruction">Clique nos blocos para marcar os horários em que a turma estará disponível.</p>
+            <div className="class-schedule-scroll">
+              <ScheduleGrid
+                className="class-week-grid"
+                hoursHeaderClassName="class-hours-header"
+                dayHeaderClassName="class-day-header"
+                hourLabelClassName="class-hours-column"
+                hourItemClassName="class-hour-label"
+                dayColumnClassName="class-day-column"
+                days={DIAS_SEMANA}
+                hours={HORARIOS_MODAL.map((hora) => ({ value: hora, label: hora, key: `hora-${hora}` }))}
+                getSlot={(dia, hora) => (horarios.filter((item) => normalizarDia(item.diaSemana) === dia && normalizarHora(item.horaInicio) === hora)[0])}
+                renderSlot={({ slot: horario, day, hour, key }) => {
+                  const opcoes = horarios.filter((item) => normalizarDia(item.diaSemana) === day && normalizarHora(item.horaInicio) === hour);
+                  const selecionado = opcoes.some((item) => horariosEdicaoSelecionados.includes(item.id));
+                  return <button key={key} type="button" className={`class-slot-cell ${horario ? 'filled' : 'empty'} ${selecionado ? 'selected' : ''}`} onClick={() => horario && setHorariosEdicaoSelecionados((atual) => atual.includes(horario.id) ? atual.filter((id) => id !== horario.id) : [...atual, horario.id])} disabled={!horario}><strong>{horario ? `${normalizarHora(horario.horaInicio)} - ${normalizarHora(horario.horaFim)}` : 'Indisponível'}</strong></button>;
+                }}
+              />
+            </div>
+          </div>
         </Modal>
       )}
 

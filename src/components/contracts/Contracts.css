@@ -546,7 +546,8 @@
 }
 
 .modal-content.contract-create-modal .contract-form-panel {
-  overflow: visible;
+  overflow-y: auto;
+  overflow-x: hidden;
   min-height: 0;
   margin: 0 -24px 0 -40px;
   padding: 16px 28px 16px 56px;
@@ -585,6 +586,7 @@
   min-height: 0;
   margin-top: 0;
   height: 100%;
+  overflow: hidden;
 }
 
 .modal-content.contract-create-modal .mini-schedule,
@@ -599,13 +601,15 @@
     grid-template-columns: 1fr;
     height: auto;
     max-height: calc(92vh - 130px);
+    overflow-y: auto;
   }
 
   .contract-form-panel,
   .class-form-panel,
   .professor-form-panel {
-    max-height: none;
-    overflow: visible;
+    max-height: 48vh;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .contract-schedule-panel,

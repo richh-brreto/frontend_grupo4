@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios from "./utils/axiosConfig";
 import { useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
@@ -15,12 +15,7 @@ import Overview from "./components/overview/Overview";
 import { primeiraRotaLiberada } from "./utils/menuItems";
 import { usePermissoes, temSessao } from "./utils/permissions";
 
-axios.defaults.baseURL = "http://localhost:8080";
-axios.defaults.withCredentials = true;
 const savedToken = localStorage.getItem("authToken");
-if (savedToken) {
-    axios.defaults.headers.common["Authorization"] = `Bearer ${savedToken}`;
-}
 
 // Bloqueia a rota quando o professor não tem a permissão da tela.
 // O menu some o item, mas sem isto daria para abrir a URL na mão.

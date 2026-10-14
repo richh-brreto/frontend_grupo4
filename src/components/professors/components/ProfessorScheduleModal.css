@@ -227,11 +227,14 @@
     grid-template-columns: 1fr;
     height: auto;
     max-height: calc(92vh - 130px);
+    overflow-y: auto;
   }
 
   .modal-content.professor-create-modal .professor-form-panel {
     margin: 0;
     padding: 16px;
+    max-height: 48vh;
+    overflow-y: auto;
   }
 
   .modal-content.professor-create-modal .professor-schedule-panel {

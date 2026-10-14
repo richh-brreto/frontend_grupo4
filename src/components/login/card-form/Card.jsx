@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../../../utils/axiosConfig";
 import { useLocation, Link } from "react-router-dom";
 import Swal from "sweetalert2";
+import logo from "../../../assets/Boost-White.png";
 import { registrarSessao, salvarPermissoes } from "../../../utils/permissions";
 import "./Card.css";
 import Input from "../input/Input";
@@ -29,9 +30,8 @@ function Card({ onLoginSuccess }) {
 
         try {
             const response = await axios.post(
-                "http://localhost:8080/login",
-                { email, senha },
-                { withCredentials: true }
+                "/login",
+                { email, senha }
             );
 
             // O token chega no cookie HttpOnly; o corpo traz as telas liberadas
@@ -53,7 +53,7 @@ function Card({ onLoginSuccess }) {
 
     return (
         <div className="page">
-            <img className="logo" src="src/assets/Boost-White.png" alt="Boost Logo" />
+            <img className="logo" src={logo} alt="Boost Logo" />
             <form className="card" onSubmit={handleSubmit}>
                 <Input
                     label="E-mail"

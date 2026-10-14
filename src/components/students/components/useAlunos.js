@@ -1,57 +1,87 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { alunosService } from './alunosService';
+
+const TAMANHO_PAGINA = 10;
+const ATRASO_BUSCA_MS = 400;
 
 const alunoEstaAtivo = (aluno) =>
   aluno.ativo === true || aluno.ativo === 1 || aluno.ativo === 'true' || aluno.ativo === '1';
 
-const ALUNOS_INATIVOS_CACHE = 'alunos-inativos-cache';
-
-const lerAlunosInativosCache = () => {
-  try {
-    return JSON.parse(localStorage.getItem(ALUNOS_INATIVOS_CACHE) || '[]');
-  } catch {
-    return [];
-  }
-};
-
-const salvarAlunosInativosCache = (alunosInativos) => {
-  localStorage.setItem(ALUNOS_INATIVOS_CACHE, JSON.stringify(alunosInativos));
-};
+const PAGINA_VAZIA = { totalElements: 0, totalPages: 0, first: true, last: true };
 
 export function useAlunos() {
   const [alunos, setAlunos] = useState([]);
+  const [paginacao, setPaginacao] = useState(PAGINA_VAZIA);
+  const [pagina, setPagina] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filtro, setFiltro] = useState('ativos');
+  const [filtro, setFiltroState] = useState('ativos');
+  const [busca, setBusca] = useState('');
+  const [buscaAplicada, setBuscaAplicada] = useState('');
+  // Descarta respostas antigas quando o usuário digita/troca de página mais rápido que a API responde
+  const ultimaRequisicao = useRef(0);
+
+  // Só consulta a API quando o usuário para de digitar; uma busca nova sempre começa na primeira página
+  useEffect(() => {
+    const termo = busca.trim();
+    if (termo === buscaAplicada) return undefined;
+
+    const timer = setTimeout(() => {
+      setBuscaAplicada(termo);
+      setPagina(0);
+    }, ATRASO_BUSCA_MS);
+    return () => clearTimeout(timer);
+  }, [busca, buscaAplicada]);
 
   const carregarAlunos = useCallback(() => {
+    const requisicao = ++ultimaRequisicao.current;
     setLoading(true);
-    alunosService.listar()
-      .then((data) => {
-        const alunosDaApi = (data ?? []).map((aluno) => ({
-          ...aluno,
-          ativo: alunoEstaAtivo(aluno),
-        }));
-        const idsDaApi = new Set(alunosDaApi.map((aluno) => aluno.id));
-        const inativosAusentes = lerAlunosInativosCache().filter(
-          (aluno) => !idsDaApi.has(aluno.id)
-        );
+    setError(null);
 
-        setAlunos([...alunosDaApi, ...inativosAusentes]);
+    return alunosService.listar({
+      page: pagina,
+      size: TAMANHO_PAGINA,
+      nome: buscaAplicada,
+      ativo: filtro === 'ativos',
+    })
+      .then((data) => {
+        if (requisicao !== ultimaRequisicao.current) return;
+
+        // A página ficou vazia (ex: último aluno dela foi inativado): volta para a última que existe
+        if (data.content.length === 0 && pagina > 0 && data.totalPages > 0) {
+          setPagina(data.totalPages - 1);
+          return;
+        }
+
+        setAlunos(data.content.map((aluno) => ({ ...aluno, ativo: alunoEstaAtivo(aluno) })));
+        setPaginacao({
+          totalElements: data.totalElements,
+          totalPages: data.totalPages,
+          first: data.first,
+          last: data.last,
+        });
       })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, []);
+      .catch((err) => {
+        if (requisicao === ultimaRequisicao.current) setError(err.message);
+      })
+      .finally(() => {
+        if (requisicao === ultimaRequisicao.current) setLoading(false);
+      });
+  }, [pagina, buscaAplicada, filtro]);
 
   useEffect(() => {
     carregarAlunos();
   }, [carregarAlunos]);
 
+  const setFiltro = (novoFiltro) => {
+    setFiltroState(novoFiltro);
+    setPagina(0);
+  };
+
   const adicionarAluno = (novoAluno) => {
     return alunosService.criar(novoAluno).then((alunoCriado) => {
-      const alunoNormalizado = { ...alunoCriado, ativo: alunoEstaAtivo(alunoCriado) };
-      setAlunos((items) => [...items, alunoNormalizado]);
-      return alunoNormalizado;
+      carregarAlunos();
+      return { ...alunoCriado, ativo: alunoEstaAtivo(alunoCriado) };
     });
   };
 
@@ -62,58 +92,34 @@ export function useAlunos() {
   };
 
   const excluirAluno = (id) => {
-    return alunosService.excluir(id).then(() => {
-      setAlunos((items) => items.filter((item) => item.id !== id));
-      salvarAlunosInativosCache(lerAlunosInativosCache().filter((aluno) => aluno.id !== id));
-    });
+    return alunosService.excluir(id).then(() => carregarAlunos());
   };
 
-  // Alterna o status do aluno chamando o endpoint certo conforme o estado atual
+  // Alterna o status do aluno chamando o endpoint certo conforme o estado atual.
+  // O aluno sai da aba atual, então recarrega a página vinda da API
   const alternarStatus = (aluno) => {
-    const ativo = alunoEstaAtivo(aluno);
-    const chamada = ativo
-  ? alunosService.excluir(aluno.id)
-  : alunosService.reativar(aluno.id);
+    const chamada = alunoEstaAtivo(aluno)
+      ? alunosService.excluir(aluno.id)
+      : alunosService.reativar(aluno.id);
 
     return chamada
-      .then(() => {
-        setAlunos((items) => {
-          const alunoAtualizado = { ...aluno, ativo: !ativo };
-          const alunoEncontrado = items.some((item) => item.id === aluno.id);
-
-          return alunoEncontrado
-            ? items.map((item) =>
-              item.id === aluno.id ? alunoAtualizado : item
-            )
-            : [...items, alunoAtualizado];
-        });
-
-        const alunosInativos = lerAlunosInativosCache();
-        if (ativo) {
-          salvarAlunosInativosCache([
-            ...alunosInativos.filter((item) => item.id !== aluno.id),
-            { ...aluno, ativo: false },
-          ]);
-        } else {
-          salvarAlunosInativosCache(
-            alunosInativos.filter((item) => item.id !== aluno.id)
-          );
-        }
-      })
+      .then(() => carregarAlunos())
       .catch((err) => setError(err.message));
   };
 
-  const alunosFiltrados = alunos.filter((aluno) =>
-    filtro === 'ativos' ? alunoEstaAtivo(aluno) : !alunoEstaAtivo(aluno)
-  );
-
   return {
-    alunos: alunosFiltrados,
+    alunos,
     loading,
     error,
-    setError,
     filtro,
     setFiltro,
+    busca,
+    setBusca,
+    pagina,
+    setPagina,
+    tamanhoPagina: TAMANHO_PAGINA,
+    paginacao,
+    recarregar: carregarAlunos,
     adicionarAluno,
     editarAluno,
     excluirAluno,

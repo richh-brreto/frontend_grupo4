@@ -34,6 +34,7 @@ export function useProfessores() {
       email: professor.email,
       telefone: professor.telefone,
       permissoes: professor.permissoes,
+      horariosIds: professor.horariosIds,
     };
 
     return professoresService.atualizar(professor.id, payload).then((professorAtualizado) => {

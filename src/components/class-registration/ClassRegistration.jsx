@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import axios from "../../utils/axiosConfig";
 import "./ClassRegistration.css";
 import Input from "../login/input/Input";
 import Button from "../login/button/Button";
@@ -27,17 +27,7 @@ export default function ClassRegistration({ onBack }) {
     };
 
     try {
-      const config = {
-        withCredentials: true,
-        headers: {},
-      };
-
-      const savedToken = localStorage.getItem("authToken");
-      if (savedToken) {
-        config.headers.Authorization = `Bearer ${savedToken}`;
-      }
-
-      await axios.post("http://localhost:8080/turmas", turma, config);
+      await axios.post("/turmas", turma);
       alert("Turma cadastrada com sucesso!");
       setNome("");
       setNivel("");

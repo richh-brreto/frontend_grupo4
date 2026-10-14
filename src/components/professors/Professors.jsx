@@ -64,20 +64,20 @@ export default function Professors() {
         nome: professorCriado.nome,
         codigoAcesso: professorCriado.codigoAcesso,
       });
-      await Swal.fire({ icon: 'success', title: 'Professor cadastrado!', text: 'O professor foi cadastrado com sucesso.', confirmButtonColor: '#0f1f3f' });
     } catch (error) {
       await Swal.fire({ icon: 'error', title: 'Não foi possível cadastrar', text: error.message || 'Tente novamente.', confirmButtonColor: '#0f1f3f' });
       throw error;
     }
   };
 
-  const salvarEdicaoProfessor = async () => {
+  const salvarEdicaoProfessor = async (dados) => {
     try {
-      await editarProfessor(selectedProfessor);
+      await editarProfessor({ ...selectedProfessor, ...dados });
       setSelectedProfessor(null);
       await Swal.fire({ icon: 'success', title: 'Professor atualizado!', text: 'As alterações foram salvas com sucesso.', confirmButtonColor: '#0f1f3f' });
     } catch (error) {
       await Swal.fire({ icon: 'error', title: 'Não foi possível salvar', text: error.response?.data?.message || error.message || 'Tente novamente.', confirmButtonColor: '#0f1f3f' });
+      throw error;
     }
   };
 

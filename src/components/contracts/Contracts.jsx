@@ -69,6 +69,7 @@ export default function Contracts() {
 
   // horários selecionados no mini-calendário: [{ dia, hora, item }]
   const [selectedSchedule, setSelectedSchedule] = useState([]);
+  const [editScheduleByType, setEditScheduleByType] = useState({});
   // quando um slot tem mais de uma opção (professores/turmas), guarda qual slot está "aberto" pra escolher
   const [openSlot, setOpenSlot] = useState(null); // { dia, hora }
 
@@ -91,7 +92,7 @@ export default function Contracts() {
 
   // Carregar alunos
   useEffect(() => {
-    alunosService.listar().then((alunosCarregados) => {
+    alunosService.listarTodos().then((alunosCarregados) => {
       setAlunos(alunosCarregados);
     }).catch((erro) => {
       console.error('Erro ao carregar alunos:', erro);
@@ -125,7 +126,7 @@ export default function Contracts() {
 
   // Busca as duas listas quando o modal de agendamento abre
   useEffect(() => {
-    if (!isScheduleModalOpen) return;
+    if (!isScheduleModalOpen && !selectedContract) return;
 
     let cancelado = false;
     setCarregandoDisponibilidade(true);
@@ -147,6 +148,33 @@ export default function Contracts() {
         if (cancelado) return;
         setProfessoresDisponiveis(Array.isArray(professores) ? professores : []);
         setTurmasDisponiveis(Array.isArray(turmas) ? turmas : []);
+        const horariosDoContrato = selectedContract?.horarios
+          || (selectedContract?.horario ? [selectedContract.horario] : []);
+        if (horariosDoContrato.length) {
+          const tipo = selectedContract.tipo === 'grupo' ? 'grupo' : 'individual';
+          const itemId = tipo === 'grupo' ? selectedContract.turma?.id : selectedContract.professor?.id;
+          const disponiveis = tipo === 'grupo' ? turmas : professores;
+          const horariosEditados = horariosDoContrato.map((horario) => ({
+            dia: normalizarDia(horario.diaSemana),
+            hora: normalizarHora(horario.horaInicio),
+            item: {
+              tipo,
+              id: itemId,
+              horarioId: horario.id,
+              horaInicio: normalizarHora(horario.horaInicio),
+              horaFim: normalizarHora(horario.horaFim),
+              nome: disponiveis.find((item) => item.id === itemId)?.nome || '',
+              detalhe: tipo === 'individual'
+                ? disponiveis.find((item) => item.id === itemId)?.email || ''
+                : `${disponiveis.find((item) => item.id === itemId)?.nivel || ''} · ${disponiveis.find((item) => item.id === itemId)?.nomeProfessor || ''}`,
+            }
+          }));
+          setSelectedSchedule(horariosEditados);
+          setEditScheduleByType({
+            individual: tipo === 'individual' ? horariosEditados : [],
+            grupo: tipo === 'grupo' ? horariosEditados : [],
+          });
+        }
       })
       .catch((erro) => {
         if (cancelado) return;
@@ -159,7 +187,7 @@ export default function Contracts() {
     return () => {
       cancelado = true;
     };
-  }, [isScheduleModalOpen, alunoSelecionado]);
+  }, [isScheduleModalOpen, alunoSelecionado, selectedContract]);
 
   // Monta o mapa dia+hora -> lista de opções (professor OU turma), dependendo do contractType
   const gradeDisponibilidade = useMemo(() => {
@@ -274,8 +302,16 @@ export default function Contracts() {
   };
 
   const trocarTipoContrato = (tipo) => {
+    if (selectedContract) {
+      setEditScheduleByType((atual) => ({
+        ...atual,
+        [contractType]: selectedSchedule,
+      }));
+      setSelectedSchedule(editScheduleByType[tipo] || []);
+    } else {
+      setSelectedSchedule([]);
+    }
     setContractType(tipo);
-    setSelectedSchedule([]);
     setOpenSlot(null);
   };
 
@@ -313,18 +349,49 @@ export default function Contracts() {
       professor: contrato.professor ? { ...contrato.professor } : null,
       aluno: contrato.aluno ? { ...contrato.aluno } : {}
     });
+    setAlunoSelecionadoId(String(contrato.aluno?.id || ''));
+    setContractType(contrato.tipo === 'grupo' ? 'grupo' : 'individual');
+    setDataInicioContrato(contrato.dataInicio || hoje);
+    setDataFimContrato(contrato.dataFim || hoje);
+    setSelectedSchedule([]);
+    setEditScheduleByType({});
+    setOpenSlot(null);
   };
 
   const fecharModalEdicao = () => {
     setSelectedContract(null);
+    setSelectedSchedule([]);
+    setEditScheduleByType({});
+    setOpenSlot(null);
   };
 
   const salvarEdicao = async () => {
     if (!selectedContract.id) return;
 
+    const camposInvalidos = [];
+    if (!alunoSelecionadoId) camposInvalidos.push('aluno');
+    if (!dataInicioContrato) camposInvalidos.push('data de início');
+    if (!dataFimContrato) camposInvalidos.push('data de fim');
+    if (dataFimContrato < dataInicioContrato) camposInvalidos.push('data de fim posterior ou igual à data de início');
+    if (selectedSchedule.length === 0) camposInvalidos.push('horários');
+    if (camposInvalidos.length > 0) {
+      const mensagem = `Verifique os seguintes campos: ${camposInvalidos.join(', ').replace(/, ([^,]*)$/, ' e $1')}.`;
+      await Swal.fire({ icon: 'error', title: 'Dados inválidos', text: mensagem, confirmButtonColor: '#0f1f3f' });
+      return;
+    }
+
     setCarregandoOperacao(true);
     try {
-      const contratoAtualizado = await contratosService.atualizar(selectedContract.id, selectedContract);
+      const itemSelecionado = selectedSchedule[0].item;
+      const contratoAtualizado = await contratosService.atualizar(selectedContract.id, {
+        dataInicio: dataInicioContrato,
+        dataFim: dataFimContrato,
+        tipo: contractType,
+        alunoId: parseInt(alunoSelecionadoId),
+        turmaId: contractType === 'grupo' ? parseInt(itemSelecionado.id) : 0,
+        professorId: contractType === 'individual' ? parseInt(itemSelecionado.id) : 0,
+        horariosIds: selectedSchedule.map(({ item }) => parseInt(item.horarioId))
+      });
       setContratos((items) => items.map((item) => item.id === contratoAtualizado.id ? contratoAtualizado : item));
       fecharModalEdicao();
       await Swal.fire({ icon: 'success', title: 'Contrato atualizado!', text: 'As alterações foram salvas com sucesso.', confirmButtonColor: '#0f1f3f' });
@@ -638,57 +705,97 @@ export default function Contracts() {
           onClose={fecharModalEdicao}
           onSave={salvarEdicao}
           onDelete={excluirContrato}
+          className="contract-create-modal"
         >
-          <label>Tipo:</label>
-          <input
-            type="text"
-            value={selectedContract.tipo}
-            onChange={(event) =>
-              setSelectedContract((contrato) => ({ ...contrato, tipo: event.target.value }))
-            }
-          />
+          <div className="contract-form-panel">
+            <label htmlFor="edit-contract-student">Aluno:</label>
+            <input
+              id="edit-contract-student"
+              type="text"
+              value={selectedContract.aluno?.nome || ''}
+              readOnly
+            />
 
-          <label>Aluno:</label>
-          <input
-            type="text"
-            value={selectedContract.aluno?.nome || ''}
-            onChange={(event) =>
-              setSelectedContract((contrato) => ({
-                ...contrato,
-                aluno: { ...contrato.aluno, nome: event.target.value }
-              }))
-            }
-          />
+            <span className="contract-type-label">Tipo de aula</span>
+            <div className="contract-type-options">
+              {['individual', 'grupo'].map((tipo) => (
+                <label key={tipo} className={`contract-option ${contractType === tipo ? 'selected' : ''}`}>
+                  <input type="radio" name="editContractType" value={tipo} checked={contractType === tipo} onChange={() => trocarTipoContrato(tipo)} />
+                  <span>{tipo === 'individual' ? 'Individual' : 'Em grupo'}</span>
+                </label>
+              ))}
+            </div>
 
-          <label>Professor:</label>
-          <input
-            type="text"
-            value={selectedContract.professor?.nome || ''}
-            onChange={(event) =>
-              setSelectedContract((contrato) => ({
-                ...contrato,
-                professor: { ...contrato.professor, nome: event.target.value }
-              }))
-            }
-          />
+            <div className="contract-dates">
+              <label className="contract-date-field">
+                <span>Data início:</span>
+                <input type="date" value={dataInicioContrato} min={dataHoje()} onChange={(event) => setDataInicioContrato(event.target.value)} />
+              </label>
+              <label className="contract-date-field">
+                <span>Data fim:</span>
+                <input type="date" value={dataFimContrato} min={dataInicioContrato} onChange={(event) => setDataFimContrato(event.target.value)} />
+              </label>
+            </div>
 
-          <label>Data início:</label>
-          <input
-            type="date"
-            value={selectedContract.dataInicio}
-            onChange={(event) =>
-              setSelectedContract((contrato) => ({ ...contrato, dataInicio: event.target.value }))
-            }
-          />
+            {carregandoDisponibilidade && <p className="contract-disponibilidade-status">Carregando disponibilidade...</p>}
+            {erroDisponibilidade && <p className="contract-disponibilidade-status contract-disponibilidade-erro">{erroDisponibilidade}</p>}
+            <div className="contract-selected-schedule">
+              <span className="contract-selected-schedule-title">Selecionados</span>
+              {selectedSchedule.length > 0 ? selectedSchedule.map(({ dia, item }) => (
+                <div key={item.horarioId} className="contract-selected-schedule-item">
+                  <strong>{dia}</strong><span>{item.horaInicio} - {item.horaFim}</span><small>{item.nome}</small>
+                </div>
+              )) : <span className="contract-selected-schedule-empty">Nenhum horário selecionado</span>}
+            </div>
+          </div>
 
-          <label>Data fim:</label>
-          <input
-            type="date"
-            value={selectedContract.dataFim}
-            onChange={(event) =>
-              setSelectedContract((contrato) => ({ ...contrato, dataFim: event.target.value }))
-            }
-          />
+          <div className="contract-schedule-panel mini-schedule">
+            <p className="contract-schedule-instruction">Clique nos blocos para marcar os horários em que o aluno terá aulas.</p>
+            <div className="contract-schedule-scroll">
+              <ScheduleGrid
+                className="mini-week-grid"
+                hoursHeaderClassName="mini-hours-header"
+                dayHeaderClassName="mini-day-header"
+                hourLabelClassName="mini-hours-column"
+                hourItemClassName="mini-hour-label"
+                dayColumnClassName="mini-day-column"
+                days={DIAS_SEMANA}
+                hours={HORARIOS_MODAL.map((hora) => ({ value: hora, label: hora, key: `hora-${hora}` }))}
+                getSlot={(dia, hora) => gradeDisponibilidade[`${dia}-${hora}`] || []}
+                renderSlot={({ slot: opcoes, day: dia, hour: hora, key }) => {
+                  const temOpcoes = opcoes.length > 0;
+                  const isSelected = selectedSchedule.some((selecionado) => selecionado.dia === dia && selecionado.hora === hora);
+                  const estaAberto = openSlot?.dia === dia && openSlot?.hora === hora;
+                  return (
+                    <div key={key} className="mini-slot-wrapper">
+                      <button type="button" className={`mini-slot-cell ${temOpcoes ? 'filled' : 'empty'} ${isSelected ? 'selected' : ''}`} onClick={() => clicarSlot(dia, hora, opcoes)} disabled={!temOpcoes}>
+                        {temOpcoes ? (
+                          opcoes.length === 1 ? (
+                            <>
+                              <span>{opcoes[0].horaInicio} - {opcoes[0].horaFim}</span>
+                              <strong>{opcoes[0].nome}</strong>
+                              <small>{opcoes[0].detalhe}</small>
+                            </>
+                          ) : (
+                            <>
+                              <span>{opcoes[0].horaInicio} - {opcoes[0].horaFim}</span>
+                              <strong>{opcoes.length} opções</strong>
+                            </>
+                          )
+                        ) : null}
+                      </button>
+                      {estaAberto && <div className="mini-slot-options">{opcoes.map((opcao) => (
+                        <button key={`${opcao.tipo}-${opcao.id}-${opcao.horarioId}`} type="button" onClick={() => selecionarOpcaoSlot(dia, hora, opcao)}>
+                          {opcao.nome} ({opcao.horaInicio} - {opcao.horaFim})
+                        </button>
+                      ))}</div>}
+                    </div>
+                  );
+                }}
+              />
+            </div>
+            <p className="contract-schedule-counter">{selectedSchedule.length} horário(s) selecionado(s)</p>
+          </div>
         </Modal>
       )}
 
