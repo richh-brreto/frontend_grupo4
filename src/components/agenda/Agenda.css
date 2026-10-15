@@ -243,8 +243,9 @@
   display: grid;
   grid-template-columns: 70px repeat(7, minmax(140px, 1fr));
   align-items: center;
-  gap: 1px;
+  gap: 0;
   margin-bottom: 12px;
+  padding-right: 10px;
 }
 
 .agenda-horarios-label {
@@ -252,6 +253,7 @@
 }
 
 .agenda-dia-label {
+  box-sizing: border-box;
   background: #fff;
   border: 1px solid #e8e8e8;
   padding: 14px 16px;
@@ -277,8 +279,8 @@
 
 .agenda-grid {
   display: grid;
-  grid-template-columns: 70px repeat(7, 1fr);
-  min-height: calc(48px * 23);
+  grid-template-columns: 70px repeat(7, minmax(140px, 1fr));
+  min-height: calc(64px * 16);
   position: relative;
 }
 
@@ -330,11 +332,12 @@
   border-radius: 16px;
   background: #0f1f3f;
   color: #fff;
-  padding: 12px 10px;
+  padding: 8px 10px;
   box-shadow: 0 12px 24px rgba(15, 31, 63, 0.14);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 3px;
+  cursor: pointer;
 }
 
 .evento-cancelado {
@@ -345,6 +348,26 @@
 .evento-label {
   font-size: 13px;
   line-height: 1.2;
+}
+
+.evento-titulo {
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.evento-detalhes {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #dbeafe;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.evento-detalhes span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .evento-action {
@@ -358,6 +381,82 @@
   transition: 0.5s;
 }
 
+.evento-aulas-expandidas {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 5;
+  display: grid;
+  gap: 6px;
+  width: max-content;
+  min-width: 100%;
+  max-width: 260px;
+  padding: 8px;
+  border-radius: 12px;
+  background: #0f1f3f;
+  box-shadow: 0 12px 24px rgba(15, 31, 63, 0.22);
+}
+
+.evento-aula-expandida {
+  display: grid;
+  gap: 5px;
+  min-height: 52px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 9px;
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.evento-aula-expandida-detalhes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #dbeafe;
+}
+
+.evento-aula-expandida-detalhes span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.evento-aula-expandida-separador {
+  flex: 0 0 auto;
+  overflow: visible !important;
+}
+
+.agenda-resumo-modal {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.agenda-resumo {
+  display: grid;
+  gap: 14px;
+}
+
+.agenda-resumo > div {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.agenda-resumo span {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.agenda-resumo strong {
+  color: #0f1f3f;
+  font-size: 15px;
+}
+
+.evento-aula-expandida span {
+  color: #dbeafe;
+}
+
 .evento-action:hover {
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -367,6 +466,37 @@
   padding: 4px 8px;
   font-size: 12px;
   cursor: pointer;
+}
+
+.agenda-aulas-modal {
+  width: min(620px, calc(100vw - 32px));
+}
+
+.agenda-aulas-lista {
+  display: grid;
+  gap: 12px;
+}
+
+.agenda-aula-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.agenda-aula-item > div {
+  display: grid;
+  gap: 4px;
+}
+
+.agenda-aula-item span,
+.agenda-aula-item small {
+  color: #64748b;
+  font-size: 13px;
 }
 
 .agenda-filters {

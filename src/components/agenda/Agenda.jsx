@@ -12,8 +12,13 @@ import './Agenda.css';
 
 
 const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
-const HORAS = Array.from({ length: 24 }, (_, i) => `${String(0 + i).padStart(2, '0')}:00`);
-const ALTURA_HORA = 48; // pixels por hora
+const HORA_INICIO_AGENDA = 7;
+const HORA_FIM_AGENDA = 22;
+const HORAS = Array.from(
+  { length: HORA_FIM_AGENDA - HORA_INICIO_AGENDA + 1 },
+  (_, i) => `${String(HORA_INICIO_AGENDA + i).padStart(2, '0')}:00`
+);
+const ALTURA_HORA = 64; // pixels por hora
 
 // YYYY-MM-DD no fuso local (toISOString converte para UTC e pode trocar o dia)
 const formatarDataLocal = (data) => [
@@ -76,6 +81,11 @@ const agruparAulas = (aulas) => {
   ));
 };
 
+const obterNomeEvento = (aula) => {
+  if (typeof aula.conta === 'string') return aula.conta;
+  return aula.conta?.nome || aula.conta?.nomeTurma || `Contrato #${aula.contratoId}`;
+};
+
 const formatarDiaMes = (dataIso) => {
   const [, mes, dia] = dataIso.split('-');
   return `${dia}/${mes}`;
@@ -117,6 +127,8 @@ export default function Agenda() {
   const [isAusenciaModalOpen, setIsAusenciaModalOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
   const [selectedAula, setSelectedAula] = useState(null);
+  const [resumoAula, setResumoAula] = useState(null);
+  const [horarioExpandido, setHorarioExpandido] = useState(null);
   const [alunosAusentes, setAlunosAusentes] = useState([]);
   const [remarcacao, setRemarcacao] = useState({ novaData: '', novaHoraInicio: '', novaHoraFim: '', motivo: '' });
   const [versaoAulas, setVersaoAulas] = useState(0);
@@ -142,6 +154,24 @@ export default function Agenda() {
   const fecharModalEditar = () => {
     setIsEditModalOpen(false);
     setSelectedAula(null);
+  };
+
+  const abrirResumoAula = (aula) => {
+    setResumoAula(aula);
+  };
+
+  const fecharResumoAula = () => {
+    setResumoAula(null);
+  };
+
+  const editarAulaDoResumo = () => {
+    setSelectedAula(resumoAula);
+    setResumoAula(null);
+    setIsEditModalOpen(true);
+  };
+
+  const alternarAulasDoHorario = (chave) => {
+    setHorarioExpandido((atual) => (atual === chave ? null : chave));
   };
 
   const recarregarAulas = () => setVersaoAulas(versao => versao + 1);
@@ -336,12 +366,18 @@ export default function Agenda() {
     const [horaI, minutoI] = horaInicio.split(':').map(Number);
     const [horaF, minutoF] = horaFim.split(':').map(Number);
 
-    const minutoInicio = (horaI - 1) * 60 + minutoI;
-    const minutoFim = (horaF - 1) * 60 + minutoF;
+    const minutoInicio = Math.max(
+      HORA_INICIO_AGENDA * 60,
+      horaI * 60 + minutoI
+    );
+    const minutoFim = Math.min(
+      HORA_FIM_AGENDA * 60,
+      horaF * 60 + minutoF
+    );
     const duracao = minutoFim - minutoInicio;
 
     return {
-      top: `${(minutoInicio / 60) * ALTURA_HORA}px`,
+      top: `${((minutoInicio - HORA_INICIO_AGENDA * 60) / 60) * ALTURA_HORA}px`,
       height: `${(duracao / 60) * ALTURA_HORA}px`,
       minHeight: '38px'
     };
@@ -367,10 +403,29 @@ export default function Agenda() {
   const obterAulasPorDia = (dataDia) => aulasFiltradas.filter(aula => aula.data === dataDia);
 
   const obterAulasComPosicao = (dataDia) => {
-    const aulasDia = obterAulasPorDia(dataDia).sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
+    const aulasDia = obterAulasPorDia(dataDia)
+      .filter((aula) => aula.horaFim > `${String(HORA_INICIO_AGENDA).padStart(2, '0')}:00`
+        && aula.horaInicio < `${String(HORA_FIM_AGENDA).padStart(2, '0')}:00`)
+      .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
+    const aulasAgrupadas = [];
+
+    aulasDia.forEach((aula) => {
+      const grupoExistente = aulasAgrupadas.find((grupo) =>
+        grupo.horaInicio === aula.horaInicio && grupo.horaFim === aula.horaFim
+      );
+      if (grupoExistente) {
+        grupoExistente.aulas.push(aula);
+      } else {
+        aulasAgrupadas.push({
+          ...aula,
+          aulas: [aula],
+        });
+      }
+    });
+
     const aulasComPosicao = [];
 
-    aulasDia.forEach(aula => {
+    aulasAgrupadas.forEach(aula => {
       const estilo = calcularEstiloEvento(aula.horaInicio, aula.horaFim);
       let coluna = 0;
       let maxColuna = 0;
@@ -390,6 +445,7 @@ export default function Agenda() {
 
     return aulasComPosicao.map(item => ({
       ...item.aula,
+      aulas: item.aula.aulas,
       estilo: item.estilo,
       coluna: item.coluna,
       numColunas: numColunasTotal
@@ -482,31 +538,89 @@ export default function Agenda() {
                       ))}
 
                       <div className="agenda-eventos">
-                        {obterAulasComPosicao(dia.data).map((aula) => (
-                          <div
-                            key={aula.id}
-                            className={`evento ${aula.status === 'CANCELADA' ? 'evento-cancelado' : ''}`.trim()}
-                            style={{
-                              ...aula.estilo,
-                              width: `calc((100% - ${(aula.numColunas - 1) * 4}px) / ${aula.numColunas})`,
-                              left: `calc((100% - ${(aula.numColunas - 1) * 4}px) / ${aula.numColunas} * ${aula.coluna} + ${aula.coluna * 2}px)`
-                            }}
-                          >
-                            <div className="evento-label">{aula.conta}</div>
-                            <div className="evento-label">
-                              {aula.status === 'CANCELADA' ? 'Cancelada' : aula.turma}
+                        {obterAulasComPosicao(dia.data).map((aula) => {
+                          const chaveHorario = `${dia.data}-${aula.id}`;
+                          const individual = aula.turma === 'Individual';
+                          const expandido = horarioExpandido === chaveHorario;
+
+                          return (
+                            <div
+                              key={aula.id}
+                              className={`evento ${aula.status === 'CANCELADA' ? 'evento-cancelado' : ''}`.trim()}
+                              onClick={() => abrirResumoAula(aula)}
+                              style={{
+                                ...aula.estilo,
+                                top: `calc(${aula.estilo.top} + 3px)`,
+                                height: `calc(${aula.estilo.height} - 6px)`,
+                                width: `calc((100% - ${(aula.numColunas - 1) * 4}px - 4px) / ${aula.numColunas})`,
+                                left: `calc((100% - ${(aula.numColunas - 1) * 4}px) / ${aula.numColunas} * ${aula.coluna} + ${aula.coluna * 2 + 2}px)`
+                              }}
+                            >
+                              {aula.aulas.length > 1 ? (
+                                <>
+                                  <strong className="evento-titulo">{aula.aulas.length} aulas</strong>
+                                  <button
+                                    type="button"
+                                    className="evento-action"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      alternarAulasDoHorario(chaveHorario);
+                                    }}
+                                  >
+                                    Visualizar aulas
+                                  </button>
+                                  {expandido && (
+                                    <div className="evento-aulas-expandidas">
+                                      {aula.aulas.map((aulaExpandida) => (
+                                        <div key={aulaExpandida.id} className="evento-aula-expandida">
+                                          <div
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={(event) => {
+                                              event.stopPropagation();
+                                              abrirResumoAula(aulaExpandida);
+                                            }}
+                                            onKeyDown={(event) => {
+                                              if (event.key === 'Enter' || event.key === ' ') abrirResumoAula(aulaExpandida);
+                                            }}
+                                          >
+                                            <strong>
+                                              {aulaExpandida.turmaId
+                                                ? obterNomeEvento(aulaExpandida)
+                                                : 'Individual'}
+                                            </strong>
+                                            <div className="evento-aula-expandida-detalhes">
+                                              <span>
+                                                {aulaExpandida.turmaId
+                                                  ? `${aula.aulas.length} aluno${aula.aulas.length === 1 ? '' : 's'}`
+                                                  : obterNomeEvento(aulaExpandida)}
+                                              </span>
+                                              <span className="evento-aula-expandida-separador">·</span>
+                                              <span>Prof. {aulaExpandida.professor || 'Sem professor'}</span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  <strong className="evento-titulo">
+                                    {individual ? 'Individual' : obterNomeEvento(aula)}
+                                  </strong>
+                                  <div className="evento-detalhes">
+                                    <span>
+                                      {individual
+                                        ? `${obterNomeEvento(aula)} · Prof. ${aula.professor || 'Sem professor'}`
+                                        : `${aula.turma} · Prof. ${aula.professor || 'Sem professor'}`}
+                                    </span>
+                                  </div>
+                                </>
+                              )}
                             </div>
-                            {podeGerenciar && aula.status !== 'CANCELADA' && (
-                              <button
-                                type="button"
-                                className="evento-action"
-                                onClick={() => abrirModalEditar(aula)}
-                              >
-                                Editar
-                              </button>
-                            )}
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   ))}
@@ -583,6 +697,37 @@ export default function Agenda() {
 
           <label>Dia e horário</label>
           <input type="text" placeholder="Dia e horário" />
+        </Modal>
+      )}
+
+      {resumoAula && (
+        <Modal
+          title="Resumo da aula"
+          onClose={fecharResumoAula}
+          hideFooter
+          className="agenda-resumo-modal"
+        >
+          <div className="agenda-resumo">
+            <div><span>Horário</span><strong>{resumoAula.horaInicio} - {resumoAula.horaFim}</strong></div>
+            <div><span>Professor</span><strong>{resumoAula.professor || 'Sem professor'}</strong></div>
+            <div><span>Modalidade</span><strong>{resumoAula.turmaId ? 'Em grupo' : 'Individual'}</strong></div>
+            {resumoAula.turmaId && (
+              <div><span>Turma</span><strong>{obterNomeEvento(resumoAula)}</strong></div>
+            )}
+            <div>
+              <span>Alunos</span>
+              <strong>
+                {resumoAula.turmaId
+                  ? (resumoAula.participantes || []).map((participante) => participante.aluno).filter(Boolean).join(', ')
+                    || resumoAula.aluno
+                    || 'Alunos da turma'
+                  : resumoAula.aluno || 'Aluno não informado'}
+              </strong>
+            </div>
+            {podeGerenciar && resumoAula.status !== 'CANCELADA' && (
+              <Button active onClick={editarAulaDoResumo}>Editar</Button>
+            )}
+          </div>
         </Modal>
       )}
 

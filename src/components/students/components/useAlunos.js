@@ -4,6 +4,7 @@ import { alunosService } from './alunosService';
 const TAMANHO_PAGINA = 10;
 const ATRASO_BUSCA_MS = 400;
 const ALUNOS_INATIVOS_CACHE = 'alunos-inativos-cache';
+const ALUNOS_PENDENTES_CACHE = 'alunos-pendentes-cache';
 
 const alunoEstaAtivo = (aluno) => {
   if (typeof aluno.ativo !== 'undefined') {
@@ -33,6 +34,19 @@ const lerAlunosInativos = () => {
 
 const salvarAlunosInativos = (alunos) => {
   localStorage.setItem(ALUNOS_INATIVOS_CACHE, JSON.stringify(alunos));
+};
+
+const lerAlunosPendentes = () => {
+  try {
+    const alunos = JSON.parse(localStorage.getItem(ALUNOS_PENDENTES_CACHE) || '[]');
+    return Array.isArray(alunos) ? alunos : [];
+  } catch {
+    return [];
+  }
+};
+
+const salvarAlunosPendentes = (alunos) => {
+  localStorage.setItem(ALUNOS_PENDENTES_CACHE, JSON.stringify(alunos));
 };
 
 export function useAlunos() {
@@ -65,6 +79,7 @@ export function useAlunos() {
     setError(null);
 
     const inativosCache = lerAlunosInativos();
+    const alunosPendentes = lerAlunosPendentes();
 
     if (filtro === 'inativos') {
       const termo = buscaAplicada.toLowerCase();
@@ -114,10 +129,16 @@ export function useAlunos() {
         }));
         const idsInativos = new Set(inativosCache.map((aluno) => aluno.id));
         const alunosDoFiltro = alunosNormalizados.filter((aluno) => !idsInativos.has(aluno.id));
-
-        setAlunos(alunosDoFiltro);
+        const termo = buscaAplicada.toLowerCase();
+        const pendentesFiltrados = alunosPendentes.filter((aluno) =>
+          !termo || aluno.nome.toLowerCase().includes(termo)
+        );
+        const idsDaPagina = new Set(alunosDoFiltro.map((aluno) => aluno.id));
+        const alunosLocais = pendentesFiltrados.filter((aluno) => !idsDaPagina.has(aluno.id));
+        const alunoLocal = [...alunosLocais, ...alunosDoFiltro];
+        setAlunos(alunoLocal);
         setPaginacao({
-          totalElements: data?.totalElements ?? data?.data?.totalElements ?? alunosDoFiltro.length,
+          totalElements: (data?.totalElements ?? data?.data?.totalElements ?? alunosDoFiltro.length) + alunosLocais.length,
           totalPages: totalPaginas || 1,
           first: data?.first ?? data?.data?.first ?? pagina === 0,
           last: data?.last ?? data?.data?.last ?? true,
@@ -147,6 +168,17 @@ export function useAlunos() {
       carregarAlunos();
       return { ...alunoCriado, ativo: alunoEstaAtivo(alunoCriado) };
     });
+  };
+
+  const adicionarAlunoNaLista = (aluno) => {
+    if (!aluno?.id) return;
+    const alunoNormalizado = { ...aluno, ativo: alunoEstaAtivo(aluno) };
+    const pendentes = lerAlunosPendentes().filter((item) => item.id !== alunoNormalizado.id);
+    salvarAlunosPendentes([...pendentes, alunoNormalizado]);
+    setAlunos((items) => [
+      alunoNormalizado,
+      ...items.filter((item) => item.id !== alunoNormalizado.id),
+    ]);
   };
 
   const editarAluno = (aluno) => {
@@ -205,5 +237,6 @@ export function useAlunos() {
     editarAluno,
     excluirAluno,
     alternarStatus,
+    adicionarAlunoNaLista,
   };
 }
