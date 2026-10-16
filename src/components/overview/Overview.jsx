@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Swal from 'sweetalert2';
 import Sidebar from '../layout/Sidebar';
 import Button from "../layout/Button";
@@ -14,6 +14,7 @@ import './Overview.css';
 
 const TITULO_MAX = 100;
 const TEXTO_MAX = 5000;
+const comunicadoInicial = { titulo: '', texto: '', imagem: '' };
 
 const mensagemErro = (error, padrao) => error.response?.data?.error || padrao;
 
@@ -31,6 +32,31 @@ const formatarData = (dataIso) => {
   return `${data.toLocaleDateString('pt-BR')} • ${hora}`;
 };
 
+const obterImagem = (comunicado) => {
+  const imagem = comunicado.imagem
+    || comunicado.imagemUrl
+    || comunicado.image
+    || comunicado.urlImagem;
+
+  if (typeof imagem === 'string') return imagem;
+  return imagem?.url || imagem?.src || '';
+};
+
+function ComunicadoPreview({ comunicado }) {
+  return (
+    <div className="comunicado-preview">
+      <span className="comunicado-preview-label">Pré-visualização</span>
+      <article className="comunicado-preview-card">
+        <h2>{comunicado.titulo.trim() || 'Título do comunicado'}</h2>
+        {obterImagem(comunicado) && (
+          <img src={obterImagem(comunicado)} alt="Imagem do comunicado" loading="lazy" />
+        )}
+        <p>{comunicado.texto.trim() || 'O texto do comunicado aparecerá aqui.'}</p>
+      </article>
+    </div>
+  );
+}
+
 export default function Overview() {
   // A tela de comunicados é a TELA_GERAL; quem a vê pode manter os avisos.
   const { podeAcessar, carregando: carregandoPermissoes } = usePermissoes();
@@ -40,9 +66,11 @@ export default function Overview() {
   const itensMenu = useItensMenu('/overview');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
-  const [novoComunicado, setNovoComunicado] = useState({ titulo: '', texto: '' });
+  const [novoComunicado, setNovoComunicado] = useState(comunicadoInicial);
   const [comunicados, setComunicados] = useState([]);
   const [carregando, setCarregando] = useState(true);
+  const imagemAdicionarRef = useRef(null);
+  const imagemEdicaoRef = useRef(null);
 
   useEffect(() => {
     const carregarComunicados = async () => {
@@ -69,7 +97,24 @@ export default function Overview() {
 
   const fecharModalAdicionar = () => {
     setIsAddModalOpen(false);
-    setNovoComunicado({ titulo: '', texto: '' });
+    setNovoComunicado(comunicadoInicial);
+  };
+
+  const selecionarImagem = (arquivo, atualizar) => {
+    if (!arquivo) return;
+    if (!arquivo.type.startsWith('image/')) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Arquivo inválido',
+        text: 'Selecione uma imagem para o comunicado.',
+        confirmButtonColor: '#0f1f3f'
+      });
+      return;
+    }
+
+    const leitor = new FileReader();
+    leitor.onload = () => atualizar((item) => ({ ...item, imagem: leitor.result }));
+    leitor.readAsDataURL(arquivo);
   };
 
   const validarComunicado = async ({ titulo, texto }) => {
@@ -91,7 +136,8 @@ export default function Overview() {
     try {
       const criado = await comunicadosService.criar({
         titulo: novoComunicado.titulo.trim(),
-        texto: novoComunicado.texto.trim()
+        texto: novoComunicado.texto.trim(),
+        imagem: novoComunicado.imagem || null
       });
       setComunicados((items) => [criado, ...items]);
       fecharModalAdicionar();
@@ -125,7 +171,8 @@ export default function Overview() {
     try {
       const atualizado = await comunicadosService.atualizar(selectedAnnouncement.id, {
         titulo: selectedAnnouncement.titulo.trim(),
-        texto: selectedAnnouncement.texto.trim()
+        texto: selectedAnnouncement.texto.trim(),
+        imagem: selectedAnnouncement.imagem || null
       });
       setComunicados((items) =>
         items.map((item) => (item.id === atualizado.id ? atualizado : item))
@@ -218,6 +265,9 @@ export default function Overview() {
                       )}
                     </ButtonContainer>
                   </div>
+                  {obterImagem(item) && (
+                    <img className="announcement-image" src={obterImagem(item)} alt="Imagem do comunicado" loading="lazy" />
+                  )}
                   <p>{item.texto}</p>
                 </article>
               ))}
@@ -231,26 +281,41 @@ export default function Overview() {
           title="Adicionar Comunicado"
           onClose={fecharModalAdicionar}
           onSave={salvarNovoComunicado}
+          className="comunicado-modal"
         >
-          <label>Título:</label>
-          <input
-            type="text"
-            placeholder="Título"
-            maxLength={TITULO_MAX}
-            value={novoComunicado.titulo}
-            onChange={(event) => setNovoComunicado((item) => ({ ...item, titulo: event.target.value }))}
-          />
+          <div className="comunicado-editor-layout">
+            <div className="comunicado-editor">
+              <label htmlFor="novo-comunicado-titulo">Título:</label>
+              <input
+                id="novo-comunicado-titulo"
+                type="text"
+                placeholder="Título"
+                maxLength={TITULO_MAX}
+                value={novoComunicado.titulo}
+                onChange={(event) => setNovoComunicado((item) => ({ ...item, titulo: event.target.value }))}
+              />
 
-          <label>Texto:</label>
-          <input
-            type="text"
-            placeholder="Texto"
-            maxLength={TEXTO_MAX}
-            value={novoComunicado.texto}
-            onChange={(event) => setNovoComunicado((item) => ({ ...item, texto: event.target.value }))}
-          />
+              <label htmlFor="novo-comunicado-texto">Texto:</label>
+              <textarea
+                id="novo-comunicado-texto"
+                placeholder="Escreva o comunicado"
+                maxLength={TEXTO_MAX}
+                value={novoComunicado.texto}
+                onChange={(event) => setNovoComunicado((item) => ({ ...item, texto: event.target.value }))}
+              />
+              <span className="comunicado-contador">{novoComunicado.texto.length}/{TEXTO_MAX}</span>
 
-          <Button>Adicionar imagem</Button>
+              <input
+                ref={imagemAdicionarRef}
+                className="comunicado-image-input"
+                type="file"
+                accept="image/*"
+                onChange={(event) => selecionarImagem(event.target.files[0], setNovoComunicado)}
+              />
+              <Button onClick={() => imagemAdicionarRef.current?.click()}>Adicionar imagem</Button>
+            </div>
+            <ComunicadoPreview comunicado={novoComunicado} />
+          </div>
         </Modal>
       )}
 
@@ -260,32 +325,43 @@ export default function Overview() {
           onClose={fecharModalEdicao}
           onSave={salvarEdicao}
           onDelete={excluirComunicado}
+          className="comunicado-modal"
         >
-          <label>Título:</label>
-          <input
-            type="text"
-            maxLength={TITULO_MAX}
-            value={selectedAnnouncement.titulo}
-            onChange={(event) =>
-              setSelectedAnnouncement((item) => ({
-                ...item,
-                titulo: event.target.value
-              }))
-            }
-          />
+          <div className="comunicado-editor-layout">
+            <div className="comunicado-editor">
+              <label htmlFor="editar-comunicado-titulo">Título:</label>
+              <input
+                id="editar-comunicado-titulo"
+                type="text"
+                maxLength={TITULO_MAX}
+                value={selectedAnnouncement.titulo}
+                onChange={(event) =>
+                  setSelectedAnnouncement((item) => ({ ...item, titulo: event.target.value }))
+                }
+              />
 
-          <label>Texto:</label>
-          <input
-            type="text"
-            maxLength={TEXTO_MAX}
-            value={selectedAnnouncement.texto}
-            onChange={(event) =>
-              setSelectedAnnouncement((item) => ({
-                ...item,
-                texto: event.target.value
-              }))
-            }
-          />
+              <label htmlFor="editar-comunicado-texto">Texto:</label>
+              <textarea
+                id="editar-comunicado-texto"
+                maxLength={TEXTO_MAX}
+                value={selectedAnnouncement.texto}
+                onChange={(event) =>
+                  setSelectedAnnouncement((item) => ({ ...item, texto: event.target.value }))
+                }
+              />
+              <span className="comunicado-contador">{selectedAnnouncement.texto.length}/{TEXTO_MAX}</span>
+
+              <input
+                ref={imagemEdicaoRef}
+                className="comunicado-image-input"
+                type="file"
+                accept="image/*"
+                onChange={(event) => selecionarImagem(event.target.files[0], setSelectedAnnouncement)}
+              />
+              <Button onClick={() => imagemEdicaoRef.current?.click()}>Adicionar imagem</Button>
+            </div>
+            <ComunicadoPreview comunicado={selectedAnnouncement} />
+          </div>
         </Modal>
       )}
 

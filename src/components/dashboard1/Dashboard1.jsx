@@ -1,8 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import axios from '../../utils/axiosConfig';
 import Sidebar from '../layout/Sidebar';
-import Button from '../layout/Button';
-import ButtonContainer from '../layout/ButtonContainer';
 import { useItensMenu } from '../../utils/menuItems';
 import { usePermissoes } from '../../utils/permissions';
 import '../agenda/Agenda.css';
@@ -55,6 +53,8 @@ const defaultPayload = {
   ]
 };
 
+const usarDadosDeExemplo = import.meta.env.DEV;
+
 function getStatusClass(status) {
   const normalized = (status || '').toLowerCase();
   if (normalized.includes('sobre') && !normalized.includes('subu')) return 'status-overload';
@@ -79,7 +79,12 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('/dashboard/professores');
+        const response = await axios.get('/dashboard/professores', {
+          params: {
+            dataInicio: periodo.dataInicio || undefined,
+            dataFim: periodo.dataFim || undefined,
+          }
+        });
         
         // Adaptar os dados da API para o formato esperado
         const adaptedData = {
@@ -87,10 +92,10 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
           totalAulas: response.data.totalAulas,
           totalHorasLivres: response.data.totalHorasLivres,
           professoresSobrecarregados: response.data.professoresSobrecarregados,
-          detalhes: response.data.detalhes.map(detalhe => ({
+          detalhes: (response.data.detalhes || []).map(detalhe => ({
             professorId: detalhe.professorId,
             nome: detalhe.nome,
-            data: new Date().toISOString().split('T')[0], // Data atual por padrão
+            data: detalhe.data || null,
             aulasCount: detalhe.aulasCount,
             horasSemanais: detalhe.horasSemanais,
             horasLivres: detalhe.horasLivres,
@@ -103,8 +108,8 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
       } catch (err) {
         console.error('Erro ao buscar dados do dashboard:', err);
         setError('Erro ao carregar dados do dashboard');
-        // Usar dados padrão em caso de erro
-        setDashboardData(defaultPayload);
+        // Dados de exemplo nunca devem mascarar falhas em produção.
+        setDashboardData(usarDadosDeExemplo ? defaultPayload : null);
       } finally {
         setLoading(false);
       }
@@ -117,12 +122,14 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
       setDashboardData(externalDashboardData);
       setLoading(false);
     }
-  }, [externalDashboardData]);
+  }, [externalDashboardData, periodo.dataInicio, periodo.dataFim]);
 
   const data = useMemo(() => ({
-    ...defaultPayload,
-    ...(dashboardData || {}),
-    detalhes: (dashboardData?.detalhes || defaultPayload.detalhes).map((item, index) => ({
+    totalProfessores: dashboardData?.totalProfessores ?? 0,
+    totalAulas: dashboardData?.totalAulas ?? 0,
+    totalHorasLivres: dashboardData?.totalHorasLivres ?? 0,
+    professoresSobrecarregados: dashboardData?.professoresSobrecarregados ?? 0,
+    detalhes: (dashboardData?.detalhes || []).map((item, index) => ({
       ...item,
       professorId: item.professorId ?? index + 1
     }))
@@ -194,6 +201,11 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
 
       <main className="agenda-content">
         <div className="agenda-panel dashboard1-panel">
+            {error && (
+              <div className="dashboard1-error-banner" role="alert">
+                {error}. {usarDadosDeExemplo && 'Exibindo dados de exemplo apenas neste ambiente de desenvolvimento.'}
+              </div>
+            )}
           <div className="dashboard1-header">
             <div>
               <p className="dashboard1-eyebrow">Painel de carga</p>
@@ -217,9 +229,6 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
                   onChange={event => atualizarPeriodo('dataFim', event.target.value)}
                 />
               </label>
-              <ButtonContainer>
-                <Button active>Exportar relatório</Button>
-              </ButtonContainer>
             </div>
           </div>
 
@@ -250,7 +259,7 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
             <section className="dashboard1-card chart-card">
               <div className="dashboard1-card-header">
                 <h2>Horas semanais por professor</h2>
-                <span>Dados vindos do backend</span>
+                <span>Comparativo de carga horária</span>
               </div>
 
               <div className="bars-chart">
@@ -284,7 +293,7 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
             <section className="dashboard1-card summary-card">
               <div className="dashboard1-card-header">
                 <h2>Resumo por professor</h2>
-                <span>Baseado no payload recebido</span>
+                <span>Carga e disponibilidade atuais</span>
               </div>
 
               <div className="summary-list">

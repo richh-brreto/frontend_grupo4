@@ -2,6 +2,17 @@
   padding: 28px 30px;
 }
 
+.dashboard1-error-banner {
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .dashboard1-header {
   display: flex;
   justify-content: space-between;
@@ -104,6 +115,11 @@
   border: 1px solid #e8ebf4;
   border-radius: 20px;
   padding: 18px;
+  display: flex;
+  flex-direction: column;
+  height: 420px;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .dashboard1-card-header {
@@ -111,6 +127,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 14px;
+  flex-shrink: 0;
 }
 
 .dashboard1-card-header h2 {
@@ -128,6 +145,9 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 8px;
 }
 
 .bar-row {
@@ -161,6 +181,9 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 8px;
 }
 
 .summary-item {
@@ -199,8 +222,8 @@
 }
 
 .dashboard1-page .status-pill.status-available {
-  background: #d1fae5;
-  color: #059669;
+  background: #dbeafe;
+  color: #2563eb;
 }
 
 .dashboard1-page .status-pill.status-balanced {
@@ -241,5 +264,9 @@
 
   .dashboard1-metrics {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard1-card {
+    height: 360px;
   }
 }

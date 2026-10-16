@@ -5,6 +5,8 @@ import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
 import Modal from '../layout/Modal';
 import { aulasService } from './aulasService';
+import AddAgendaEventModal from './AddAgendaEventModal';
+import TimeSelect from './TimeSelect';
 import { useItensMenu } from '../../utils/menuItems';
 import { usePermissoes } from '../../utils/permissions';
 import './Agenda.css';
@@ -12,6 +14,8 @@ import './Agenda.css';
 
 
 const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+const ABREVIACOES_DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const HORA_INICIO_AGENDA = 7;
 const HORA_FIM_AGENDA = 22;
 const HORAS = Array.from(
@@ -19,6 +23,13 @@ const HORAS = Array.from(
   (_, i) => `${String(HORA_INICIO_AGENDA + i).padStart(2, '0')}:00`
 );
 const ALTURA_HORA = 64; // pixels por hora
+
+const normalizarHora15 = (hora) => {
+  if (!hora) return '';
+  const [horas, minutos] = hora.slice(0, 5).split(':').map(Number);
+  const total = Math.round((horas * 60 + minutos) / 15) * 15;
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+};
 
 // YYYY-MM-DD no fuso local (toISOString converte para UTC e pode trocar o dia)
 const formatarDataLocal = (data) => [
@@ -262,8 +273,8 @@ export default function Agenda() {
   const abrirModalRemarcar = () => {
     setRemarcacao({
       novaData: selectedAula.data,
-      novaHoraInicio: selectedAula.horaInicio,
-      novaHoraFim: selectedAula.horaFim,
+      novaHoraInicio: normalizarHora15(selectedAula.horaInicio),
+      novaHoraFim: normalizarHora15(selectedAula.horaFim),
       motivo: ''
     });
     setIsEditModalOpen(false);
@@ -281,6 +292,7 @@ export default function Agenda() {
 
   const salvarNovoEvento = async () => {
     fecharModalAdicionar();
+    recarregarAulas();
     await Swal.fire({
       icon: 'success',
       title: 'Evento adicionado!',
@@ -302,11 +314,15 @@ export default function Agenda() {
       });
       return;
     }
-    if (novaHoraInicio >= novaHoraFim) {
+    const minutosValidos = [novaHoraInicio, novaHoraFim].every((hora) => {
+      const minutos = Number(hora.split(':')[1]);
+      return minutos % 15 === 0;
+    });
+    if (!minutosValidos || novaHoraInicio >= novaHoraFim) {
       await Swal.fire({
         icon: 'warning',
         title: 'Horário inválido',
-        text: 'A hora de início deve ser anterior à hora de fim.',
+        text: 'Escolha horários em intervalos de 15 minutos e mantenha o início antes do fim.',
         confirmButtonColor: '#0f1f3f'
       });
       return;
@@ -477,7 +493,7 @@ export default function Agenda() {
         <div className="agenda-panel">
           <div className="agenda-topbar">
             <div>
-              <h1>Agenda</h1>
+              <h1>Agenda - {MESES[dataAtual.getMonth()]}</h1>
             </div>
             <div className="agenda-tabs">
               <div className="agenda-semana-nav">
@@ -511,7 +527,7 @@ export default function Agenda() {
                 <div className="agenda-horarios-label"></div>
                 {diasSemana.map((dia, idx) => (
                   <div key={idx} className="agenda-dia-label">
-                    <span>{dia.diaSemana}</span>
+                    <span>{ABREVIACOES_DIAS[idx]} - {String(dia.dia).padStart(2, '0')}</span>
                     <Button onClick={() => abrirModalAdicionar(dia)}>+</Button>
                   </div>
                 ))}
@@ -681,23 +697,12 @@ export default function Agenda() {
       </main>
 
       {isAddModalOpen && (
-        <Modal
-          title="Adicionar evento"
+        <AddAgendaEventModal
+          dia={selectedDay}
+          semana={{ inicio: diasSemana[0].data, fim: diasSemana[6].data }}
           onClose={fecharModalAdicionar}
-          onSave={salvarNovoEvento}
-        >
-          <label>Nome</label>
-          <input type="text" placeholder="Nome" />
-
-          <label>Descrição</label>
-          <input type="text" placeholder="Descrição" />
-
-          <label>Adicionar professor</label>
-          <input type="text" placeholder="Adicionar professor" />
-
-          <label>Dia e horário</label>
-          <input type="text" placeholder="Dia e horário" />
-        </Modal>
+          onSaved={salvarNovoEvento}
+        />
       )}
 
       {resumoAula && (
@@ -735,6 +740,8 @@ export default function Agenda() {
         <Modal
           title="Editar evento"
           onClose={fecharModalEditar}
+          hideFooter
+          className="agenda-editar-modal"
         >
           <Button active onClick={cancelarAula}>Cancelar aula</Button>
           <Button active onClick={abrirModalRemarcar}>Remarcar aula</Button>
@@ -757,19 +764,17 @@ export default function Agenda() {
           />
 
           <label htmlFor="nova-hora-inicio">Hora de início</label>
-          <input
+          <TimeSelect
             id="nova-hora-inicio"
-            type="time"
             value={remarcacao.novaHoraInicio}
-            onChange={event => atualizarRemarcacao('novaHoraInicio', event.target.value)}
+            onChange={valor => atualizarRemarcacao('novaHoraInicio', valor)}
           />
 
           <label htmlFor="nova-hora-fim">Hora de fim</label>
-          <input
+          <TimeSelect
             id="nova-hora-fim"
-            type="time"
             value={remarcacao.novaHoraFim}
-            onChange={event => atualizarRemarcacao('novaHoraFim', event.target.value)}
+            onChange={valor => atualizarRemarcacao('novaHoraFim', valor)}
           />
 
           <label htmlFor="motivo-remarcacao">Motivo</label>

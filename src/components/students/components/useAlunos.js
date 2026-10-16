@@ -213,10 +213,6 @@ export function useAlunos() {
           salvarAlunosInativos(inativos.filter((item) => item.id !== aluno.id));
         }
         return carregarAlunos();
-      })
-      .catch((err) => {
-        setError(err.message);
-        throw err;
       });
   };
 

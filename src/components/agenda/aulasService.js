@@ -10,6 +10,15 @@ const encontroDaTurma = (evento) => ({
 });
 
 export const aulasService = {
+  criar(evento) {
+    const { professorIds, ...dados } = evento;
+    const ids = professorIds?.length ? professorIds : [evento.professorId];
+
+    return Promise.all(
+      ids.map((professorId) => axios.post(BASE_URL, { ...dados, professorId }))
+    ).then((respostas) => respostas.map((resposta) => resposta.data));
+  },
+
   listarPorPeriodo(inicio, fim) {
     return axios.get(BASE_URL, { params: { inicio, fim } }).then((res) => res.data);
   },

@@ -5,7 +5,7 @@ import { usePermissoes } from './permissions';
 // catálogo (tabela permissao) ele exige. Para liberar uma tela nova basta
 // cadastrar a permissão no banco e apontar o item para ela.
 export const MENU_ITEMS = [
-  { to: '/overview', label: 'Geral', short: 'Geral', permissao: 'TELA_GERAL' },
+  { to: '/overview', label: 'Comunicados', short: 'Comunicados', permissao: 'TELA_GERAL' },
   { to: '/aulas', label: 'Agenda', short: 'AG', permissao: 'TELA_AGENDA' },
   { to: '/dashboard', label: 'Dashboard', short: 'Dash', permissao: 'TELA_DASHBOARD' },
   { to: '/professores', label: 'Professores', short: 'Prof', permissao: 'TELA_PROFESSORES' },

@@ -106,6 +106,22 @@ export default function Students() {
     }
   };
 
+  const alternarStatusComAviso = async (aluno) => {
+    try {
+      await alternarStatus(aluno);
+    } catch (error) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Não foi possível alterar o status',
+        text: error.response?.data?.message || error.message || 'Tente novamente.',
+        toast: true,
+        position: 'top-end',
+        timer: 4000,
+        showConfirmButton: false,
+      });
+    }
+  };
+
   const verHorariosAluno = async (aluno) => {
     try {
       const resposta = await contratosService.listar();
@@ -165,16 +181,29 @@ export default function Students() {
     }
 
     if (loading && alunos.length === 0) {
-      return <p className="student-list-state">Carregando alunos...</p>;
+      return (
+        <div className="students-loading" aria-label="Carregando alunos">
+          {[1, 2, 3, 4].map((item) => <div key={item} className="student-skeleton" />)}
+        </div>
+      );
     }
 
     if (alunos.length === 0) {
       return (
-        <p className="student-list-state">
+        <div className="student-list-state">
+          <strong>
           {busca.trim()
-            ? `Nenhum aluno ${filtro === 'ativos' ? 'ativo' : 'inativo'} encontrado para "${busca.trim()}".`
+            ? 'Nenhum aluno encontrado.'
             : `Nenhum aluno ${filtro === 'ativos' ? 'ativo' : 'inativo'} cadastrado.`}
-        </p>
+          </strong>
+          <span>
+            {busca.trim()
+              ? `Não encontramos resultados para "${busca.trim()}".`
+              : 'Cadastre um aluno ou consulte a outra lista de status.'}
+          </span>
+          {busca.trim() && <Button onClick={() => setBusca('')}>Limpar busca</Button>}
+          {!busca.trim() && <Button onClick={() => setFiltro(filtro === 'ativos' ? 'inativos' : 'ativos')}>Ver {filtro === 'ativos' ? 'inativos' : 'ativos'}</Button>}
+        </div>
       );
     }
 
@@ -188,7 +217,7 @@ export default function Students() {
             aluno={aluno}
             onEditar={setSelectedStudent}
             onVerHorarios={verHorariosAluno}
-            onAlternarStatus={alternarStatus}
+            onAlternarStatus={alternarStatusComAviso}
           />
         )}
       />

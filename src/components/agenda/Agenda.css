@@ -431,6 +431,18 @@
   width: min(560px, calc(100vw - 32px));
 }
 
+.profile-detail-value {
+  padding: 2px 0 10px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #0f1f3f;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.agenda-editar-modal {
+  width: min(420px, calc(100vw - 32px));
+}
+
 .agenda-resumo {
   display: grid;
   gap: 14px;
