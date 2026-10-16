@@ -56,15 +56,13 @@ export function useProfessores() {
       ? professoresService.inativar(professor.id)
       : professoresService.reativar(professor.id);
 
-    return chamada
-      .then(() => {
-        setProfessores((items) =>
-          items.map((item) =>
-            item.id === professor.id ? { ...item, ativo: !item.ativo } : item
-          )
-        );
-      })
-      .catch((err) => setError(err.message));
+    return chamada.then(() => {
+      setProfessores((items) =>
+        items.map((item) =>
+          item.id === professor.id ? { ...item, ativo: !item.ativo } : item
+        )
+      );
+    });
   };
 
   const professoresFiltrados = professores.filter((professor) =>
@@ -82,5 +80,6 @@ export function useProfessores() {
     editarProfessor,
     excluirProfessor,
     alternarStatus,
+    recarregar: carregarProfessores,
   };
 }

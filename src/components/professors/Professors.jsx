@@ -43,10 +43,8 @@ export default function Professors() {
     editarProfessor,
     excluirProfessor,
     alternarStatus,
+    recarregar,
   } = useProfessores();
-
-  if (loading) return <p>Carregando professores...</p>;
-  if (error) return <p>Erro ao carregar professores: {error}</p>;
 
   const buscaNormalizada = normalizar(busca.trim());
   const professoresFiltrados = buscaNormalizada
@@ -81,6 +79,22 @@ export default function Professors() {
     }
   };
 
+  const alternarStatusComAviso = async (professor) => {
+    try {
+      await alternarStatus(professor);
+    } catch (error) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Não foi possível alterar o status',
+        text: error.response?.data?.message || error.message || 'Tente novamente.',
+        toast: true,
+        position: 'top-end',
+        timer: 4000,
+        showConfirmButton: false,
+      });
+    }
+  };
+
   const excluirProfessorComConfirmacao = async () => {
     const resultado = await Swal.fire({ icon: 'warning', title: 'Excluir professor?', text: `Tem certeza que deseja excluir o professor "${selectedProfessor.nome}"? Essa ação não pode ser desfeita.`, showCancelButton: true, confirmButtonText: 'Sim, excluir', cancelButtonText: 'Cancelar', confirmButtonColor: '#b91c1c', cancelButtonColor: '#64748b' });
     if (!resultado.isConfirmed) return;
@@ -91,6 +105,57 @@ export default function Professors() {
     } catch (error) {
       await Swal.fire({ icon: 'error', title: 'Não foi possível excluir', text: error.message || 'Tente novamente.', confirmButtonColor: '#0f1f3f' });
     }
+  };
+
+  const renderizarLista = () => {
+    if (loading) {
+      return (
+        <div className="professors-loading" aria-label="Carregando professores">
+          {[1, 2, 3, 4].map((item) => <div key={item} className="professor-skeleton" />)}
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="professor-list-state">
+          <strong>Não foi possível carregar os professores.</strong>
+          <span>{error}</span>
+          <Button onClick={recarregar}>Tentar novamente</Button>
+        </div>
+      );
+    }
+
+    if (professoresFiltrados.length === 0) {
+      return (
+        <div className="professor-list-state">
+          <strong>{buscaNormalizada ? 'Nenhum professor encontrado.' : 'Nenhum professor nesta lista.'}</strong>
+          <span>
+            {buscaNormalizada
+              ? `Não encontramos resultados para "${busca.trim()}".`
+              : 'Cadastre um professor ou alterne entre ativos e inativos.'}
+          </span>
+          {buscaNormalizada && <Button onClick={() => setBusca('')}>Limpar busca</Button>}
+          {!buscaNormalizada && <Button onClick={() => setFiltro(filtro === 'ativos' ? 'inativos' : 'ativos')}>Ver {filtro === 'ativos' ? 'inativos' : 'ativos'}</Button>}
+        </div>
+      );
+    }
+
+    return (
+      <Container
+        items={professoresFiltrados}
+        className="professors-grid"
+        getItemKey={(professor) => professor.id}
+        renderItem={(professor) => (
+          <ProfessorCard
+            professor={professor}
+            onEditar={abrirModalEdicao}
+            onVerPerfil={setProfessorProfile}
+            onAlternarStatus={alternarStatusComAviso}
+          />
+        )}
+      />
+    );
   };
 
   return (
@@ -127,19 +192,7 @@ export default function Professors() {
           </div>
 
           <div className="agenda-frame">
-            <Container
-              items={professoresFiltrados}
-              className="professors-grid"
-              getItemKey={(professor) => professor.id}
-              renderItem={(professor) => (
-                <ProfessorCard
-                  professor={professor}
-                  onEditar={abrirModalEdicao}
-                  onVerPerfil={setProfessorProfile}
-                  onAlternarStatus={alternarStatus}
-                />
-              )}
-            />
+            {renderizarLista()}
           </div>
         </div>
       </main>

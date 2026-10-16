@@ -71,14 +71,14 @@ export default function EditStudentModal({ aluno, onClose, onSave, onChange, onD
 
       <label>Email:</label>
       <input
-        type="text"
+        type="email"
         value={aluno.email}
         onChange={(e) => onChange({ ...aluno, email: e.target.value })}
       />
 
       <label>Telefone:</label>
       <input
-        type="text"
+        type="tel"
         value={aluno.telefone}
         onChange={(e) => onChange({ ...aluno, telefone: e.target.value })}
       />

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
@@ -11,9 +11,12 @@ import { alunosService } from '../students/components/alunosService';
 import { professoresDisponiveisService } from './professoresDisponiveisService';
 import { turmasDisponiveisService } from './turmasDisponiveisService';
 import { contratosService } from './contratosService';
+import { turmasService } from '../classes/turmasService';
+import { professoresService } from '../professors/components/professoresService';
 import { useItensMenu } from '../../utils/menuItems';
 import { usePermissoes } from '../../utils/permissions';
 import { ordenarHorarios } from '../../utils/ordenarHorarios';
+import mostrarCodigoAcesso from '../../utils/mostrarCodigoAcesso';
 import '../agenda/Agenda.css';
 import './Contracts.css';
 
@@ -43,17 +46,45 @@ const normalizarNivel = (nivel) =>
 const normalizarDia = (diaSemana) => DIA_SEMANA_MAP[diaSemana] || diaSemana;
 const normalizarHora = (hora) => (hora ? hora.slice(0, 5) : hora);
 const dataHoje = () => new Date().toISOString().split('T')[0];
+const formatarData = (data) => {
+  if (!data) return '—';
+  const [ano, mes, dia] = String(data).slice(0, 10).split('-');
+  return ano && mes && dia ? `${dia}/${mes}/${ano}` : data;
+};
 
-// O ContratoResponse da API não envia "aluno.ativo"; determina a vigência pela data fim.
+// Contratos futuros continuam ativos; inativos são somente os que já terminaram.
 const contratoEhAtivo = (contrato) => {
-  if (typeof contrato?.aluno?.ativo === 'boolean') return contrato.aluno.ativo;
   const hoje = dataHoje();
-  return Boolean(contrato?.dataInicio && contrato?.dataFim) &&
-    hoje >= contrato.dataInicio && hoje <= contrato.dataFim;
+  return Boolean(contrato?.dataFim) && contrato.dataFim >= hoje;
+};
+
+const nomeProfessorContrato = (contrato, turmas, professores) => {
+  const turmaDaLista = turmas.find((item) =>
+    String(item.id) === String(contrato?.turmaId ?? contrato?.turma?.id)
+  );
+  const turma = contrato?.turma || {};
+  const professorId = turma.professorId
+    ?? turma.professor?.id
+    ?? turma.idProfessor
+    ?? turmaDaLista?.professorId
+    ?? turmaDaLista?.professor?.id;
+  const professorDaLista = professores.find((item) => String(item.id) === String(professorId));
+
+  return (
+  contrato?.professor?.nome
+  || turmaDaLista?.nomeProfessor
+  || turma?.nomeProfessor
+  || turma?.professor?.nome
+  || turma?.professorNome
+  || professorDaLista?.nome
+  || contrato?.nomeProfessor
+  || '—'
+  );
 };
 
 export default function Contracts() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   // Itens do menu sao filtrados pelas telas liberadas no cadastro do professor
   const itensMenu = useItensMenu('/contratos');
@@ -89,6 +120,8 @@ export default function Contracts() {
   const [erroDisponibilidade, setErroDisponibilidade] = useState(null);
 
   const [contratos, setContratos] = useState([]);
+  const [turmas, setTurmas] = useState([]);
+  const [professores, setProfessores] = useState([]);
   const [carregandoContratos, setCarregandoContratos] = useState(true);
   const [erroContratos, setErroContratos] = useState(null);
   const [carregandoOperacao, setCarregandoOperacao] = useState(false);
@@ -114,6 +147,20 @@ export default function Contracts() {
   // Carregar contratos da API
   useEffect(() => {
     carregarContratos();
+    Promise.all([turmasService.listar(), professoresService.listar()])
+      .then(([turmasDados, professoresDados]) => {
+        const extrairLista = (dados) => {
+          const lista = Array.isArray(dados)
+            ? dados
+            : dados?.content || dados?.data?.content || dados?.data || [];
+          return Array.isArray(lista) ? lista : [];
+        };
+        setTurmas(extrairLista(turmasDados));
+        setProfessores(extrairLista(professoresDados));
+      })
+      .catch((erro) => {
+        console.error('Erro ao carregar turmas e professores:', erro);
+      });
   }, []);
 
   const carregarContratos = () => {
@@ -250,7 +297,33 @@ export default function Contracts() {
     setIsScheduleModalOpen(true);
   };
 
-  const fecharModalAgendamento = () => {
+  const fecharModalAgendamento = async ({ confirmarCadastro = true } = {}) => {
+    if (confirmarCadastro && alunoFixoNoCadastro) {
+      const resultado = await Swal.fire({
+        icon: 'warning',
+        title: 'Contrato não criado',
+        text: 'Deseja sair sem criar um contrato para este aluno?',
+        showCancelButton: true,
+        confirmButtonText: 'Sim, sair',
+        cancelButtonText: 'Continuar preenchendo',
+        confirmButtonColor: '#0f1f3f',
+        cancelButtonColor: '#64748b',
+      });
+      if (!resultado.isConfirmed) return;
+
+      const alunoSemContrato = alunoFixoNoCadastro;
+      await mostrarCodigoAcesso({
+        nome: alunoSemContrato.nome,
+        codigoAcesso: alunoSemContrato.codigoAcesso,
+        titulo: 'Aluno criado com sucesso!',
+        mensagem: 'O aluno foi cadastrado sem contrato. Repasse este código ao usuário; ele será usado uma única vez.',
+      });
+      navigate('/alunos', {
+        replace: true,
+        state: { alunoCadastro: alunoSemContrato },
+      });
+    }
+
     setIsScheduleModalOpen(false);
     setAlunoFixoNoCadastro(null);
     setSelectedSchedule([]);
@@ -277,6 +350,7 @@ export default function Contracts() {
 
     setCarregandoOperacao(true);
     try {
+      const alunoDoCadastro = alunoFixoNoCadastro;
       // Payload de acordo com o contrato da API
       const novoContrato = {
         dataInicio: dataInicioContrato,
@@ -304,10 +378,19 @@ export default function Contracts() {
       // Recarregar a lista de contratos
       await carregarContratos();
       
-      fecharModalAgendamento();
+      fecharModalAgendamento({ confirmarCadastro: false });
       setAlunoSelecionadoId('');
       setContractType('individual');
-      await Swal.fire({ icon: 'success', title: 'Contrato criado!', text: 'O contrato foi cadastrado com sucesso.', confirmButtonColor: '#0f1f3f' });
+      if (alunoDoCadastro) {
+        await mostrarCodigoAcesso({
+          nome: alunoDoCadastro.nome,
+          codigoAcesso: alunoDoCadastro.codigoAcesso,
+          titulo: 'Aluno e contrato criados!',
+          mensagem: 'O aluno e o contrato foram cadastrados com sucesso. Repasse este código ao usuário; ele será usado uma única vez.',
+        });
+      } else {
+        await Swal.fire({ icon: 'success', title: 'Contrato criado!', text: 'O contrato foi cadastrado com sucesso.', confirmButtonColor: '#0f1f3f' });
+      }
     } catch (erro) {
       console.error('Erro ao criar contrato:', erro.response?.data || erro.message);
       await Swal.fire({ icon: 'error', title: 'Não foi possível cadastrar', text: erro.response?.data?.message || erro.message || 'Tente novamente', confirmButtonColor: '#0f1f3f' });
@@ -513,11 +596,11 @@ export default function Contracts() {
                     </div>
                     <div>
                       <span>Professor</span>
-                      <strong>{contrato.professor?.nome || '—'}</strong>
+                      <strong>{nomeProfessorContrato(contrato, turmas, professores)}</strong>
                     </div>
                     <div>
                       <span>Vigência</span>
-                      <strong>{contrato.dataInicio} a {contrato.dataFim}</strong>
+                      <strong>{formatarData(contrato.dataInicio)} à {formatarData(contrato.dataFim)}</strong>
                     </div>
                   </div>
 
@@ -534,7 +617,7 @@ export default function Contracts() {
 
       {isScheduleModalOpen && (
         <Modal
-          title="Configurar contrato"
+          title="Cadastro do Aluno - configurar contrato"
           onClose={fecharModalAgendamento}
           onSave={salvarNovoContrato}
           saveLabel="Salvar"

@@ -5,6 +5,40 @@
   padding: 6px 2px;
 }
 
+.professors-loading {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  padding: 6px 2px;
+}
+
+.professor-skeleton {
+  min-height: 220px;
+  border-radius: 20px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: professor-skeleton-loading 1.4s infinite;
+}
+
+.professor-list-state {
+  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #64748b;
+  text-align: center;
+}
+
+.professor-list-state strong {
+  color: #0f1f3f;
+}
+
+@keyframes professor-skeleton-loading {
+  to { background-position: -200% 0; }
+}
+
 .professor-card {
   background: linear-gradient(135deg, #f7fbff 0%, #eff5ff 100%);
   border: 1px solid #e5ebf8;
@@ -145,6 +179,9 @@
 
 @media (max-width: 1000px) {
   .professors-grid {
+    grid-template-columns: 1fr;
+  }
+  .professors-loading {
     grid-template-columns: 1fr;
   }
 }

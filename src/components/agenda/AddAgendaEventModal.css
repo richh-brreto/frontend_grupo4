@@ -1,0 +1,64 @@
+.agenda-add-contexto {
+  margin: 0 0 18px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.agenda-professores-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+  margin-top: 8px;
+}
+
+.agenda-professor-dropdown {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.agenda-professor-dropdown select {
+  flex: 1;
+}
+
+.agenda-professor-dropdown button,
+.agenda-professor-item button {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #0f1f3f;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.agenda-professor-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  justify-content: space-between;
+}
+
+.agenda-add-erro {
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.agenda-time-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.agenda-time-select select {
+  width: 82px;
+}
+
+.agenda-time-error {
+  color: #b91c1c;
+  font-weight: 700;
+}

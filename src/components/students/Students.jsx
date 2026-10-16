@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
@@ -12,13 +12,13 @@ import EditStudentModal from './components/EditStudentModal';
 import ScheduleModal from './components/ScheduleModal';
 import Pagination from './components/Pagination';
 import { contratosService } from '../contracts/contratosService';
-import mostrarCodigoAcesso from '../../utils/mostrarCodigoAcesso';
 import { useItensMenu } from '../../utils/menuItems';
 import { usePermissoes } from '../../utils/permissions';
 import '../agenda/Agenda.css';
 import './Students.css';
 
 export default function Students() {
+  const location = useLocation();
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   // Itens do menu sao filtrados pelas telas liberadas no cadastro do professor
@@ -28,6 +28,7 @@ export default function Students() {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [studentSchedule, setStudentSchedule] = useState(null);
   const frameRef = useRef(null);
+  const alunoCadastroProcessadoRef = useRef(null);
 
   const {
     alunos,
@@ -43,10 +44,34 @@ export default function Students() {
     paginacao,
     recarregar,
     adicionarAluno,
+    adicionarAlunoNaLista,
     editarAluno,
     excluirAluno,
     alternarStatus,
   } = useAlunos();
+
+  useEffect(() => {
+    const alunoCadastro = location.state?.alunoCadastro;
+    if (!alunoCadastro || alunoCadastroProcessadoRef.current === alunoCadastro.id) return;
+    alunoCadastroProcessadoRef.current = alunoCadastro.id;
+    adicionarAlunoNaLista(alunoCadastro);
+  }, [location.state, adicionarAlunoNaLista]);
+
+  useEffect(() => {
+    contratosService.listar()
+      .then((dados) => {
+        const contratos = Array.isArray(dados)
+          ? dados
+          : dados?.content || dados?.data?.content || [];
+        contratos
+          .map((contrato) => contrato.aluno)
+          .filter((aluno) => aluno?.id)
+          .forEach(adicionarAlunoNaLista);
+      })
+      .catch((error) => {
+        console.error('Erro ao localizar alunos vinculados a contratos:', error);
+      });
+  }, []);
 
   // Ao trocar de página, a lista nova começa do topo
   useEffect(() => {
@@ -56,10 +81,6 @@ export default function Students() {
   const salvarNovoAluno = async (novoAluno) => {
     try {
       const alunoCriado = await adicionarAluno(novoAluno);
-      await mostrarCodigoAcesso({
-        nome: alunoCriado.nome,
-        codigoAcesso: alunoCriado.codigoAcesso,
-      });
       setIsAddModalOpen(false);
       navigate('/contratos', {
         replace: true,
@@ -82,6 +103,22 @@ export default function Students() {
       await Swal.fire({ icon: 'success', title: 'Aluno atualizado!', text: 'As alterações foram salvas com sucesso.', confirmButtonColor: '#0f1f3f' });
     } catch (error) {
       await Swal.fire({ icon: 'error', title: 'Não foi possível salvar', text: error.message || 'Tente novamente.', confirmButtonColor: '#0f1f3f' });
+    }
+  };
+
+  const alternarStatusComAviso = async (aluno) => {
+    try {
+      await alternarStatus(aluno);
+    } catch (error) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Não foi possível alterar o status',
+        text: error.response?.data?.message || error.message || 'Tente novamente.',
+        toast: true,
+        position: 'top-end',
+        timer: 4000,
+        showConfirmButton: false,
+      });
     }
   };
 
@@ -144,16 +181,29 @@ export default function Students() {
     }
 
     if (loading && alunos.length === 0) {
-      return <p className="student-list-state">Carregando alunos...</p>;
+      return (
+        <div className="students-loading" aria-label="Carregando alunos">
+          {[1, 2, 3, 4].map((item) => <div key={item} className="student-skeleton" />)}
+        </div>
+      );
     }
 
     if (alunos.length === 0) {
       return (
-        <p className="student-list-state">
+        <div className="student-list-state">
+          <strong>
           {busca.trim()
-            ? `Nenhum aluno ${filtro === 'ativos' ? 'ativo' : 'inativo'} encontrado para "${busca.trim()}".`
+            ? 'Nenhum aluno encontrado.'
             : `Nenhum aluno ${filtro === 'ativos' ? 'ativo' : 'inativo'} cadastrado.`}
-        </p>
+          </strong>
+          <span>
+            {busca.trim()
+              ? `Não encontramos resultados para "${busca.trim()}".`
+              : 'Cadastre um aluno ou consulte a outra lista de status.'}
+          </span>
+          {busca.trim() && <Button onClick={() => setBusca('')}>Limpar busca</Button>}
+          {!busca.trim() && <Button onClick={() => setFiltro(filtro === 'ativos' ? 'inativos' : 'ativos')}>Ver {filtro === 'ativos' ? 'inativos' : 'ativos'}</Button>}
+        </div>
       );
     }
 
@@ -167,7 +217,7 @@ export default function Students() {
             aluno={aluno}
             onEditar={setSelectedStudent}
             onVerHorarios={verHorariosAluno}
-            onAlternarStatus={alternarStatus}
+            onAlternarStatus={alternarStatusComAviso}
           />
         )}
       />

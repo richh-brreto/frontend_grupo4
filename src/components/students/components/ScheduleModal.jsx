@@ -10,19 +10,17 @@ export default function ScheduleModal({ aluno, onClose }) {
   const horarios = aluno.horarios ?? [];
 
   return (
-    <Modal title="Informações do Aluno" onClose={onClose} showSave={false}>
+    <Modal title="Informações do Aluno" onClose={onClose} hideFooter>
       <label>Aluno:</label>
-      <input type="text" value={aluno.nome} readOnly />
+      <div className="profile-detail-value">{aluno.nome}</div>
 
       <label>Nível:</label>
-      <input type="text" value={aluno.nivel ?? '-'} readOnly />
+      <div className="profile-detail-value">{aluno.nivel ?? '-'}</div>
 
       <label>Status de acesso:</label>
-      <input
-        type="text"
-        value={aluno.senhaDefinida ? 'Senha configurada' : 'Primeiro acesso pendente'}
-        readOnly
-      />
+      <div className="profile-detail-value">
+        {aluno.senhaDefinida ? 'Senha configurada' : 'Primeiro acesso pendente'}
+      </div>
       <CodigoAcessoBox codigoAcesso={aluno.codigoAcesso} senhaDefinida={aluno.senhaDefinida} />
 
       <label>Total de horários: {horarios.length}</label>
