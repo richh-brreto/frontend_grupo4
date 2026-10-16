@@ -145,9 +145,9 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-height: 0;
+  max-height: min(420px, 55vh);
   overflow-y: auto;
-  padding-right: 8px;
+  padding-right: 6px;
 }
 
 .bar-row {
@@ -181,9 +181,25 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  min-height: 0;
+  max-height: min(420px, 55vh);
   overflow-y: auto;
-  padding-right: 8px;
+  padding-right: 6px;
+}
+
+.bars-chart::-webkit-scrollbar,
+.summary-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.bars-chart::-webkit-scrollbar-track,
+.summary-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bars-chart::-webkit-scrollbar-thumb,
+.summary-list::-webkit-scrollbar-thumb {
+  background: #cfd8e6;
+  border-radius: 999px;
 }
 
 .summary-item {

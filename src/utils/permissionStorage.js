@@ -33,6 +33,9 @@ export function registrarSessao() {
 export function encerrarSessao() {
   localStorage.removeItem(CHAVE_SESSAO);
   localStorage.removeItem(CHAVE_PERMISSOES);
+  // O token legado não é usado (auth por cookie), mas limpamos para o app
+  // não se achar logado por causa de um authToken antigo no localStorage.
+  localStorage.removeItem('authToken');
 }
 
 export function temSessao() {
