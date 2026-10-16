@@ -12,10 +12,10 @@ import Students from "./components/students/Students";
 import Classes from "./components/classes/Classes.jsx";
 import Professors from "./components/professors/Professors";
 import Overview from "./components/overview/Overview";
+import ChatProvider from "./components/chat/ChatProvider";
+import ChatWidget from "./components/chat/ChatWidget";
 import { primeiraRotaLiberada } from "./utils/menuItems";
 import { usePermissoes, temSessao } from "./utils/permissions";
-
-const savedToken = localStorage.getItem("authToken");
 
 // Bloqueia a rota quando o professor não tem a permissão da tela.
 // O menu some o item, mas sem isto daria para abrir a URL na mão.
@@ -37,10 +37,11 @@ function RotaProtegida({ permissao, children }) {
 }
 
 function App() {
-    const [isLoggedIn, setIsLoggedIn] = useState(temSessao() || !!savedToken);
+    const [isLoggedIn, setIsLoggedIn] = useState(temSessao());
 
     return (
         <Router>
+            <ChatProvider>
             <Routes>
                 {/* Rotas públicas */}
                 <Route path="/" element={<Home />} />
@@ -124,6 +125,8 @@ function App() {
                     element={<Navigate to={isLoggedIn ? "/" : "/login"} replace />}
                 />
             </Routes>
+            {isLoggedIn && <ChatWidget />}
+            </ChatProvider>
         </Router>
     );
 }

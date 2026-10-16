@@ -5,6 +5,7 @@ import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
 import { useItensMenu } from '../../utils/menuItems';
 import { usePermissoes } from '../../utils/permissions';
+import { useChat } from '../chat/chatContext';
 import '../agenda/Agenda.css';
 import './Dashboard1.css';
 
@@ -69,6 +70,7 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
   // Itens do menu sao filtrados pelas telas liberadas no cadastro do professor
   const itensMenu = useItensMenu('/dashboard');
   const { carregando: carregandoPermissoes } = usePermissoes();
+  const { abrirRelatorio } = useChat();
   const [periodo, setPeriodo] = useState({ dataInicio: '', dataFim: '' });
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -90,7 +92,6 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
           detalhes: response.data.detalhes.map(detalhe => ({
             professorId: detalhe.professorId,
             nome: detalhe.nome,
-            data: new Date().toISOString().split('T')[0], // Data atual por padrão
             aulasCount: detalhe.aulasCount,
             horasSemanais: detalhe.horasSemanais,
             horasLivres: detalhe.horasLivres,
@@ -128,20 +129,18 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
     }))
   }), [dashboardData]);
 
-  const detalhesFiltrados = data.detalhes.filter(item => (
-    (!periodo.dataInicio || !item.data || item.data >= periodo.dataInicio)
-    && (!periodo.dataFim || !item.data || item.data <= periodo.dataFim)
-  ));
-
-  const dadosDoPeriodo = {
-    detalhes: detalhesFiltrados,
-    totalProfessores: new Set(detalhesFiltrados.map(item => item.professorId)).size,
-    totalAulas: detalhesFiltrados.reduce((total, item) => total + Number(item.aulasCount || 0), 0),
-    totalHorasLivres: detalhesFiltrados.reduce((total, item) => total + Number(item.horasLivres || 0), 0),
-    professoresSobrecarregados: detalhesFiltrados.filter(item => getStatusClass(item.status) === 'status-overload').length
+  // A dashboard é um snapshot semanal (grade contratada x disponibilidade),
+  // então não filtramos por período aqui. As datas acima servem só para o
+  // "Exportar relatório".
+  const resumo = {
+    detalhes: data.detalhes,
+    totalProfessores: new Set(data.detalhes.map(item => item.professorId)).size,
+    totalAulas: data.detalhes.reduce((total, item) => total + Number(item.aulasCount || 0), 0),
+    totalHorasLivres: data.detalhes.reduce((total, item) => total + Number(item.horasLivres || 0), 0),
+    professoresSobrecarregados: data.detalhes.filter(item => getStatusClass(item.status) === 'status-overload').length
   };
 
-  const maxHours = Math.max(...dadosDoPeriodo.detalhes.map(item => Number(item.horasSemanais || 0)), 40);
+  const maxHours = Math.max(...data.detalhes.map(item => Number(item.horasSemanais || 0)), 40);
 
   const atualizarPeriodo = (campo, valor) => {
     setPeriodo(periodoAtual => ({ ...periodoAtual, [campo]: valor }));
@@ -218,7 +217,7 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
                 />
               </label>
               <ButtonContainer>
-                <Button active>Exportar relatório</Button>
+                <Button active onClick={() => abrirRelatorio(periodo)}>Exportar relatório</Button>
               </ButtonContainer>
             </div>
           </div>
@@ -226,22 +225,22 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
           <div className="dashboard1-metrics">
             <article className="metric-card-large">
               <span>Total de professores</span>
-              <strong>{dadosDoPeriodo.totalProfessores}</strong>
+              <strong>{resumo.totalProfessores}</strong>
               <small>Ativos no sistema</small>
             </article>
             <article className="metric-card-large">
               <span>Total de aulas</span>
-              <strong>{dadosDoPeriodo.totalAulas}</strong>
-              <small>Programadas no período</small>
+              <strong>{resumo.totalAulas}</strong>
+              <small>Aulas por semana (grade)</small>
             </article>
             <article className="metric-card-large">
               <span>Horas livres</span>
-              <strong>{dadosDoPeriodo.totalHorasLivres.toFixed(1)}h</strong>
-              <small>Disponibilidade no período</small>
+              <strong>{resumo.totalHorasLivres.toFixed(1)}h</strong>
+              <small>Disponibilidade semanal</small>
             </article>
             <article className="metric-card-large accent">
               <span>Professores sobrecarregados</span>
-              <strong>{dadosDoPeriodo.professoresSobrecarregados}</strong>
+              <strong>{resumo.professoresSobrecarregados}</strong>
               <small>Necessitam revisão</small>
             </article>
           </div>
@@ -250,11 +249,11 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
             <section className="dashboard1-card chart-card">
               <div className="dashboard1-card-header">
                 <h2>Horas semanais por professor</h2>
-                <span>Dados vindos do backend</span>
+                <span>Grade contratada x disponibilidade</span>
               </div>
 
               <div className="bars-chart">
-                {dadosDoPeriodo.detalhes.map(item => {
+                {resumo.detalhes.map(item => {
                   const horasSemanais = Number(item.horasSemanais || 0);
                   const horasLivres = Number(item.horasLivres || 0);
                   const horasAlocadas = horasSemanais - horasLivres; // Horas já usadas com aulas
@@ -270,7 +269,7 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
                     <div key={item.professorId} className="bar-row">
                       <div className="bar-labels">
                         <strong>{item.nome}</strong>
-                        <span>{item.horasSemanais}h / {item.horasLivres}h livres</span>
+                        <span>{horasAlocadas}h de {horasSemanais}h ocupadas</span>
                       </div>
                       <div className="bar-track" style={{ width: `${trackWidth}%` }}>
                         {fillWidth > 0 && <div className="bar-fill" style={{ width: `${fillWidth}%` }} />}
@@ -284,15 +283,15 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
             <section className="dashboard1-card summary-card">
               <div className="dashboard1-card-header">
                 <h2>Resumo por professor</h2>
-                <span>Baseado no payload recebido</span>
+                <span>Carga semanal por professor</span>
               </div>
 
               <div className="summary-list">
-                {dadosDoPeriodo.detalhes.map(item => (
+                {resumo.detalhes.map(item => (
                   <div key={item.professorId} className="summary-item">
                     <div>
                       <strong>{item.nome}</strong>
-                      <p>{item.aulasCount} aulas • {item.horasSemanais}h semanais</p>
+                      <p>{item.aulasCount} aulas/semana • {item.horasLivres}h livres</p>
                     </div>
                     <span className={`status-pill ${getStatusClass(item.status)}`}>{item.status}</span>
                   </div>
