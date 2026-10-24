@@ -3,7 +3,6 @@ import { alunosService } from './alunosService';
 
 const TAMANHO_PAGINA = 10;
 const ATRASO_BUSCA_MS = 400;
-const ALUNOS_INATIVOS_CACHE = 'alunos-inativos-cache';
 
 const alunoEstaAtivo = (aluno) => {
   if (typeof aluno.ativo !== 'undefined') {
@@ -22,19 +21,6 @@ const alunoEstaAtivo = (aluno) => {
 
 const PAGINA_VAZIA = { totalElements: 0, totalPages: 0, first: true, last: true };
 
-const lerAlunosInativos = () => {
-  try {
-    const alunos = JSON.parse(localStorage.getItem(ALUNOS_INATIVOS_CACHE) || '[]');
-    return Array.isArray(alunos) ? alunos : [];
-  } catch {
-    return [];
-  }
-};
-
-const salvarAlunosInativos = (alunos) => {
-  localStorage.setItem(ALUNOS_INATIVOS_CACHE, JSON.stringify(alunos));
-};
-
 export function useAlunos() {
   const [alunos, setAlunos] = useState([]);
   const [paginacao, setPaginacao] = useState(PAGINA_VAZIA);
@@ -46,6 +32,7 @@ export function useAlunos() {
   const [buscaAplicada, setBuscaAplicada] = useState('');
   // Descarta respostas antigas quando o usuário digita/troca de página mais rápido que a API responde
   const ultimaRequisicao = useRef(0);
+  const recarregarRef = useRef(null);
 
   // Só consulta a API quando o usuário para de digitar; uma busca nova sempre começa na primeira página
   useEffect(() => {
@@ -64,31 +51,11 @@ export function useAlunos() {
     setLoading(true);
     setError(null);
 
-    const inativosCache = lerAlunosInativos();
-
-    if (filtro === 'inativos') {
-      const termo = buscaAplicada.toLowerCase();
-      const inativos = inativosCache.filter((aluno) =>
-        !termo || aluno.nome.toLowerCase().includes(termo)
-      );
-      const inicio = pagina * TAMANHO_PAGINA;
-      const conteudo = inativos.slice(inicio, inicio + TAMANHO_PAGINA);
-
-      setAlunos(conteudo);
-      setPaginacao({
-        totalElements: inativos.length,
-        totalPages: Math.max(1, Math.ceil(inativos.length / TAMANHO_PAGINA)),
-        first: pagina === 0,
-        last: inicio + TAMANHO_PAGINA >= inativos.length,
-      });
-      setLoading(false);
-      return Promise.resolve();
-    }
-
     return alunosService.listar({
       page: pagina,
       size: TAMANHO_PAGINA,
       nome: buscaAplicada,
+      ativo: filtro === 'ativos',
     })
       .then((data) => {
         if (requisicao !== ultimaRequisicao.current) return;
@@ -103,8 +70,8 @@ export function useAlunos() {
               : [];
         const totalPaginas = data?.totalPages ?? data?.data?.totalPages ?? 0;
 
-        if (conteudo.length === 0 && pagina > 0 && totalPaginas > 0) {
-          setPagina(totalPaginas - 1);
+        if (conteudo.length === 0 && pagina > 0) {
+          setPagina(Math.max(0, totalPaginas - 1));
           return;
         }
 
@@ -112,12 +79,9 @@ export function useAlunos() {
           ...aluno,
           ativo: alunoEstaAtivo(aluno),
         }));
-        const idsInativos = new Set(inativosCache.map((aluno) => aluno.id));
-        const alunosDoFiltro = alunosNormalizados.filter((aluno) => !idsInativos.has(aluno.id));
-
-        setAlunos(alunosDoFiltro);
+        setAlunos(alunosNormalizados);
         setPaginacao({
-          totalElements: data?.totalElements ?? data?.data?.totalElements ?? alunosDoFiltro.length,
+          totalElements: data?.totalElements ?? data?.data?.totalElements ?? alunosNormalizados.length,
           totalPages: totalPaginas || 1,
           first: data?.first ?? data?.data?.first ?? pagina === 0,
           last: data?.last ?? data?.data?.last ?? true,
@@ -132,6 +96,7 @@ export function useAlunos() {
   }, [pagina, buscaAplicada, filtro]);
 
   useEffect(() => {
+    recarregarRef.current = carregarAlunos;
     carregarAlunos();
   }, [carregarAlunos]);
 
@@ -156,10 +121,7 @@ export function useAlunos() {
   };
 
   const excluirAluno = (id) => {
-    return alunosService.excluir(id).then(() => {
-      salvarAlunosInativos(lerAlunosInativos().filter((aluno) => aluno.id !== id));
-      return carregarAlunos();
-    });
+    return alunosService.excluir(id).then(() => carregarAlunos());
   };
 
   // Alterna o status do aluno chamando o endpoint certo conforme o estado atual.
@@ -169,23 +131,7 @@ export function useAlunos() {
       ? alunosService.inativar(aluno.id)
       : alunosService.reativar(aluno.id);
 
-    return chamada
-      .then(() => {
-        const inativos = lerAlunosInativos();
-        if (alunoEstaAtivo(aluno)) {
-          salvarAlunosInativos([
-            ...inativos.filter((item) => item.id !== aluno.id),
-            { ...aluno, ativo: false },
-          ]);
-        } else {
-          salvarAlunosInativos(inativos.filter((item) => item.id !== aluno.id));
-        }
-        return carregarAlunos();
-      })
-      .catch((err) => {
-        setError(err.message);
-        throw err;
-      });
+    return chamada.then(() => recarregarRef.current());
   };
 
   return {

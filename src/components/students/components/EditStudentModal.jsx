@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import Swal from 'sweetalert2';
 import Modal from '../../layout/Modal';
 
@@ -15,26 +15,18 @@ const NIVEIS = [
 export default function EditStudentModal({ aluno, onClose, onSave, onChange, onDelete }) {
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
-  const alunoInicialRef = useRef(null);
-
-  // Store initial values only once when aluno changes (modal opens)
-  useEffect(() => {
-    if (aluno) {
-      alunoInicialRef.current = {
-        nome: aluno.nome ?? '',
-        email: aluno.email ?? '',
-        telefone: aluno.telefone ?? '',
-        nivel: aluno.nivel ?? NIVEIS[0],
-      };
-    }
-  }, [aluno]);
+  const alunoInicialRef = useRef({
+    nome: aluno.nome ?? '',
+    email: aluno.email ?? '',
+    telefone: aluno.telefone ?? '',
+    nivel: aluno.nivel ?? NIVEIS[0],
+  });
 
   const temAlteracoes = () => {
-    if (!alunoInicialRef.current) return false;
     return (
-      aluno.nome?.trim() !== alunoInicialRef.current.nome.trim() ||
-      aluno.email?.trim() !== alunoInicialRef.current.email.trim() ||
-      aluno.telefone?.trim() !== alunoInicialRef.current.telefone.trim() ||
+      (aluno.nome ?? '') !== alunoInicialRef.current.nome ||
+      (aluno.email ?? '') !== alunoInicialRef.current.email ||
+      (aluno.telefone ?? '') !== alunoInicialRef.current.telefone ||
       (aluno.nivel ?? NIVEIS[0]) !== alunoInicialRef.current.nivel
     );
   };

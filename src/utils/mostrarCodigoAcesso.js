@@ -10,13 +10,13 @@ const escaparSeguro = (valor) =>
     "'": '&#39;',
   })[caractere]);
 
-export default function mostrarCodigoAcesso({ nome, codigoAcesso }) {
+export default function mostrarCodigoAcesso({ nome, codigoAcesso, titulo = `${nome} cadastrado(a)!` }) {
   const inputId = 'codigo-acesso-copy-input';
   const valorSeguro = escaparSeguro(codigoAcesso);
 
   return Swal.fire({
     icon: 'success',
-    title: `${nome} cadastrado(a)!`,
+    title: titulo,
     html: `
       <p style="text-align:left; color:#475569; font-size:14px; margin:0 0 12px;">
         Repasse este código ao usuário. Ele será usado uma única vez.

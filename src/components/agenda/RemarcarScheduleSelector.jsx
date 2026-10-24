@@ -20,11 +20,10 @@ const LABEL_DIA_CURTO = {
 
 const formatarHora = (hora) => (hora ? hora.slice(0, 5) : '');
 
-export default function RemarcarScheduleSelector({ aulaAtual, onSelect, onClose }) {
+export default function RemarcarScheduleSelector({ aulaAtual, horarioSelecionado, onSelect }) {
   const [horarios, setHorarios] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erroCarregamento, setErroCarregamento] = useState(null);
-  const [horarioSelecionado, setHorarioSelecionado] = useState(null);
 
   useEffect(() => {
     horariosService.listar()
@@ -56,7 +55,6 @@ export default function RemarcarScheduleSelector({ aulaAtual, onSelect, onClose 
   }, [horarios]);
 
   const handleSlotClick = (horario) => {
-    setHorarioSelecionado(horario);
     onSelect(horario);
   };
 
@@ -73,6 +71,7 @@ export default function RemarcarScheduleSelector({ aulaAtual, onSelect, onClose 
     <>
       <p className="schedule-instrucao">
         Clique em um horário disponível para selecionar. Apenas um horário pode ser selecionado.
+        {' '}A nova data acompanha o dia escolhido na semana da aula original.
       </p>
 
       <div className="schedule-scroll">

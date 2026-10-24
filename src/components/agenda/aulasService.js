@@ -1,4 +1,5 @@
 import axios from '../../utils/axiosConfig';
+import { turmasService } from '../classes/turmasService';
 
 const BASE_URL = '/aulas';
 
@@ -10,8 +11,23 @@ const encontroDaTurma = (evento) => ({
 });
 
 export const aulasService = {
-  listarPorPeriodo(inicio, fim) {
-    return axios.get(BASE_URL, { params: { inicio, fim } }).then((res) => res.data);
+  async listarPorPeriodo(inicio, fim) {
+    const { data: aulas } = await axios.get(BASE_URL, { params: { inicio, fim } });
+    const faltaProfessorDaTurma = (aula) => aula.turmaId && !aula.professor?.trim();
+    if (!aulas.some(faltaProfessorDaTurma)) return aulas;
+
+    const resposta = await turmasService.listar();
+    const turmas = Array.isArray(resposta) ? resposta : resposta.content;
+    if (!Array.isArray(turmas)) {
+      throw new Error('Não foi possível consultar os professores das turmas.');
+    }
+    const turmasPorId = new Map(turmas.map((turma) => [String(turma.id), turma]));
+
+    return aulas.map((aula) => {
+      if (!faltaProfessorDaTurma(aula)) return aula;
+      const professor = turmasPorId.get(String(aula.turmaId))?.nomeProfessor;
+      return { ...aula, professor: professor?.trim() || null };
+    });
   },
 
   criar(evento) {

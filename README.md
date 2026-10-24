@@ -1,5 +1,32 @@
 # React + Vite
 
+## Cadastro de aluno e contrato
+
+Ao salvar um novo aluno, a configuração do contrato abre sem alerta de conclusão.
+O alerta final exibe o código de acesso após criar o contrato ou confirmar a saída
+sem contrato (Cancelar, X ou clique fora do modal).
+
+Durante o envio do contrato, o formulário fecha e novos envios ficam bloqueados.
+Se a API retornar um erro, o formulário reabre com os dados preenchidos para tentar
+novamente. Ao concluir, o estado de navegação do cadastro é limpo para não reabrir
+o fluxo ao atualizar a página.
+
+Na edição de alunos, alterações não salvas pedem confirmação ao cancelar, clicar
+no X ou fora do modal. Continuar a edição mantém os dados preenchidos; confirmar
+a saída descarta as alterações.
+
+## Status dos alunos
+
+As abas Ativos e Inativos consultam `GET /alunos` com `ativo=true` ou
+`ativo=false`, incluindo busca por nome e paginação. O cache local antigo de
+inativos não é usado para listar ou ocultar alunos.
+
+Inativar usa `DELETE /alunos/{id}` (soft delete definido pelo backend); reativar
+usa `PATCH /alunos/{id}/reativar`. Cliques repetidos ficam bloqueados durante
+a alteração, erros são exibidos e a lista é consultada novamente após o sucesso.
+O comportamento do backend foi mantido: inativar também remove os contratos e
+limpa os horários; reativar não restaura esses vínculos.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

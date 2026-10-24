@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import Swal from 'sweetalert2';
 import Button from '../../layout/Button';
 import ButtonContainer from '../../layout/ButtonContainer';
 import { copiarTexto } from '../../../utils/clipboard';
 
 export default function StudentCard({ aluno, onEditar, onVerHorarios, onAlternarStatus }) {
   const [copiado, setCopiado] = useState(false);
+  const [alterandoStatus, setAlterandoStatus] = useState(false);
+  const alterandoStatusRef = useRef(false);
   const senhaPendente = !aluno.senhaDefinida;
   const iniciais = aluno.nome
     .split(' ')
@@ -18,6 +21,25 @@ export default function StudentCard({ aluno, onEditar, onVerHorarios, onAlternar
     if (ok) {
       setCopiado(true);
       setTimeout(() => setCopiado(false), 2000);
+    }
+  };
+
+  const alternarStatus = async () => {
+    if (alterandoStatusRef.current) return;
+    alterandoStatusRef.current = true;
+    setAlterandoStatus(true);
+    try {
+      await onAlternarStatus(aluno);
+    } catch (error) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Não foi possível alterar o status',
+        text: error.response?.data?.message || error.response?.data?.error || error.message || 'Tente novamente.',
+        confirmButtonColor: '#0f1f3f',
+      });
+    } finally {
+      alterandoStatusRef.current = false;
+      setAlterandoStatus(false);
     }
   };
 
@@ -58,8 +80,8 @@ export default function StudentCard({ aluno, onEditar, onVerHorarios, onAlternar
         {senhaPendente && aluno.codigoAcesso && (
           <Button onClick={copiarCodigo}>{copiado ? 'Código copiado!' : 'Copiar código de acesso'}</Button>
         )}
-        <Button onClick={() => onAlternarStatus(aluno)}>
-          {aluno.ativo ? 'Inativar' : 'Reativar'}
+        <Button onClick={alternarStatus} disabled={alterandoStatus}>
+          {alterandoStatus ? 'Alterando...' : aluno.ativo ? 'Inativar' : 'Reativar'}
         </Button>
       </ButtonContainer>
     </article>

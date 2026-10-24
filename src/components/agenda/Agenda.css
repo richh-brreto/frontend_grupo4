@@ -332,7 +332,7 @@
   flex-direction: column;
   gap: 6px;
   cursor: pointer;
-  margin: 2px 4px 6px;
+  margin: 0;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -351,10 +351,6 @@
   line-height: 1.2;
 }
 
-.slot-multiplo {
-  position: relative;
-}
-
 .slot-expand-icon {
   position: absolute;
   top: 6px;
@@ -363,10 +359,6 @@
   color: rgba(255, 255, 255, 0.8);
   cursor: pointer;
   transition: transform 0.15s ease;
-}
-
-.slot-container {
-  position: relative;
 }
 
 .slot-expandido {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
@@ -14,6 +14,7 @@ import { contratosService } from './contratosService';
 import { useItensMenu } from '../../utils/menuItems';
 import { usePermissoes } from '../../utils/permissions';
 import { ordenarHorarios } from '../../utils/ordenarHorarios';
+import mostrarCodigoAcesso from '../../utils/mostrarCodigoAcesso';
 import '../agenda/Agenda.css';
 import './Contracts.css';
 
@@ -54,6 +55,7 @@ const contratoEhAtivo = (contrato) => {
 
 export default function Contracts() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   // Itens do menu sao filtrados pelas telas liberadas no cadastro do professor
   const itensMenu = useItensMenu('/contratos');
@@ -96,6 +98,8 @@ export default function Contracts() {
   // Refs para detectar alterações não salvas nos modais
   const scheduleInicialRef = useRef([]);
   const contractFormInicialRef = useRef(null);
+  const salvandoNovoContratoRef = useRef(false);
+  const confirmandoSaidaRef = useRef(false);
 
   // Carregar alunos
   useEffect(() => {
@@ -249,6 +253,7 @@ export default function Contracts() {
   }, [alunoSelecionado?.nivel, contractType, professoresDisponiveis, turmasDisponiveis]);
 
   const abrirModalAdicionar = () => {
+    if (salvandoNovoContratoRef.current) return;
     setAlunoFixoNoCadastro(null);
     setAlunoSelecionadoId('');
     setIsScheduleModalOpen(true);
@@ -264,20 +269,7 @@ export default function Contracts() {
     );
   };
 
-  const fecharModalAgendamento = async () => {
-    if (temAlteracoesNovoContrato()) {
-      const resultado = await Swal.fire({
-        icon: 'warning',
-        title: 'Alterações não salvas',
-        text: 'Você tem alterações não salvas. Deseja realmente sair sem salvar?',
-        showCancelButton: true,
-        confirmButtonText: 'Sim, sair sem salvar',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#b91c1c',
-        cancelButtonColor: '#64748b'
-      });
-      if (!resultado.isConfirmed) return;
-    }
+  const concluirCadastroContrato = () => {
     setIsScheduleModalOpen(false);
     setAlunoFixoNoCadastro(null);
     setSelectedSchedule([]);
@@ -286,9 +278,42 @@ export default function Contracts() {
     setDataFimContrato(dataHoje());
     setAlunoSelecionadoId('');
     setContractType('individual');
+    if (location.state?.openContractSetup) {
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  };
+
+  const fecharModalAgendamento = async () => {
+    if (salvandoNovoContratoRef.current || confirmandoSaidaRef.current) return;
+    confirmandoSaidaRef.current = true;
+    try {
+      if (alunoFixoNoCadastro || temAlteracoesNovoContrato()) {
+        const resultado = await Swal.fire({
+          icon: 'warning',
+          title: alunoFixoNoCadastro ? 'Sair sem criar o contrato?' : 'Alterações não salvas',
+          text: alunoFixoNoCadastro
+            ? 'O aluno já foi criado. Deseja concluir o cadastro sem criar um contrato?'
+            : 'Você tem alterações não salvas. Deseja realmente sair sem salvar?',
+          showCancelButton: true,
+          confirmButtonText: alunoFixoNoCadastro ? 'Sim, concluir sem contrato' : 'Sim, sair sem salvar',
+          cancelButtonText: 'Continuar cadastro',
+          confirmButtonColor: '#b91c1c',
+          cancelButtonColor: '#64748b'
+        });
+        if (!resultado.isConfirmed) return;
+      }
+      const alunoCriado = alunoFixoNoCadastro;
+      concluirCadastroContrato();
+      if (alunoCriado) {
+        await mostrarCodigoAcesso({ ...alunoCriado, titulo: 'Aluno criado!' });
+      }
+    } finally {
+      confirmandoSaidaRef.current = false;
+    }
   };
 
   const salvarNovoContrato = async () => {
+    if (salvandoNovoContratoRef.current || confirmandoSaidaRef.current) return;
     if (!alunoSelecionado || selectedSchedule.length === 0) {
       alert('Por favor, selecione um aluno e um horário');
       return;
@@ -304,7 +329,9 @@ export default function Contracts() {
       return;
     }
 
+    salvandoNovoContratoRef.current = true;
     setCarregandoOperacao(true);
+    setIsScheduleModalOpen(false);
     try {
       // Payload de acordo com o contrato da API
       const novoContrato = {
@@ -333,14 +360,19 @@ export default function Contracts() {
       // Recarregar a lista de contratos
       await carregarContratos();
       
-      fecharModalAgendamento();
-      setAlunoSelecionadoId('');
-      setContractType('individual');
-      await Swal.fire({ icon: 'success', title: 'Contrato criado!', text: 'O contrato foi cadastrado com sucesso.', confirmButtonColor: '#0f1f3f' });
+      const alunoCriado = alunoFixoNoCadastro;
+      concluirCadastroContrato();
+      if (alunoCriado) {
+        await mostrarCodigoAcesso({ ...alunoCriado, titulo: 'Aluno e contrato criados!' });
+      } else {
+        await Swal.fire({ icon: 'success', title: 'Contrato criado!', text: 'O contrato foi cadastrado com sucesso.', confirmButtonColor: '#0f1f3f' });
+      }
     } catch (erro) {
       console.error('Erro ao criar contrato:', erro.response?.data || erro.message);
+      setIsScheduleModalOpen(true);
       await Swal.fire({ icon: 'error', title: 'Não foi possível cadastrar', text: erro.response?.data?.message || erro.message || 'Tente novamente', confirmButtonColor: '#0f1f3f' });
     } finally {
+      salvandoNovoContratoRef.current = false;
       setCarregandoOperacao(false);
     }
   };
@@ -536,7 +568,7 @@ export default function Contracts() {
               >
                 Inativos
               </Button>
-              <Button onClick={abrirModalAdicionar}>Adicionar Contrato</Button>
+              <Button onClick={abrirModalAdicionar} disabled={carregandoOperacao}>Adicionar Contrato</Button>
             </ButtonContainer>
           </div>
 

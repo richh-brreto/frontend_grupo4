@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Swal from 'sweetalert2';
 import Modal from '../../layout/Modal';
 
@@ -24,12 +24,14 @@ export default function AddStudentModal({ onClose, onSave }) {
   const [form, setForm] = useState(ESTADO_INICIAL);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
+  const salvandoRef = useRef(false);
 
   const temAlteracoes = () => {
     return form.nome.trim() !== '' || form.email.trim() !== '' || form.telefone.trim() !== '' || form.nivel !== NIVEIS[0];
   };
 
   const handleFechar = async () => {
+    if (salvandoRef.current) return;
     if (temAlteracoes()) {
       const resultado = await Swal.fire({
         icon: 'warning',
@@ -50,6 +52,7 @@ export default function AddStudentModal({ onClose, onSave }) {
     setForm((atual) => ({ ...atual, [campo]: event.target.value }));
 
   const handleSalvar = async () => {
+    if (salvandoRef.current) return;
     const telefoneNumeros = form.telefone.replace(/\D/g, '');
     const camposInvalidos = [];
 
@@ -83,17 +86,21 @@ export default function AddStudentModal({ onClose, onSave }) {
       horariosIds: [0]
     };
 
+    salvandoRef.current = true;
     setSalvando(true);
     setErro(null);
 
     onSave(payload)
       .then(() => onClose())
       .catch((err) => setErro(err.message))
-      .finally(() => setSalvando(false));
+      .finally(() => {
+        salvandoRef.current = false;
+        setSalvando(false);
+      });
   };
 
   return (
-    <Modal title="Adicionar Aluno" onClose={handleFechar} onSave={handleSalvar}>
+    <Modal title="Adicionar Aluno" onClose={handleFechar} onSave={handleSalvar} saving={salvando}>
       <label>Nome:</label>
       <input type="text" placeholder="Nome" value={form.nome} onChange={atualizarCampo('nome')} />
 

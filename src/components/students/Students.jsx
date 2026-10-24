@@ -12,7 +12,6 @@ import EditStudentModal from './components/EditStudentModal';
 import ScheduleModal from './components/ScheduleModal';
 import Pagination from './components/Pagination';
 import { contratosService } from '../contracts/contratosService';
-import mostrarCodigoAcesso from '../../utils/mostrarCodigoAcesso';
 import { useItensMenu } from '../../utils/menuItems';
 import { usePermissoes } from '../../utils/permissions';
 import '../agenda/Agenda.css';
@@ -56,10 +55,6 @@ export default function Students() {
   const salvarNovoAluno = async (novoAluno) => {
     try {
       const alunoCriado = await adicionarAluno(novoAluno);
-      await mostrarCodigoAcesso({
-        nome: alunoCriado.nome,
-        codigoAcesso: alunoCriado.codigoAcesso,
-      });
       setIsAddModalOpen(false);
       navigate('/contratos', {
         replace: true,

@@ -12,8 +12,8 @@ const extrairAlunos = (resposta) => {
 
 export const alunosService = {
   // Retorna uma página: { content, page, size, totalElements, totalPages, first, last }
-  listar({ page = 0, size = 10, nome = '' } = {}) {
-    const params = { page, size };
+  listar({ page = 0, size = 10, nome = '', ativo = true } = {}) {
+    const params = { page, size, ativo };
     if (nome.trim()) params.nome = nome.trim();
     return axios.get(BASE_URL, { params }).then((res) => res.data);
   },
@@ -45,6 +45,7 @@ export const alunosService = {
   },
 
   inativar(id) {
+    // A API usa DELETE como soft delete: altera ativo para false.
     return axios.delete(`${BASE_URL}/${id}`);
   },
 

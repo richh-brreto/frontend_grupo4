@@ -14,10 +14,11 @@ function Modal({
   saveLabel = "Salvar",
   cancelLabel = "Cancelar",
   className = "",
-  hideFooter = false
+  hideFooter = false,
+  saving = false
 }) {
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={saving ? undefined : onClose}>
       <div className="modal-backdrop" />
 
       <div
@@ -31,6 +32,7 @@ function Modal({
             type="button"
             className="modal-close"
             onClick={onClose}
+            disabled={saving}
           >
             ×
           </button>
@@ -47,8 +49,8 @@ function Modal({
                 <Button danger onClick={onDelete}>{deleteLabel}</Button>
               </div>
             )}
-            {showCancel && <Button onClick={onClose}>{cancelLabel}</Button>}
-            {showSave && <Button active onClick={onSave || onClose}>{saveLabel}</Button>}
+            {showCancel && <Button onClick={onClose} disabled={saving}>{cancelLabel}</Button>}
+            {showSave && <Button active onClick={onSave || onClose} disabled={saving}>{saving ? 'Salvando...' : saveLabel}</Button>}
           </ButtonContainer>
         )}
       </div>
