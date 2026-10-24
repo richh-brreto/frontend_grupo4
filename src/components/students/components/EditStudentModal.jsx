@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import Modal from '../../layout/Modal';
 
@@ -15,6 +15,46 @@ const NIVEIS = [
 export default function EditStudentModal({ aluno, onClose, onSave, onChange, onDelete }) {
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
+  const alunoInicialRef = useRef(null);
+
+  // Store initial values only once when aluno changes (modal opens)
+  useEffect(() => {
+    if (aluno) {
+      alunoInicialRef.current = {
+        nome: aluno.nome ?? '',
+        email: aluno.email ?? '',
+        telefone: aluno.telefone ?? '',
+        nivel: aluno.nivel ?? NIVEIS[0],
+      };
+    }
+  }, [aluno]);
+
+  const temAlteracoes = () => {
+    if (!alunoInicialRef.current) return false;
+    return (
+      aluno.nome?.trim() !== alunoInicialRef.current.nome.trim() ||
+      aluno.email?.trim() !== alunoInicialRef.current.email.trim() ||
+      aluno.telefone?.trim() !== alunoInicialRef.current.telefone.trim() ||
+      (aluno.nivel ?? NIVEIS[0]) !== alunoInicialRef.current.nivel
+    );
+  };
+
+  const handleFechar = async () => {
+    if (temAlteracoes()) {
+      const resultado = await Swal.fire({
+        icon: 'warning',
+        title: 'Alterações não salvas',
+        text: 'Você tem alterações não salvas. Deseja realmente sair sem salvar?',
+        showCancelButton: true,
+        confirmButtonText: 'Sim, sair sem salvar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#b91c1c',
+        cancelButtonColor: '#64748b'
+      });
+      if (!resultado.isConfirmed) return;
+    }
+    onClose();
+  };
 
   const handleSalvar = async () => {
     const telefoneNumeros = (aluno.telefone || '').replace(/\D/g, '');
@@ -57,7 +97,7 @@ export default function EditStudentModal({ aluno, onClose, onSave, onChange, onD
   return (
     <Modal
       title="Editar Aluno"
-      onClose={onClose}
+      onClose={handleFechar}
       onSave={handleSalvar}
       onDelete={onDelete}
       saveLabel={salvando ? 'Salvando...' : 'Salvar'}

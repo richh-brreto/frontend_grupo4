@@ -20,6 +20,41 @@ export default function EditProfessorModal({ professor, onClose, onSave, onDelet
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
 
+  const formInicial = {
+    nome: professor.nome ?? '',
+    email: professor.email ?? '',
+    telefone: professor.telefone ?? '',
+    permissoes: professor.permissoes ?? [],
+  };
+  const horariosIdsInicial = professor.horariosIds ?? horariosIniciais.map((horario) => horario.id);
+
+  const temAlteracoes = () => {
+    return (
+      form.nome.trim() !== formInicial.nome.trim() ||
+      form.email.trim() !== formInicial.email.trim() ||
+      form.telefone.trim() !== formInicial.telefone.trim() ||
+      JSON.stringify(form.permissoes.sort()) !== JSON.stringify(formInicial.permissoes.sort()) ||
+      JSON.stringify(horariosIds.sort()) !== JSON.stringify(horariosIdsInicial.sort())
+    );
+  };
+
+  const handleFechar = async () => {
+    if (temAlteracoes()) {
+      const resultado = await Swal.fire({
+        icon: 'warning',
+        title: 'Alterações não salvas',
+        text: 'Você tem alterações não salvas. Deseja realmente sair sem salvar?',
+        showCancelButton: true,
+        confirmButtonText: 'Sim, sair sem salvar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#b91c1c',
+        cancelButtonColor: '#64748b'
+      });
+      if (!resultado.isConfirmed) return;
+    }
+    onClose();
+  };
+
   const handleSalvar = async () => {
     const telefoneNumeros = form.telefone.replace(/\D/g, '');
     const camposInvalidos = [];
@@ -59,7 +94,7 @@ export default function EditProfessorModal({ professor, onClose, onSave, onDelet
   return (
     <Modal
       title="Editar Professor"
-      onClose={onClose}
+      onClose={handleFechar}
       onSave={handleSalvar}
       onDelete={onDelete}
       saveLabel={salvando ? 'Salvando...' : 'Salvar'}

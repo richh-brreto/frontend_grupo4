@@ -4,7 +4,10 @@ import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
 import Modal from '../layout/Modal';
+import AulaDetailModal from './AulaDetailModal';
+import RemarcarScheduleSelector from './RemarcarScheduleSelector';
 import { aulasService } from './aulasService';
+import { professoresService } from '../professors/components/professoresService';
 import { useItensMenu } from '../../utils/menuItems';
 import { usePermissoes } from '../../utils/permissions';
 import './Agenda.css';
@@ -12,8 +15,11 @@ import './Agenda.css';
 
 
 const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
-const HORAS = Array.from({ length: 24 }, (_, i) => `${String(0 + i).padStart(2, '0')}:00`);
-const ALTURA_HORA = 48; // pixels por hora
+const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+const HORA_INICIO = 7;
+const HORA_FIM = 23;
+const HORAS = Array.from({ length: HORA_FIM - HORA_INICIO }, (_, i) => `${String(HORA_INICIO + i).padStart(2, '0')}:00`);
+const ALTURA_HORA = 65; // pixels por hora
 
 // YYYY-MM-DD no fuso local (toISOString converte para UTC e pode trocar o dia)
 const formatarDataLocal = (data) => [
@@ -115,23 +121,52 @@ export default function Agenda() {
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAusenciaModalOpen, setIsAusenciaModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
   const [selectedAula, setSelectedAula] = useState(null);
   const [alunosAusentes, setAlunosAusentes] = useState([]);
-  const [remarcacao, setRemarcacao] = useState({ novaData: '', novaHoraInicio: '', novaHoraFim: '', motivo: '' });
+  const [remarcacao, setRemarcacao] = useState({ novaData: '', novaHoraInicio: '', novaHoraFim: '', motivo: '', horarioSelecionado: null });
   const [versaoAulas, setVersaoAulas] = useState(0);
+  const [expandedSlots, setExpandedSlots] = useState(new Set());
+  const [novoEvento, setNovoEvento] = useState({ nome: '', descricao: '', professorId: '', horaInicio: '07:00', horaFim: '08:00' });
+  const [professoresDisponiveis, setProfessoresDisponiveis] = useState([]);
   // Quem enxerga a agenda é quem tem a tela liberada (o menu já protege a rota).
   const { podeAcessar, carregando: carregandoPermissoes } = usePermissoes();
   const podeGerenciar = podeAcessar('TELA_AGENDA');
 
+  const temAlteracoesNovoEvento = () => {
+    return novoEvento.nome.trim() !== '' || novoEvento.descricao.trim() !== '' || novoEvento.professorId !== '';
+  };
+
   const abrirModalAdicionar = (dia) => {
     setSelectedDay(dia);
+    setNovoEvento({ nome: '', descricao: '', professorId: '', horaInicio: '07:00', horaFim: '08:00' });
+    
+    professoresService.listar()
+      .then((data) => setProfessoresDisponiveis((data || []).filter(p => p.ativo !== false)))
+      .catch(() => setProfessoresDisponiveis([]));
+    
     setIsAddModalOpen(true);
   };
 
-  const fecharModalAdicionar = () => {
+  const fecharModalAdicionar = async () => {
+    if (temAlteracoesNovoEvento()) {
+      const resultado = await Swal.fire({
+        icon: 'warning',
+        title: 'Alterações não salvas',
+        text: 'Você tem alterações não salvas. Deseja realmente sair sem salvar?',
+        showCancelButton: true,
+        confirmButtonText: 'Sim, sair sem salvar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#b91c1c',
+        cancelButtonColor: '#64748b'
+      });
+      if (!resultado.isConfirmed) return;
+    }
     setIsAddModalOpen(false);
     setSelectedDay(null);
+    setNovoEvento({ nome: '', descricao: '', professorId: '', horaInicio: '07:00', horaFim: '08:00' });
+    setProfessoresDisponiveis([]);
   };
 
   const abrirModalEditar = (aula) => {
@@ -141,6 +176,16 @@ export default function Agenda() {
 
   const fecharModalEditar = () => {
     setIsEditModalOpen(false);
+    setSelectedAula(null);
+  };
+
+  const abrirModalDetalhe = (aula) => {
+    setSelectedAula(aula);
+    setIsDetailModalOpen(true);
+  };
+
+  const fecharModalDetalhe = () => {
+    setIsDetailModalOpen(false);
     setSelectedAula(null);
   };
 
@@ -229,20 +274,39 @@ export default function Agenda() {
     }
   };
 
+  const temAlteracoesRemarcacao = () => {
+    return remarcacao.novaData !== '' || remarcacao.motivo.trim() !== '' || remarcacao.horarioSelecionado !== null;
+  };
+
   const abrirModalRemarcar = () => {
     setRemarcacao({
       novaData: selectedAula.data,
       novaHoraInicio: selectedAula.horaInicio,
       novaHoraFim: selectedAula.horaFim,
-      motivo: ''
+      motivo: '',
+      horarioSelecionado: null
     });
     setIsEditModalOpen(false);
     setIsRescheduleModalOpen(true);
   };
 
-  const fecharModalRemarcar = () => {
+  const fecharModalRemarcar = async () => {
+    if (temAlteracoesRemarcacao()) {
+      const resultado = await Swal.fire({
+        icon: 'warning',
+        title: 'Alterações não salvas',
+        text: 'Você tem alterações não salvas. Deseja realmente sair sem salvar?',
+        showCancelButton: true,
+        confirmButtonText: 'Sim, sair sem salvar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#b91c1c',
+        cancelButtonColor: '#64748b'
+      });
+      if (!resultado.isConfirmed) return;
+    }
     setIsRescheduleModalOpen(false);
     setSelectedAula(null);
+    setRemarcacao({ novaData: '', novaHoraInicio: '', novaHoraFim: '', motivo: '', horarioSelecionado: null });
   };
 
   const atualizarRemarcacao = (campo, valor) => {
@@ -250,29 +314,19 @@ export default function Agenda() {
   };
 
   const salvarNovoEvento = async () => {
-    fecharModalAdicionar();
-    await Swal.fire({
-      icon: 'success',
-      title: 'Evento adicionado!',
-      text: 'O evento foi adicionado à agenda com sucesso.',
-      confirmButtonColor: '#0f1f3f'
-    });
-  };
+    if (!selectedDay) return;
 
-  const salvarRemarcacao = async () => {
-    if (!selectedAula) return;
-
-    const { novaData, novaHoraInicio, novaHoraFim, motivo } = remarcacao;
-    if (!novaData || !novaHoraInicio || !novaHoraFim) {
+    const { nome, descricao, professorId, horaInicio, horaFim } = novoEvento;
+    if (!nome.trim() || !horaInicio || !horaFim) {
       await Swal.fire({
         icon: 'warning',
         title: 'Preencha os dados',
-        text: 'Informe a nova data e os novos horários de início e fim.',
+        text: 'Informe o nome e os horários de início e fim.',
         confirmButtonColor: '#0f1f3f'
       });
       return;
     }
-    if (novaHoraInicio >= novaHoraFim) {
+    if (horaInicio >= horaFim) {
       await Swal.fire({
         icon: 'warning',
         title: 'Horário inválido',
@@ -283,10 +337,59 @@ export default function Agenda() {
     }
 
     try {
+      const professorSelecionado = professoresDisponiveis.find(p => p.id === professorId);
+      await aulasService.criar({
+        data: selectedDay.data,
+        horaInicio,
+        horaFim,
+        conta: nome,
+        descricao,
+        professorId,
+        professor: professorSelecionado?.nome || 'Sem professor',
+        turma: 'Individual',
+        status: 'AGENDADA'
+      });
+      fecharModalAdicionar();
+      recarregarAulas();
+      await Swal.fire({
+        icon: 'success',
+        title: 'Evento adicionado!',
+        text: 'O evento foi adicionado à agenda com sucesso.',
+        confirmButtonColor: '#0f1f3f'
+      });
+    } catch (error) {
+      await mostrarErro(error, 'Erro ao adicionar evento');
+    }
+  };
+
+  const salvarRemarcacao = async () => {
+    if (!selectedAula) return;
+
+    const { novaData, horarioSelecionado, motivo } = remarcacao;
+    if (!novaData) {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Selecione uma data',
+        text: 'Escolha a nova data para a aula.',
+        confirmButtonColor: '#0f1f3f'
+      });
+      return;
+    }
+    if (!horarioSelecionado) {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Selecione um horário',
+        text: 'Escolha um horário disponível na grade para remarcar a aula.',
+        confirmButtonColor: '#0f1f3f'
+      });
+      return;
+    }
+
+    try {
       await aulasService.remarcar(selectedAula, {
         novaData,
-        novaHoraInicio,
-        novaHoraFim,
+        novaHoraInicio: horarioSelecionado.horaInicio,
+        novaHoraFim: horarioSelecionado.horaFim,
         motivo: motivo.trim() || null
       });
       fecharModalRemarcar();
@@ -336,8 +439,8 @@ export default function Agenda() {
     const [horaI, minutoI] = horaInicio.split(':').map(Number);
     const [horaF, minutoF] = horaFim.split(':').map(Number);
 
-    const minutoInicio = (horaI - 1) * 60 + minutoI;
-    const minutoFim = (horaF - 1) * 60 + minutoF;
+    const minutoInicio = (horaI - HORA_INICIO) * 60 + minutoI;
+    const minutoFim = (horaF - HORA_INICIO) * 60 + minutoF;
     const duracao = minutoFim - minutoInicio;
 
     return {
@@ -366,33 +469,64 @@ export default function Agenda() {
 
   const obterAulasPorDia = (dataDia) => aulasFiltradas.filter(aula => aula.data === dataDia);
 
+  const alternarSlotExpandido = (dataDia, horaInicio, horaFim) => {
+    const chave = `${dataDia}|${horaInicio}|${horaFim}`;
+    setExpandedSlots(prev => {
+      const novo = new Set(prev);
+      if (novo.has(chave)) novo.delete(chave);
+      else novo.add(chave);
+      return novo;
+    });
+  };
+
+  const slotExpandido = (dataDia, horaInicio, horaFim) => {
+    return expandedSlots.has(`${dataDia}|${horaInicio}|${horaFim}`);
+  };
+
   const obterAulasComPosicao = (dataDia) => {
     const aulasDia = obterAulasPorDia(dataDia).sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
-    const aulasComPosicao = [];
-
+    
+    const slotsMap = new Map();
     aulasDia.forEach(aula => {
-      const estilo = calcularEstiloEvento(aula.horaInicio, aula.horaFim);
+      const chave = `${aula.horaInicio}|${aula.horaFim}`;
+      if (!slotsMap.has(chave)) slotsMap.set(chave, []);
+      slotsMap.get(chave).push(aula);
+    });
+
+    const slotsOrdenados = Array.from(slotsMap.entries())
+      .sort(([chaveA], [chaveB]) => chaveA.localeCompare(chaveB))
+      .map(([chave, aulasNoSlot]) => {
+        const [horaInicio, horaFim] = chave.split('|');
+        const estilo = calcularEstiloEvento(horaInicio, horaFim);
+        return { horaInicio, horaFim, aulas: aulasNoSlot, estilo };
+      });
+
+    const slotsComPosicao = [];
+    slotsOrdenados.forEach(slot => {
       let coluna = 0;
       let maxColuna = 0;
 
-      aulasComPosicao.forEach(item => {
-        const temConflito = !(aula.horaFim <= item.aula.horaInicio || aula.horaInicio >= item.aula.horaFim);
+      slotsComPosicao.forEach(item => {
+        const temConflito = !(slot.horaFim <= item.slot.horaInicio || slot.horaInicio >= item.slot.horaFim);
         if (temConflito && item.coluna >= coluna) {
           coluna = item.coluna + 1;
         }
         maxColuna = Math.max(maxColuna, item.coluna);
       });
 
-      aulasComPosicao.push({ aula, estilo, coluna, numColunas: Math.max(coluna + 1, maxColuna + 1) });
+      slotsComPosicao.push({ slot, estilo: slot.estilo, coluna, numColunas: Math.max(coluna + 1, maxColuna + 1) });
     });
 
-    const numColunasTotal = aulasComPosicao.length ? Math.max(...aulasComPosicao.map(item => item.coluna)) + 1 : 1;
+    const numColunasTotal = slotsComPosicao.length ? Math.max(...slotsComPosicao.map(item => item.coluna)) + 1 : 1;
 
-    return aulasComPosicao.map(item => ({
-      ...item.aula,
+    return slotsComPosicao.map(item => ({
+      horaInicio: item.slot.horaInicio,
+      horaFim: item.slot.horaFim,
+      aulas: item.slot.aulas,
       estilo: item.estilo,
       coluna: item.coluna,
-      numColunas: numColunasTotal
+      numColunas: numColunasTotal,
+      count: item.slot.aulas.length
     }));
   };
 
@@ -421,7 +555,7 @@ export default function Agenda() {
         <div className="agenda-panel">
           <div className="agenda-topbar">
             <div>
-              <h1>Agenda</h1>
+              <h1>Agenda - {MESES[diasSemana[0].mes - 1]}</h1>
             </div>
             <div className="agenda-tabs">
               <div className="agenda-semana-nav">
@@ -455,7 +589,7 @@ export default function Agenda() {
                 <div className="agenda-horarios-label"></div>
                 {diasSemana.map((dia, idx) => (
                   <div key={idx} className="agenda-dia-label">
-                    <span>{dia.diaSemana}</span>
+                    <span>{dia.diaSemana.slice(0, 3)} - {dia.dia}</span>
                     <Button onClick={() => abrirModalAdicionar(dia)}>+</Button>
                   </div>
                 ))}
@@ -482,31 +616,63 @@ export default function Agenda() {
                       ))}
 
                       <div className="agenda-eventos">
-                        {obterAulasComPosicao(dia.data).map((aula) => (
-                          <div
-                            key={aula.id}
-                            className={`evento ${aula.status === 'CANCELADA' ? 'evento-cancelado' : ''}`.trim()}
-                            style={{
-                              ...aula.estilo,
-                              width: `calc((100% - ${(aula.numColunas - 1) * 4}px) / ${aula.numColunas})`,
-                              left: `calc((100% - ${(aula.numColunas - 1) * 4}px) / ${aula.numColunas} * ${aula.coluna} + ${aula.coluna * 2}px)`
-                            }}
-                          >
-                            <div className="evento-label">{aula.conta}</div>
-                            <div className="evento-label">
-                              {aula.status === 'CANCELADA' ? 'Cancelada' : aula.turma}
-                            </div>
-                            {podeGerenciar && aula.status !== 'CANCELADA' && (
-                              <button
-                                type="button"
-                                className="evento-action"
-                                onClick={() => abrirModalEditar(aula)}
+                        {obterAulasComPosicao(dia.data).map((slot, slotIdx) => {
+                          const isExpanded = slotExpandido(dia.data, slot.horaInicio, slot.horaFim);
+                          const primeiraAula = slot.aulas[0];
+                          const isCancelada = primeiraAula.status === 'CANCELADA';
+                          const slotId = `${dia.data}|${slot.horaInicio}|${slot.horaFim}`;
+                          
+                          return (
+                            <div key={slotIdx} className="slot-container">
+<div
+                                 className={`evento ${isCancelada ? 'evento-cancelado' : ''} ${slot.count > 1 ? 'slot-multiplo' : ''}`.trim()}
+                                 style={{
+                                   ...slot.estilo,
+                                   width: `calc((100% - ${(slot.numColunas - 1) * 4}px) / ${slot.numColunas} - 8px)`,
+                                   left: `calc((100% - ${(slot.numColunas - 1) * 4}px) / ${slot.numColunas} * ${slot.coluna} + 4px)`
+                                 }}
+                                onClick={(e) => {
+                                  if (slot.count > 1) {
+                                    e.stopPropagation();
+                                    alternarSlotExpandido(dia.data, slot.horaInicio, slot.horaFim);
+                                  } else {
+                                    abrirModalDetalhe(primeiraAula);
+                                  }
+                                }}
                               >
-                                Editar
-                              </button>
-                            )}
-                          </div>
-                        ))}
+                                <div className="evento-label">{primeiraAula.conta}</div>
+                                <div className="evento-label">
+                                  {isCancelada ? `Aula "${primeiraAula.turma}" cancelada` : (slot.count > 1 ? `${slot.count} aulas` : primeiraAula.turma)}
+                                </div>
+                                {slot.count > 1 && (
+                                  <span className="slot-expand-icon">{isExpanded ? '▲' : '▼'}</span>
+                                )}
+                              </div>
+                              
+                              {isExpanded && slot.count > 1 && (
+                                <div className="slot-expandido" style={{
+                                  ...slot.estilo,
+                                  top: `${parseFloat(slot.estilo.top) + parseFloat(slot.estilo.height) + 4}px`,
+                                  width: `calc((100% - ${(slot.numColunas - 1) * 4}px) / ${slot.numColunas} - 8px)`,
+                                  left: `calc((100% - ${(slot.numColunas - 1) * 4}px) / ${slot.numColunas} * ${slot.coluna} + 4px)`
+                                }}>
+                                  {slot.aulas.map((aula, aulaIdx) => (
+                                    <div
+                                      key={aulaIdx}
+                                      className={`evento evento-expandido ${aula.status === 'CANCELADA' ? 'evento-cancelado' : ''}`}
+                                      onClick={() => abrirModalDetalhe(aula)}
+                                    >
+                                      <div className="evento-label">{aula.conta}</div>
+                                      <div className="evento-label">
+                                        {aula.status === 'CANCELADA' ? `Aula "${aula.turma}" cancelada` : aula.turma}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   ))}
@@ -573,16 +739,83 @@ export default function Agenda() {
           onSave={salvarNovoEvento}
         >
           <label>Nome</label>
-          <input type="text" placeholder="Nome" />
+          <input
+            type="text"
+            placeholder="Nome do evento"
+            value={novoEvento.nome}
+            onChange={(e) => setNovoEvento(prev => ({ ...prev, nome: e.target.value }))}
+          />
 
           <label>Descrição</label>
-          <input type="text" placeholder="Descrição" />
+          <input
+            type="text"
+            placeholder="Descrição"
+            value={novoEvento.descricao}
+            onChange={(e) => setNovoEvento(prev => ({ ...prev, descricao: e.target.value }))}
+          />
 
-          <label>Adicionar professor</label>
-          <input type="text" placeholder="Adicionar professor" />
+          <label>Professor</label>
+          <select
+            value={novoEvento.professorId}
+            onChange={(e) => setNovoEvento(prev => ({ ...prev, professorId: e.target.value }))}
+          >
+            <option value="">Selecione um professor</option>
+            {professoresDisponiveis.map((professor) => (
+              <option key={professor.id} value={professor.id}>{professor.nome}</option>
+            ))}
+          </select>
 
-          <label>Dia e horário</label>
-          <input type="text" placeholder="Dia e horário" />
+          {selectedDay && (
+            <div className="evento-data-info">
+              <label>Data</label>
+              <input type="text" value={selectedDay.data.split('-').reverse().join('/')} readOnly />
+            </div>
+          )}
+
+          <div className="evento-horarios">
+            <div>
+              <label>Hora de início</label>
+              <div className="hora-select-group">
+                <select
+                  value={novoEvento.horaInicio.split(':')[0]}
+                  onChange={(e) => setNovoEvento(prev => ({ ...prev, horaInicio: `${e.target.value}:${prev.horaInicio.split(':')[1]}` }))}
+                >
+                  {Array.from({ length: 15 }, (_, i) => i + 7).map((h) => (
+                    <option key={h} value={String(h).padStart(2, '0')}>{String(h).padStart(2, '0')}</option>
+                  ))}
+                </select>
+                <span>:</span>
+                <select
+                  value={novoEvento.horaInicio.split(':')[1]}
+                  onChange={(e) => setNovoEvento(prev => ({ ...prev, horaInicio: `${prev.horaInicio.split(':')[0]}:${e.target.value}` }))}
+                >
+                  <option value="00">00</option>
+                  <option value="30">30</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label>Hora de fim</label>
+              <div className="hora-select-group">
+                <select
+                  value={novoEvento.horaFim.split(':')[0]}
+                  onChange={(e) => setNovoEvento(prev => ({ ...prev, horaFim: `${e.target.value}:${prev.horaFim.split(':')[1]}` }))}
+                >
+                  {Array.from({ length: 16 }, (_, i) => i + 7).map((h) => (
+                    <option key={h} value={String(h).padStart(2, '0')}>{String(h).padStart(2, '0')}</option>
+                  ))}
+                </select>
+                <span>:</span>
+                <select
+                  value={novoEvento.horaFim.split(':')[1]}
+                  onChange={(e) => setNovoEvento(prev => ({ ...prev, horaFim: `${prev.horaFim.split(':')[0]}:${e.target.value}` }))}
+                >
+                  <option value="00">00</option>
+                  <option value="30">30</option>
+                </select>
+              </div>
+            </div>
+          </div>
         </Modal>
       )}
 
@@ -602,40 +835,42 @@ export default function Agenda() {
           title={`Remarcar aula - ${selectedAula.conta}`}
           onClose={fecharModalRemarcar}
           onSave={salvarRemarcacao}
+          className="professor-create-modal"
         >
-          <label htmlFor="nova-data">Nova data</label>
-          <input
-            id="nova-data"
-            type="date"
-            value={remarcacao.novaData}
-            onChange={event => atualizarRemarcacao('novaData', event.target.value)}
-          />
-
-          <label htmlFor="nova-hora-inicio">Hora de início</label>
-          <input
-            id="nova-hora-inicio"
-            type="time"
-            value={remarcacao.novaHoraInicio}
-            onChange={event => atualizarRemarcacao('novaHoraInicio', event.target.value)}
-          />
-
-          <label htmlFor="nova-hora-fim">Hora de fim</label>
-          <input
-            id="nova-hora-fim"
-            type="time"
-            value={remarcacao.novaHoraFim}
-            onChange={event => atualizarRemarcacao('novaHoraFim', event.target.value)}
-          />
-
-          <label htmlFor="motivo-remarcacao">Motivo</label>
-          <input
-            id="motivo-remarcacao"
-            type="text"
-            placeholder="Motivo (opcional)"
-            maxLength={500}
-            value={remarcacao.motivo}
-            onChange={event => atualizarRemarcacao('motivo', event.target.value)}
-          />
+          <div className="professor-form-panel">
+            <div className="remarcar-info-atual">
+              <h4>Horário atual</h4>
+              <p>{selectedAula.data.split('-').reverse().join('/')}, {selectedAula.horaInicio.slice(0, 5)} - {selectedAula.horaFim.slice(0, 5)}</p>
+            </div>
+            <div className="remarcar-info-atual">
+              <h4>Turma/Aluno</h4>
+              <p>{selectedAula.conta}</p>
+            </div>
+            <label htmlFor="nova-data">Nova data</label>
+            <input
+              id="nova-data"
+              type="date"
+              value={remarcacao.novaData}
+              onChange={event => atualizarRemarcacao('novaData', event.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+            />
+            <label htmlFor="motivo-remarcacao">Motivo (opcional)</label>
+            <input
+              id="motivo-remarcacao"
+              type="text"
+              placeholder="Motivo da remarcação"
+              maxLength={500}
+              value={remarcacao.motivo}
+              onChange={event => atualizarRemarcacao('motivo', event.target.value)}
+            />
+          </div>
+          <div className="professor-schedule-panel">
+            <RemarcarScheduleSelector
+              aulaAtual={selectedAula}
+              onSelect={(horario) => setRemarcacao(prev => ({ ...prev, horarioSelecionado: horario }))}
+              onClose={fecharModalRemarcar}
+            />
+          </div>
         </Modal>
       )}
 
@@ -659,6 +894,15 @@ export default function Agenda() {
             ))}
           </div>
         </Modal>
+      )}
+
+      {isDetailModalOpen && (
+        <AulaDetailModal
+          aula={selectedAula}
+          onClose={fecharModalDetalhe}
+          onEditar={abrirModalEditar}
+          podeGerenciar={podeGerenciar}
+        />
       )}
 
     </div>

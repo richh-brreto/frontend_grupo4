@@ -14,6 +14,10 @@ export const aulasService = {
     return axios.get(BASE_URL, { params: { inicio, fim } }).then((res) => res.data);
   },
 
+  criar(evento) {
+    return axios.post(BASE_URL, evento).then((res) => res.data);
+  },
+
   cancelar(evento, motivo) {
     if (evento.turmaId) {
       return axios

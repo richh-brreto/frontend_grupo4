@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import Sidebar from '../layout/Sidebar';
@@ -92,6 +92,10 @@ export default function Contracts() {
   const [carregandoContratos, setCarregandoContratos] = useState(true);
   const [erroContratos, setErroContratos] = useState(null);
   const [carregandoOperacao, setCarregandoOperacao] = useState(false);
+
+  // Refs para detectar alterações não salvas nos modais
+  const scheduleInicialRef = useRef([]);
+  const contractFormInicialRef = useRef(null);
 
   // Carregar alunos
   useEffect(() => {
@@ -250,13 +254,38 @@ export default function Contracts() {
     setIsScheduleModalOpen(true);
   };
 
-  const fecharModalAgendamento = () => {
+  const temAlteracoesNovoContrato = () => {
+    return (
+      alunoSelecionadoId !== '' ||
+      contractType !== 'individual' ||
+      dataInicioContrato !== dataHoje() ||
+      dataFimContrato !== dataHoje() ||
+      selectedSchedule.length > 0
+    );
+  };
+
+  const fecharModalAgendamento = async () => {
+    if (temAlteracoesNovoContrato()) {
+      const resultado = await Swal.fire({
+        icon: 'warning',
+        title: 'Alterações não salvas',
+        text: 'Você tem alterações não salvas. Deseja realmente sair sem salvar?',
+        showCancelButton: true,
+        confirmButtonText: 'Sim, sair sem salvar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#b91c1c',
+        cancelButtonColor: '#64748b'
+      });
+      if (!resultado.isConfirmed) return;
+    }
     setIsScheduleModalOpen(false);
     setAlunoFixoNoCadastro(null);
     setSelectedSchedule([]);
     setOpenSlot(null);
     setDataInicioContrato(dataHoje());
     setDataFimContrato(dataHoje());
+    setAlunoSelecionadoId('');
+    setContractType('individual');
   };
 
   const salvarNovoContrato = async () => {
@@ -358,12 +387,13 @@ export default function Contracts() {
   };
 
   const abrirModalEdicao = (contrato) => {
-    setSelectedContract({
+    const contratoCompleto = {
       ...contrato,
       turma: contrato.turma ? { ...contrato.turma } : null,
       professor: contrato.professor ? { ...contrato.professor } : null,
       aluno: contrato.aluno ? { ...contrato.aluno } : {}
-    });
+    };
+    setSelectedContract(contratoCompleto);
     setAlunoSelecionadoId(String(contrato.aluno?.id || ''));
     setContractType(contrato.tipo === 'grupo' ? 'grupo' : 'individual');
     setDataInicioContrato(contrato.dataInicio || hoje);
@@ -371,13 +401,49 @@ export default function Contracts() {
     setSelectedSchedule([]);
     setEditScheduleByType({});
     setOpenSlot(null);
+
+    // Store initial values for unsaved changes detection
+    contractFormInicialRef.current = {
+      alunoSelecionadoId: String(contrato.aluno?.id || ''),
+      contractType: contrato.tipo === 'grupo' ? 'grupo' : 'individual',
+      dataInicioContrato: contrato.dataInicio || hoje,
+      dataFimContrato: contrato.dataFim || hoje,
+      selectedSchedule: [...selectedSchedule]
+    };
   };
 
-  const fecharModalEdicao = () => {
+  const temAlteracoesEdicaoContrato = () => {
+    if (!contractFormInicialRef.current || !selectedContract) return false;
+    const inicial = contractFormInicialRef.current;
+    return (
+      alunoSelecionadoId !== inicial.alunoSelecionadoId ||
+      contractType !== inicial.contractType ||
+      dataInicioContrato !== inicial.dataInicioContrato ||
+      dataFimContrato !== inicial.dataFimContrato ||
+      JSON.stringify([...selectedSchedule].sort((a,b) => a.item.horarioId - b.item.horarioId)) !== 
+      JSON.stringify([...inicial.selectedSchedule].sort((a,b) => a.item.horarioId - b.item.horarioId))
+    );
+  };
+
+  const fecharModalEdicao = async () => {
+    if (temAlteracoesEdicaoContrato()) {
+      const resultado = await Swal.fire({
+        icon: 'warning',
+        title: 'Alterações não salvas',
+        text: 'Você tem alterações não salvas. Deseja realmente sair sem salvar?',
+        showCancelButton: true,
+        confirmButtonText: 'Sim, sair sem salvar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#b91c1c',
+        cancelButtonColor: '#64748b'
+      });
+      if (!resultado.isConfirmed) return;
+    }
     setSelectedContract(null);
     setSelectedSchedule([]);
     setEditScheduleByType({});
     setOpenSlot(null);
+    contractFormInicialRef.current = null;
   };
 
   const salvarEdicao = async () => {

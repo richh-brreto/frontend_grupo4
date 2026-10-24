@@ -25,6 +25,27 @@ export default function AddStudentModal({ onClose, onSave }) {
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
 
+  const temAlteracoes = () => {
+    return form.nome.trim() !== '' || form.email.trim() !== '' || form.telefone.trim() !== '' || form.nivel !== NIVEIS[0];
+  };
+
+  const handleFechar = async () => {
+    if (temAlteracoes()) {
+      const resultado = await Swal.fire({
+        icon: 'warning',
+        title: 'Alterações não salvas',
+        text: 'Você tem alterações não salvas. Deseja realmente sair sem salvar?',
+        showCancelButton: true,
+        confirmButtonText: 'Sim, sair sem salvar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#b91c1c',
+        cancelButtonColor: '#64748b'
+      });
+      if (!resultado.isConfirmed) return;
+    }
+    onClose();
+  };
+
   const atualizarCampo = (campo) => (event) =>
     setForm((atual) => ({ ...atual, [campo]: event.target.value }));
 
@@ -72,7 +93,7 @@ export default function AddStudentModal({ onClose, onSave }) {
   };
 
   return (
-    <Modal title="Adicionar Aluno" onClose={onClose} onSave={handleSalvar}>
+    <Modal title="Adicionar Aluno" onClose={handleFechar} onSave={handleSalvar}>
       <label>Nome:</label>
       <input type="text" placeholder="Nome" value={form.nome} onChange={atualizarCampo('nome')} />
 

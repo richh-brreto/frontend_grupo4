@@ -40,6 +40,7 @@ export default function Overview() {
   const itensMenu = useItensMenu('/overview');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
+  const [originalAnnouncement, setOriginalAnnouncement] = useState(null);
   const [novoComunicado, setNovoComunicado] = useState({ titulo: '', texto: '' });
   const [comunicados, setComunicados] = useState([]);
   const [carregando, setCarregando] = useState(true);
@@ -63,11 +64,28 @@ export default function Overview() {
     carregarComunicados();
   }, []);
 
+  const temAlteracoesNovoComunicado = () => {
+    return novoComunicado.titulo.trim() !== '' || novoComunicado.texto.trim() !== '';
+  };
+
   const abrirModalAdicionar = () => {
     setIsAddModalOpen(true);
   };
 
-  const fecharModalAdicionar = () => {
+  const fecharModalAdicionar = async () => {
+    if (temAlteracoesNovoComunicado()) {
+      const resultado = await Swal.fire({
+        icon: 'warning',
+        title: 'Alterações não salvas',
+        text: 'Você tem alterações não salvas. Deseja realmente sair sem salvar?',
+        showCancelButton: true,
+        confirmButtonText: 'Sim, sair sem salvar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#b91c1c',
+        cancelButtonColor: '#64748b'
+      });
+      if (!resultado.isConfirmed) return;
+    }
     setIsAddModalOpen(false);
     setNovoComunicado({ titulo: '', texto: '' });
   };
@@ -113,10 +131,33 @@ export default function Overview() {
 
   const abrirModalEdicao = (comunicado) => {
     setSelectedAnnouncement({ ...comunicado });
+    setOriginalAnnouncement({ ...comunicado });
   };
 
-  const fecharModalEdicao = () => {
+  const temAlteracoesNaoSalvas = () => {
+    if (!selectedAnnouncement || !originalAnnouncement) return false;
+    return (
+      selectedAnnouncement.titulo.trim() !== originalAnnouncement.titulo.trim() ||
+      selectedAnnouncement.texto.trim() !== originalAnnouncement.texto.trim()
+    );
+  };
+
+  const fecharModalEdicao = async () => {
+    if (temAlteracoesNaoSalvas()) {
+      const resultado = await Swal.fire({
+        icon: 'warning',
+        title: 'Alterações não salvas',
+        text: 'Você tem alterações não salvas. Deseja realmente sair sem salvar?',
+        showCancelButton: true,
+        confirmButtonText: 'Sim, sair sem salvar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#b91c1c',
+        cancelButtonColor: '#64748b'
+      });
+      if (!resultado.isConfirmed) return;
+    }
     setSelectedAnnouncement(null);
+    setOriginalAnnouncement(null);
   };
 
   const salvarEdicao = async () => {
@@ -130,13 +171,14 @@ export default function Overview() {
       setComunicados((items) =>
         items.map((item) => (item.id === atualizado.id ? atualizado : item))
       );
-      fecharModalEdicao();
       await Swal.fire({
         icon: 'success',
         title: 'Comunicado atualizado!',
         text: 'As alterações foram salvas com sucesso.',
         confirmButtonColor: '#0f1f3f'
       });
+      setSelectedAnnouncement(null);
+      setOriginalAnnouncement(null);
     } catch (error) {
       await Swal.fire({
         icon: 'error',
@@ -211,14 +253,16 @@ export default function Overview() {
                 <article key={item.id} className="announcement-card">
                   <div className="announcement-header">
                     <h2>{item.titulo}</h2>
-                    <ButtonContainer>
-                      <span>{formatarData(item.dataCriacao)}</span>
-                      {podeGerenciar && (
-                        <Button onClick={() => abrirModalEdicao(item)}>Editar</Button>
-                      )}
-                    </ButtonContainer>
+                    <span className="announcement-date">{formatarData(item.dataCriacao)}</span>
                   </div>
-                  <p>{item.texto}</p>
+                  <div className="announcement-content">
+                    <p>{item.texto}</p>
+                  </div>
+                  {podeGerenciar && (
+                    <div className="announcement-actions">
+                      <Button className="btn-edit" onClick={() => abrirModalEdicao(item)}>Editar</Button>
+                    </div>
+                  )}
                 </article>
               ))}
             </div>
@@ -242,15 +286,13 @@ export default function Overview() {
           />
 
           <label>Texto:</label>
-          <input
-            type="text"
-            placeholder="Texto"
+          <textarea
+            placeholder="Texto do comunicado"
             maxLength={TEXTO_MAX}
+            rows={8}
             value={novoComunicado.texto}
             onChange={(event) => setNovoComunicado((item) => ({ ...item, texto: event.target.value }))}
           />
-
-          <Button>Adicionar imagem</Button>
         </Modal>
       )}
 
@@ -260,6 +302,9 @@ export default function Overview() {
           onClose={fecharModalEdicao}
           onSave={salvarEdicao}
           onDelete={excluirComunicado}
+          cancelLabel="Cancelar"
+          saveLabel="Salvar"
+          deleteLabel="Excluir"
         >
           <label>Título:</label>
           <input
@@ -275,9 +320,9 @@ export default function Overview() {
           />
 
           <label>Texto:</label>
-          <input
-            type="text"
+          <textarea
             maxLength={TEXTO_MAX}
+            rows={8}
             value={selectedAnnouncement.texto}
             onChange={(event) =>
               setSelectedAnnouncement((item) => ({

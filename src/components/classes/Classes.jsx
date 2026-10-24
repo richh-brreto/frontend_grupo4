@@ -85,10 +85,29 @@ export default function Classes() {
     limiteAlunos: '',
     tipo: ''
   });
+  const [novaTurmaInicial, setNovaTurmaInicial] = useState({
+    nome: '',
+    nivel: '',
+    limiteAlunos: '',
+    tipo: ''
+  });
+
+  const temAlteracoesNovaTurma = () => {
+    return (
+      novaTurma.nome.trim() !== novaTurmaInicial.nome.trim() ||
+      novaTurma.nivel !== novaTurmaInicial.nivel ||
+      novaTurma.limiteAlunos !== novaTurmaInicial.limiteAlunos ||
+      novaTurma.tipo !== novaTurmaInicial.tipo ||
+      horariosSelecionados.length > 0
+    );
+  };
 
   const abrirModalAdicionar = async () => {
     setIsAddModalOpen(true);
     setHorariosError('');
+    setNovaTurma({ nome: '', nivel: '', limiteAlunos: '', tipo: '' });
+    setNovaTurmaInicial({ nome: '', nivel: '', limiteAlunos: '', tipo: '' });
+    setHorariosSelecionados([]);
 
     try {
       const data = await horariosService.listar();
@@ -99,7 +118,20 @@ export default function Classes() {
     }
   };
 
-  const fecharModalAdicionar = () => {
+  const fecharModalAdicionar = async () => {
+    if (temAlteracoesNovaTurma()) {
+      const resultado = await Swal.fire({
+        icon: 'warning',
+        title: 'Alterações não salvas',
+        text: 'Você tem alterações não salvas. Deseja realmente sair sem salvar?',
+        showCancelButton: true,
+        confirmButtonText: 'Sim, sair sem salvar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#b91c1c',
+        cancelButtonColor: '#64748b'
+      });
+      if (!resultado.isConfirmed) return;
+    }
     setIsAddModalOpen(false);
     setCadastroError('');
     setHorariosSelecionados([]);
@@ -186,12 +218,23 @@ export default function Classes() {
   };
 
   const abrirModalEdicao = async (turma) => {
-    setSelectedClass({
+    const turmaParaEdicao = {
       ...turma,
       professorId: turma.professorId ?? turma.professor?.id ?? '',
-    });
+    };
+    setSelectedClass(turmaParaEdicao);
     setHorariosEdicaoSelecionados(turma.horarios?.map((horario) => horario.id) ?? []);
     setProfessoresError('');
+    
+    // Store initial values for change detection
+    setSelectedClass(prev => ({ ...prev, 
+      _initialNome: turmaParaEdicao.nome,
+      _initialNivel: turmaParaEdicao.nivel,
+      _initialLimiteAlunos: turmaParaEdicao.limiteAlunos,
+      _initialTipo: turmaParaEdicao.tipo,
+      _initialProfessorId: turmaParaEdicao.professorId,
+      _initialHorariosIds: [...(turma.horarios?.map((horario) => horario.id) ?? [])]
+    }));
 
     try {
       const horariosData = await horariosService.listar();
@@ -204,7 +247,32 @@ export default function Classes() {
     }
   };
 
-  const fecharModalEdicao = () => {
+  const temAlteracoesEdicaoTurma = () => {
+    if (!selectedClass) return false;
+    return (
+      selectedClass.nome?.trim() !== selectedClass._initialNome?.trim() ||
+      selectedClass.nivel !== selectedClass._initialNivel ||
+      selectedClass.limiteAlunos !== selectedClass._initialLimiteAlunos ||
+      selectedClass.tipo !== selectedClass._initialTipo ||
+      selectedClass.professorId !== selectedClass._initialProfessorId ||
+      JSON.stringify([...horariosEdicaoSelecionados].sort()) !== JSON.stringify([...(selectedClass._initialHorariosIds || [])].sort())
+    );
+  };
+
+  const fecharModalEdicao = async () => {
+    if (temAlteracoesEdicaoTurma()) {
+      const resultado = await Swal.fire({
+        icon: 'warning',
+        title: 'Alterações não salvas',
+        text: 'Você tem alterações não salvas. Deseja realmente sair sem salvar?',
+        showCancelButton: true,
+        confirmButtonText: 'Sim, sair sem salvar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#b91c1c',
+        cancelButtonColor: '#64748b'
+      });
+      if (!resultado.isConfirmed) return;
+    }
     setSelectedClass(null);
     setHorariosEdicaoSelecionados([]);
   };

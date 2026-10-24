@@ -278,14 +278,8 @@
 .agenda-grid {
   display: grid;
   grid-template-columns: 70px repeat(7, 1fr);
-  min-height: calc(48px * 23);
+  min-height: calc(65px * 15);
   position: relative;
-}
-
-.agenda-grid::after {
-  content: '';
-  display: block;
-  height: 10px;
 }
 
 .agenda-frame {
@@ -300,12 +294,14 @@
 
 .hora-slot {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: flex-end;
-  padding-right: 10px;
+  padding: 4px 10px 0 0;
   border-bottom: 1px solid #ebedf0;
   color: #64748b;
   font-size: 13px;
+  height: 65px;
+  box-sizing: border-box;
 }
 
 .agenda-coluna-dia {
@@ -335,6 +331,14 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  cursor: pointer;
+  margin: 2px 4px 6px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.evento:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px rgba(15, 31, 63, 0.18);
 }
 
 .evento-cancelado {
@@ -345,6 +349,46 @@
 .evento-label {
   font-size: 13px;
   line-height: 1.2;
+}
+
+.slot-multiplo {
+  position: relative;
+}
+
+.slot-expand-icon {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.slot-container {
+  position: relative;
+}
+
+.slot-expandido {
+  position: absolute;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: auto;
+}
+
+.evento-expandido {
+  position: relative;
+  margin: 0;
+  box-shadow: 0 8px 20px rgba(15, 31, 63, 0.12);
+  border-radius: 12px;
+  padding: 10px 8px;
+}
+
+.evento-expandido:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(15, 31, 63, 0.16);
 }
 
 .evento-action {
@@ -505,6 +549,126 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.aula-detail-modal .modal-content {
+  width: min(500px, calc(100vw - 32px));
+}
+
+.aula-detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.aula-detail-section h3 {
+  margin: 0 0 16px;
+  font-size: 18px;
+  color: #0f1f3f;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.aula-detail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 0;
+}
+
+.aula-detail-field label {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.aula-detail-field span {
+  font-size: 15px;
+  color: #0f1f3f;
+}
+
+.aula-detail-field.aula-cancelada {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #fecaca;
+}
+
+.aula-detail-field .status-cancelado {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.aula-detail-actions {
+  padding-top: 8px;
+  border-top: 1px solid #e8e8e8;
+}
+
+.evento-data-info {
+  padding: 10px 0;
+  border-top: 1px solid #e8e8e8;
+  border-bottom: 1px solid #e8e8e8;
+  margin: 8px 0;
+}
+
+.evento-data-info label {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.evento-data-info input {
+  background: #f8fafc;
+  color: #0f1f3f;
+}
+
+.evento-horarios {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.evento-horarios label {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.hora-select-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.hora-select-group select {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid #d8d8d8;
+  border-radius: 14px;
+  background: #f8fafc;
+  color: #0f1f3f;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.hora-select-group span {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.evento-horarios input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #d8d8d8;
+  border-radius: 14px;
+  background: #f8fafc;
+  color: #0f1f3f;
+  font-size: 14px;
+  box-sizing: border-box;
 }
 
 @media (max-width: 900px) {
