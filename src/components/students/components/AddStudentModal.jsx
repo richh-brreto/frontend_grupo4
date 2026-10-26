@@ -100,7 +100,7 @@ export default function AddStudentModal({ onClose, onSave }) {
   };
 
   return (
-    <Modal title="Adicionar Aluno" onClose={handleFechar} onSave={handleSalvar} saving={salvando}>
+    <Modal title="Adicionar Aluno" onClose={handleFechar} onSave={handleSalvar} saving={salvando} size="sm">
       <label>Nome:</label>
       <input type="text" placeholder="Nome" value={form.nome} onChange={atualizarCampo('nome')} />
 

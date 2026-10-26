@@ -112,7 +112,8 @@ export default function Overview() {
         texto: novoComunicado.texto.trim()
       });
       setComunicados((items) => [criado, ...items]);
-      fecharModalAdicionar();
+      setIsAddModalOpen(false);
+      setNovoComunicado({ titulo: '', texto: '' });
       await Swal.fire({
         icon: 'success',
         title: 'Comunicado cadastrado!',

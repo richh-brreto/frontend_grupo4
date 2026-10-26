@@ -1,5 +1,10 @@
-.modal-content.schedule-modal {
-  width: min(920px, calc(100% - 40px));
+.modal-content.schedule-modal .modal-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  margin-bottom: 16px;
+  overflow: hidden;
 }
 
 .modal-content.professor-create-modal {
@@ -121,13 +126,6 @@
   font-weight: 600;
   color: #0f1f3f;
   font-size: 13px;
-}
-
-.schedule-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  margin-top: 24px;
 }
 
 .modal-content.professor-create-modal .modal-body {

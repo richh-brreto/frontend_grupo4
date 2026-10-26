@@ -1,5 +1,5 @@
+import { useRef, useState } from "react";
 import Button from "./Button";
-import ButtonContainer from "./ButtonContainer";
 import "./Modal.css";
 
 function Modal({
@@ -14,15 +14,38 @@ function Modal({
   saveLabel = "Salvar",
   cancelLabel = "Cancelar",
   className = "",
+  size = "md",
+  footerActions,
   hideFooter = false,
   saving = false
 }) {
+  const [savingInternally, setSavingInternally] = useState(false);
+  const saveInProgressRef = useRef(false);
+  const isSaving = saving || savingInternally;
+
+  const handleSave = async () => {
+    if (isSaving || saveInProgressRef.current) return;
+    if (!onSave) {
+      onClose();
+      return;
+    }
+
+    saveInProgressRef.current = true;
+    setSavingInternally(true);
+    try {
+      await onSave();
+    } finally {
+      saveInProgressRef.current = false;
+      setSavingInternally(false);
+    }
+  };
+
   return (
-    <div className="modal-overlay" onClick={saving ? undefined : onClose}>
+    <div className="modal-overlay" onClick={isSaving ? undefined : onClose}>
       <div className="modal-backdrop" />
 
       <div
-        className={`modal-content ${className}`.trim()}
+        className={`modal-content modal-size-${size} ${className}`.trim()}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="modal-header">
@@ -32,7 +55,7 @@ function Modal({
             type="button"
             className="modal-close"
             onClick={onClose}
-            disabled={saving}
+            disabled={isSaving}
           >
             ×
           </button>
@@ -43,15 +66,15 @@ function Modal({
         </div>
 
         {!hideFooter && (
-          <ButtonContainer>
-            {onDelete && (
-              <div style={{ marginRight: 'auto' }}>
-                <Button danger onClick={onDelete}>{deleteLabel}</Button>
-              </div>
+          <div className="modal-actions">
+            {footerActions ?? (
+              <>
+                {onDelete && <Button danger onClick={onDelete} disabled={isSaving}>{deleteLabel}</Button>}
+                {showCancel && <Button onClick={onClose} disabled={isSaving}>{cancelLabel}</Button>}
+                {showSave && <Button active onClick={handleSave} disabled={isSaving}>{isSaving ? 'Salvando...' : saveLabel}</Button>}
+              </>
             )}
-            {showCancel && <Button onClick={onClose} disabled={saving}>{cancelLabel}</Button>}
-            {showSave && <Button active onClick={onSave || onClose} disabled={saving}>{saving ? 'Salvando...' : saveLabel}</Button>}
-          </ButtonContainer>
+          </div>
         )}
       </div>
     </div>

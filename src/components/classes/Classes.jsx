@@ -23,8 +23,25 @@ const normalizar = (texto) =>
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
 
+const obterNivelTurma = (turma) => turma.nivel ?? turma.nivelIngles ?? turma.nivel_ingles ?? turma.level ?? '';
+const obterTipoTurma = (turma) => turma.tipo ?? turma.tipoTurma ?? turma.tipo_turma ?? turma.classType ?? '';
+const obterProfessorTurma = (turma) => turma.professor ?? turma.professorResponsavel ?? turma.teacher ?? null;
+const obterProfessorIdTurma = (turma) =>
+  turma.professorId ?? turma.idProfessor ?? turma.professor_id ?? turma.id_professor ?? obterProfessorTurma(turma)?.id ?? '';
+const obterNomeProfessorTurma = (turma) =>
+  turma.nomeProfessor ?? turma.professorNome ?? turma.nome_professor ?? obterProfessorTurma(turma)?.nome ?? '';
+
 const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 const HORARIOS_MODAL = Array.from({ length: 15 }, (_, index) => `${String(index + 7).padStart(2, '0')}:00`);
+const NIVEIS_TURMA = [
+  'A1 - Iniciante',
+  'A2 - Iniciante-intermediário',
+  'B1 - Intermediário',
+  'B2 - Intermediário-avançado',
+  'C1 - Avançado',
+  'C2 - Proficiente',
+];
+const TIPOS_TURMA = ['Inglês para negócios', 'Inglês geral'];
 const DIA_SEMANA_MAP = {
   'Segunda-feira': 'Segunda',
   'Terça-feira': 'Terça',
@@ -37,6 +54,15 @@ const DIA_SEMANA_MAP = {
 
 const normalizarDia = (diaSemana) => DIA_SEMANA_MAP[diaSemana] || diaSemana;
 const normalizarHora = (hora) => (hora ? hora.slice(0, 5) : hora);
+const horarioDisponivelParaProfessor = (horario, professor) => {
+  const horariosIds = (professor?.horariosIds ?? professor?.horarios?.map((item) => item.id) ?? []).map(String);
+  if (horariosIds.includes(String(horario.id))) return true;
+
+  return (professor?.horarios ?? []).some((item) =>
+    normalizarDia(item.diaSemana) === normalizarDia(horario.diaSemana)
+    && normalizarHora(item.horaInicio) === normalizarHora(horario.horaInicio)
+  );
+};
 const abreviarDia = (diaSemana) => {
   const dia = normalizarDia(diaSemana);
   return dia.slice(0, 3);
@@ -83,13 +109,15 @@ export default function Classes() {
     nome: '',
     nivel: '',
     limiteAlunos: '',
-    tipo: ''
+    tipo: '',
+    professorId: ''
   });
   const [novaTurmaInicial, setNovaTurmaInicial] = useState({
     nome: '',
     nivel: '',
     limiteAlunos: '',
-    tipo: ''
+    tipo: '',
+    professorId: ''
   });
 
   const temAlteracoesNovaTurma = () => {
@@ -98,6 +126,7 @@ export default function Classes() {
       novaTurma.nivel !== novaTurmaInicial.nivel ||
       novaTurma.limiteAlunos !== novaTurmaInicial.limiteAlunos ||
       novaTurma.tipo !== novaTurmaInicial.tipo ||
+      novaTurma.professorId !== novaTurmaInicial.professorId ||
       horariosSelecionados.length > 0
     );
   };
@@ -105,16 +134,30 @@ export default function Classes() {
   const abrirModalAdicionar = async () => {
     setIsAddModalOpen(true);
     setHorariosError('');
-    setNovaTurma({ nome: '', nivel: '', limiteAlunos: '', tipo: '' });
-    setNovaTurmaInicial({ nome: '', nivel: '', limiteAlunos: '', tipo: '' });
+    setProfessoresError('');
+    setNovaTurma({ nome: '', nivel: '', limiteAlunos: '', tipo: '', professorId: '' });
+    setNovaTurmaInicial({ nome: '', nivel: '', limiteAlunos: '', tipo: '', professorId: '' });
     setHorariosSelecionados([]);
 
-    try {
-      const data = await horariosService.listar();
+    const [horariosResult, professoresResult] = await Promise.allSettled([
+      horariosService.listar(),
+      professoresService.listar()
+    ]);
+
+    if (horariosResult.status === 'fulfilled') {
+      const data = horariosResult.value;
       setHorarios(Array.isArray(data) ? data : data.content ?? []);
-    } catch (error) {
-      console.error('Erro ao buscar horários:', error.response?.data ?? error.message);
+    } else {
+      console.error('Erro ao buscar horários:', horariosResult.reason?.response?.data ?? horariosResult.reason?.message);
       setHorariosError('Não foi possível carregar os horários disponíveis.');
+    }
+
+    if (professoresResult.status === 'fulfilled') {
+      const data = professoresResult.value;
+      setProfessores(Array.isArray(data) ? data : data.content ?? []);
+    } else {
+      console.error('Erro ao buscar professores:', professoresResult.reason?.response?.data ?? professoresResult.reason?.message);
+      setProfessoresError('Não foi possível carregar os professores disponíveis.');
     }
   };
 
@@ -152,6 +195,7 @@ export default function Classes() {
     if (!novaTurma.nome.trim()) camposInvalidos.push('nome');
     if (!novaTurma.nivel) camposInvalidos.push('nível de inglês');
     if (!novaTurma.tipo) camposInvalidos.push('tipo de turma');
+    if (!novaTurma.professorId) camposInvalidos.push('professor');
     if (
       !novaTurma.limiteAlunos ||
       Number.isNaN(limiteAlunos) ||
@@ -161,6 +205,15 @@ export default function Classes() {
       camposInvalidos.push('limite de alunos (entre 1 e 10)');
     }
     if (horariosSelecionados.length === 0) camposInvalidos.push('horários');
+    const professorSelecionado = professores.find(
+      (professor) => String(professor.id) === String(novaTurma.professorId)
+    );
+    if (horariosSelecionados.some((id) => {
+      const horario = horarios.find((item) => String(item.id) === String(id));
+      return !horario || !horarioDisponivelParaProfessor(horario, professorSelecionado);
+    })) {
+      camposInvalidos.push('horários disponíveis para o professor');
+    }
 
     if (camposInvalidos.length > 0) {
       const campos = camposInvalidos.join(', ').replace(/, ([^,]*)$/, ' e $1');
@@ -179,14 +232,20 @@ export default function Classes() {
     setCadastroError('');
 
     try {
-      const turmaCriada = await turmasService.criar({
+      const payloadTurma = {
         ...novaTurma,
         limiteAlunos,
         horariosIds: horariosSelecionados,
-      });
+      };
+      const turmaCriada = await turmasService.criar(payloadTurma);
 
       if (turmaCriada?.id) {
-        setTurmas((items) => [...items, turmaCriada]);
+        setTurmas((items) => [...items, {
+          ...turmaCriada,
+          ...payloadTurma,
+          nomeProfessor: professorSelecionado.nome,
+          professor: professorSelecionado,
+        }]);
       }
 
       await Swal.fire({
@@ -196,9 +255,11 @@ export default function Classes() {
         confirmButtonColor: '#0f1f3f'
       });
 
-      setNovaTurma({ nome: '', nivel: '', limiteAlunos: '', tipo: '' });
+      setNovaTurma({ nome: '', nivel: '', limiteAlunos: '', tipo: '', professorId: '' });
+      setNovaTurmaInicial({ nome: '', nivel: '', limiteAlunos: '', tipo: '', professorId: '' });
       setHorariosSelecionados([]);
-      fecharModalAdicionar();
+      setIsAddModalOpen(false);
+      setCadastroError('');
     } catch (error) {
       console.error('Erro ao cadastrar turma:', error.response?.data ?? error.message);
       const mensagem = error.response?.data?.message
@@ -220,7 +281,10 @@ export default function Classes() {
   const abrirModalEdicao = async (turma) => {
     const turmaParaEdicao = {
       ...turma,
-      professorId: turma.professorId ?? turma.professor?.id ?? '',
+      nivel: obterNivelTurma(turma),
+      tipo: obterTipoTurma(turma),
+      professorId: obterProfessorIdTurma(turma),
+      nomeProfessor: obterNomeProfessorTurma(turma),
     };
     setSelectedClass(turmaParaEdicao);
     setHorariosEdicaoSelecionados(turma.horarios?.map((horario) => horario.id) ?? []);
@@ -238,9 +302,41 @@ export default function Classes() {
 
     try {
       const horariosData = await horariosService.listar();
-      setHorarios(Array.isArray(horariosData) ? horariosData : horariosData.content ?? []);
+      const horariosCarregados = Array.isArray(horariosData) ? horariosData : horariosData.content ?? [];
+      setHorarios(horariosCarregados);
       const data = await professoresService.listar();
-      setProfessores(Array.isArray(data) ? data : data.content ?? []);
+      const professoresCarregados = Array.isArray(data) ? data : data.content ?? [];
+      setProfessores(professoresCarregados);
+
+      const nomeProfessor = obterNomeProfessorTurma(turma);
+      const professorAtual = professoresCarregados.find(
+        (professor) => String(professor.id) === String(turmaParaEdicao.professorId)
+      ) ?? professoresCarregados.find(
+        (professor) => normalizar(professor.nome.trim()) === normalizar(nomeProfessor.trim())
+      );
+      const professorId = professorAtual?.id ?? turmaParaEdicao.professorId;
+      const horariosDisponiveis = horariosCarregados.filter(
+        (horario) => horarioDisponivelParaProfessor(horario, professorAtual)
+      );
+      const horariosSalvos = turma.horarios ?? [];
+      const horariosIniciais = horariosDisponiveis
+        .filter((horario) => horariosSalvos.some((salvo) =>
+          String(salvo?.id ?? salvo) === String(horario.id)
+          || (salvo?.diaSemana
+            && normalizarDia(salvo.diaSemana) === normalizarDia(horario.diaSemana)
+            && normalizarHora(salvo.horaInicio) === normalizarHora(horario.horaInicio))
+        ))
+        .map((horario) => horario.id);
+
+      setSelectedClass((atual) => String(atual?.id) === String(turma.id)
+        ? {
+            ...atual,
+            professorId,
+            _initialProfessorId: professorId,
+            _initialHorariosIds: horariosIniciais,
+          }
+        : atual);
+      setHorariosEdicaoSelecionados(horariosIniciais);
     } catch (error) {
       console.error('Erro ao buscar professores:', error.response?.data ?? error.message);
       setProfessoresError('Não foi possível carregar os professores disponíveis.');
@@ -293,6 +389,15 @@ export default function Classes() {
     if (nivelInvalido) camposInvalidos.push('nível de inglês');
     if (tipoInvalido) camposInvalidos.push('tipo de turma');
     if (professorInvalido) camposInvalidos.push('professor');
+    const professorSelecionado = professores.find(
+      (professor) => String(professor.id) === String(selectedClass.professorId)
+    );
+    if (horariosEdicaoSelecionados.some((id) => {
+      const horario = horarios.find((item) => String(item.id) === String(id));
+      return !horario || !horarioDisponivelParaProfessor(horario, professorSelecionado);
+    })) {
+      camposInvalidos.push('horários disponíveis para o professor');
+    }
     if (!selectedClass.limiteAlunos || Number.isNaN(limiteAlunos) || limiteAlunos < 1 || limiteAlunos > 10) {
       camposInvalidos.push('limite de alunos (entre 1 e 10)');
     }
@@ -304,20 +409,30 @@ export default function Classes() {
     }
 
     try {
-      const turmaAtualizada = await turmasService.atualizar(selectedClass.id, {
+      const payloadAtualizacao = {
         nome: selectedClass.nome,
         nivel: selectedClass.nivel,
         tipo: selectedClass.tipo,
         limiteAlunos,
         horariosIds: horariosEdicaoSelecionados,
         professorId: selectedClass.professorId || null,
-      });
+      };
+      const turmaAtualizada = await turmasService.atualizar(selectedClass.id, payloadAtualizacao);
       setTurmas((items) =>
         items.map((item) =>
-          item.id === selectedClass.id ? (turmaAtualizada?.id ? turmaAtualizada : selectedClass) : item
+          String(item.id) === String(selectedClass.id)
+            ? {
+                ...item,
+                ...turmaAtualizada,
+                ...payloadAtualizacao,
+                nomeProfessor: professorSelecionado?.nome ?? obterNomeProfessorTurma(item),
+                professor: professorSelecionado ?? obterProfessorTurma(item),
+              }
+            : item
         )
       );
-      fecharModalEdicao();
+      setSelectedClass(null);
+      setHorariosEdicaoSelecionados([]);
       await Swal.fire({
         icon: 'success',
         title: 'Turma atualizada!',
@@ -373,10 +488,23 @@ export default function Classes() {
   useEffect(() => {
     turmasService.listar()
       .then(data => {
-        setTurmas(Array.isArray(data) ? data : data.content ?? []);
+        const turmasCarregadas = Array.isArray(data) ? data : data.content ?? [];
+        setTurmas(turmasCarregadas.map((turma) => ({
+          ...turma,
+          nivel: obterNivelTurma(turma),
+          tipo: obterTipoTurma(turma),
+          professorId: obterProfessorIdTurma(turma),
+          nomeProfessor: obterNomeProfessorTurma(turma),
+        })));
       })
       .catch(error => {
         console.error('Erro ao buscar as turmas:', error.response?.data ?? error.message);
+      });
+
+    professoresService.listar()
+      .then((data) => setProfessores(Array.isArray(data) ? data : data.content ?? []))
+      .catch((error) => {
+        console.error('Erro ao buscar os professores:', error.response?.data ?? error.message);
       });
   }, []);
 
@@ -385,7 +513,24 @@ export default function Classes() {
     ? turmas.filter((turma) => normalizar(turma.nome).includes(buscaNormalizada))
     : turmas;
 
-  const horariosPorSlot = horarios.reduce((slots, horario) => {
+  const professorNovo = professores.find(
+    (professor) => String(professor.id) === String(novaTurma.professorId)
+  );
+  const horariosDisponiveisNovo = horarios.filter(
+    (horario) => horarioDisponivelParaProfessor(horario, professorNovo)
+  );
+  const horariosPorSlot = horariosDisponiveisNovo.reduce((slots, horario) => {
+    const chave = `${normalizarDia(horario.diaSemana)}-${normalizarHora(horario.horaInicio)}`;
+    slots[chave] = [...(slots[chave] || []), horario];
+    return slots;
+  }, {});
+  const professorEdicao = professores.find(
+    (professor) => String(professor.id) === String(selectedClass?.professorId)
+  );
+  const horariosDisponiveisEdicao = horarios.filter(
+    (horario) => horarioDisponivelParaProfessor(horario, professorEdicao)
+  );
+  const horariosPorSlotEdicao = horariosDisponiveisEdicao.reduce((slots, horario) => {
     const chave = `${normalizarDia(horario.diaSemana)}-${normalizarHora(horario.horaInicio)}`;
     slots[chave] = [...(slots[chave] || []), horario];
     return slots;
@@ -439,7 +584,12 @@ export default function Classes() {
                   <div className="class-meta">
                     <div>
                       <span>Professor</span>
-                      <strong>{turma.nomeProfessor}</strong>
+                      <strong>
+                        {turma.nomeProfessor
+                          || obterNomeProfessorTurma(turma)
+                          || professores.find((professor) => String(professor.id) === String(obterProfessorIdTurma(turma)))?.nome
+                          || 'Não alocado'}
+                      </strong>
                     </div>
 
                     <div>
@@ -506,13 +656,8 @@ export default function Classes() {
               })
             }
           >
-            <option value="Selecione um nível de inglês">Selecione um nível de inglês</option>
-            <option value="A1 - Iniciante">A1 - Iniciante</option>
-            <option value="A2 - Iniciante-intermediário">A2 - Iniciante-intermediário</option>
-            <option value="B1 - Intermediário">B1 - Intermediário</option>
-            <option value="B2 - Intermediário-avançado">B2 - Intermediário-avançado</option>
-            <option value="C1 - Avançado">C1 - Avançado</option>
-            <option value="C2 - Proficiente">C2 - Proficiente</option>
+            <option value="">Selecione um nível de inglês</option>
+            {NIVEIS_TURMA.map((nivel) => <option key={nivel} value={nivel}>{nivel}</option>)}
           </select>
 
           <label>Limite de alunos:</label>
@@ -537,16 +682,42 @@ export default function Classes() {
             }
           >
             <option value="">Selecione um tipo de turma</option>
-            <option value="Inglês para negócios">Inglês para negócios</option>
-            <option value="Inglês geral">Inglês geral</option>
+            {TIPOS_TURMA.map((tipo) => <option key={tipo} value={tipo}>{tipo}</option>)}
           </select>
 
+          <label>Professor:</label>
+          <select
+            value={novaTurma.professorId}
+            onChange={(event) => {
+              const professorId = Number(event.target.value) || '';
+              const professor = professores.find((item) => String(item.id) === String(professorId));
+              const horariosPermitidos = new Set(
+                horarios
+                  .filter((horario) => horarioDisponivelParaProfessor(horario, professor))
+                  .map((horario) => String(horario.id))
+              );
+              setNovaTurma((turma) => ({ ...turma, professorId }));
+              setHorariosSelecionados((atual) =>
+                atual.filter((id) => horariosPermitidos.has(String(id)))
+              );
+            }}
+          >
+            <option value="">Selecione um professor</option>
+            {professores.map((professor) => (
+              <option key={professor.id} value={professor.id}>{professor.nome}</option>
+            ))}
+          </select>
 
           {horariosError && <p className="classes-load-error">{horariosError}</p>}
+          {professoresError && <p className="classes-load-error">{professoresError}</p>}
           {cadastroError && <p className="classes-load-error">{cadastroError}</p>}
 
           <div className="class-selected-schedule">
             <span className="class-selected-schedule-title">Selecionados</span>
+            <div className="class-selected-schedule-item">
+              <strong>Professor alocado</strong>
+              <span>{professorNovo?.nome || 'Nenhum professor selecionado'}</span>
+            </div>
             {horariosSelecionados.length > 0 ? (
               <div className="class-selected-schedule-list">
                 {[...horarios]
@@ -567,7 +738,9 @@ export default function Classes() {
 
           <div className="class-schedule class-schedule-panel">
             <p className="class-schedule-instruction">
-              Clique nos blocos para marcar os horários em que a turma estará disponível.
+              {professorNovo
+                ? `Disponibilidade de ${professorNovo.nome}. Selecione os horários da turma.`
+                : 'Selecione um professor para ver a disponibilidade de horários.'}
             </p>
             <div className="class-schedule-scroll">
               <ScheduleGrid
@@ -591,7 +764,12 @@ export default function Classes() {
                       className={`class-slot-cell ${horario ? 'filled' : 'empty'} ${isSelected ? 'selected' : ''}`}
                       onClick={() => horario && alternarHorario(horario)}
                       disabled={!horario}
-                    />
+                      aria-label={horario
+                        ? `${normalizarDia(horario.diaSemana)} às ${normalizarHora(horario.horaInicio)}`
+                        : 'Sem disponibilidade do professor'}
+                    >
+                      {horario && <span>{normalizarHora(horario.horaInicio)} - {normalizarHora(horario.horaFim)}</span>}
+                    </button>
                   );
                 }}
               />
@@ -618,36 +796,63 @@ export default function Classes() {
             <label>Nível:</label>
             <select value={selectedClass.nivel} onChange={(event) => setSelectedClass((turma) => ({ ...turma, nivel: event.target.value }))}>
               <option value="">Selecione um nível</option>
-              <option value="Iniciante - A1">Iniciante - A1</option>
-              <option value="Iniciante-intermediário - A2">Iniciante-intermediário - A2</option>
-              <option value="Intermediário - B1">Intermediário - B1</option>
-              <option value="Intermediário-avançado - B2">Intermediário-avançado - B2</option>
-              <option value="Avançado - C1">Avançado - C1</option>
-              <option value="Proficiente - C2">Proficiente - C2</option>
+              {selectedClass.nivel && !NIVEIS_TURMA.includes(selectedClass.nivel) && (
+                <option value={selectedClass.nivel}>{selectedClass.nivel}</option>
+              )}
+              {NIVEIS_TURMA.map((nivel) => <option key={nivel} value={nivel}>{nivel}</option>)}
             </select>
             <label>Limite de alunos:</label>
             <input type="number" min={1} max={10} value={selectedClass.limiteAlunos} onChange={(event) => setSelectedClass((turma) => ({ ...turma, limiteAlunos: event.target.value }))} />
             <label>Tipo de turma:</label>
             <select value={selectedClass.tipo ?? ''} onChange={(event) => setSelectedClass((turma) => ({ ...turma, tipo: event.target.value }))}>
               <option value="">Selecione um tipo de turma</option>
-              <option value="Inglês para negócios">Inglês para negócios</option>
-              <option value="Inglês geral">Inglês geral</option>
+              {selectedClass.tipo && !TIPOS_TURMA.includes(selectedClass.tipo) && (
+                <option value={selectedClass.tipo}>{selectedClass.tipo}</option>
+              )}
+              {TIPOS_TURMA.map((tipo) => <option key={tipo} value={tipo}>{tipo}</option>)}
             </select>
             <label>Professor:</label>
-            <select value={selectedClass.professorId} onChange={(event) => setSelectedClass((turma) => ({ ...turma, professorId: Number(event.target.value) || '' }))}>
+            <select value={selectedClass.professorId ?? ''} onChange={(event) => {
+              const professorId = Number(event.target.value) || '';
+              const professor = professores.find((item) => String(item.id) === String(professorId));
+              const horariosPermitidos = new Set(
+                horarios
+                  .filter((horario) => horarioDisponivelParaProfessor(horario, professor))
+                  .map((horario) => String(horario.id))
+              );
+              setSelectedClass((turma) => ({ ...turma, professorId }));
+              setHorariosEdicaoSelecionados((atual) =>
+                atual.filter((id) => horariosPermitidos.has(String(id)))
+              );
+            }}>
               <option value="">Selecione um professor</option>
+              {selectedClass.professorId && !professores.some(
+                (professor) => String(professor.id) === String(selectedClass.professorId)
+              ) && (
+                <option value={selectedClass.professorId}>
+                  {selectedClass.nomeProfessor || selectedClass.professor?.nome || 'Professor atual'}
+                </option>
+              )}
               {professores.map((professor) => <option key={professor.id} value={professor.id}>{professor.nome}</option>)}
             </select>
             {professoresError && <p className="classes-load-error">{professoresError}</p>}
             <div className="class-selected-schedule">
               <span className="class-selected-schedule-title">Selecionados</span>
-              {horariosEdicaoSelecionados.length > 0 ? horarios.filter((horario) => horariosEdicaoSelecionados.includes(horario.id)).sort(ordenarHorarios).map((horario) => (
+              <div className="class-selected-schedule-item">
+                <strong>Professor alocado</strong>
+                <span>{professorEdicao?.nome || 'Nenhum professor selecionado'}</span>
+              </div>
+              {horariosEdicaoSelecionados.length > 0 ? horariosDisponiveisEdicao.filter((horario) => horariosEdicaoSelecionados.includes(horario.id)).sort(ordenarHorarios).map((horario) => (
                 <div key={horario.id} className="class-selected-schedule-item"><strong>{normalizarDia(horario.diaSemana)}</strong><span>{normalizarHora(horario.horaInicio)} - {normalizarHora(horario.horaFim)}</span></div>
               )) : <span className="class-selected-schedule-empty">Nenhum horário selecionado</span>}
             </div>
           </div>
           <div className="class-schedule class-schedule-panel">
-            <p className="class-schedule-instruction">Clique nos blocos para marcar os horários em que a turma estará disponível.</p>
+            <p className="class-schedule-instruction">
+              {professorEdicao
+                ? `Disponibilidade de ${professorEdicao.nome}. Selecione os horários da turma.`
+                : 'Selecione um professor para ver a disponibilidade de horários.'}
+            </p>
             <div className="class-schedule-scroll">
               <ScheduleGrid
                 className="class-week-grid"
@@ -658,11 +863,24 @@ export default function Classes() {
                 dayColumnClassName="class-day-column"
                 days={DIAS_SEMANA}
                 hours={HORARIOS_MODAL.map((hora) => ({ value: hora, label: hora, key: `hora-${hora}` }))}
-                getSlot={(dia, hora) => (horarios.filter((item) => normalizarDia(item.diaSemana) === dia && normalizarHora(item.horaInicio) === hora)[0])}
+                getSlot={(dia, hora) => (horariosPorSlotEdicao[`${dia}-${hora}`] || [])[0]}
                 renderSlot={({ slot: horario, day, hour, key }) => {
-                  const opcoes = horarios.filter((item) => normalizarDia(item.diaSemana) === day && normalizarHora(item.horaInicio) === hour);
+                  const opcoes = horariosPorSlotEdicao[`${day}-${hour}`] || [];
                   const selecionado = opcoes.some((item) => horariosEdicaoSelecionados.includes(item.id));
-                  return <button key={key} type="button" className={`class-slot-cell ${horario ? 'filled' : 'empty'} ${selecionado ? 'selected' : ''}`} onClick={() => horario && setHorariosEdicaoSelecionados((atual) => atual.includes(horario.id) ? atual.filter((id) => id !== horario.id) : [...atual, horario.id])} disabled={!horario}><strong>{horario ? `${normalizarHora(horario.horaInicio)} - ${normalizarHora(horario.horaFim)}` : 'Indisponível'}</strong></button>;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      className={`class-slot-cell ${horario ? 'filled' : 'empty'} ${selecionado ? 'selected' : ''}`}
+                      onClick={() => horario && setHorariosEdicaoSelecionados((atual) => atual.includes(horario.id) ? atual.filter((id) => id !== horario.id) : [...atual, horario.id])}
+                      disabled={!horario}
+                      aria-label={horario
+                        ? `${normalizarDia(horario.diaSemana)} às ${normalizarHora(horario.horaInicio)}`
+                        : 'Sem disponibilidade do professor'}
+                    >
+                      {horario && <span>{normalizarHora(horario.horaInicio)} - {normalizarHora(horario.horaFim)}</span>}
+                    </button>
+                  );
                 }}
               />
             </div>

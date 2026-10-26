@@ -29,6 +29,32 @@ const formatarDataLocal = (data) => [
   String(data.getDate()).padStart(2, '0')
 ].join('-');
 
+const obterValorSemana = (data) => {
+  const quinta = new Date(data);
+  quinta.setHours(12, 0, 0, 0);
+  quinta.setDate(quinta.getDate() + 3 - ((quinta.getDay() + 6) % 7));
+  const ano = quinta.getFullYear();
+  const primeiraQuinta = new Date(ano, 0, 4, 12);
+  primeiraQuinta.setDate(primeiraQuinta.getDate() + 3 - ((primeiraQuinta.getDay() + 6) % 7));
+  const numeroSemana = 1 + Math.round((quinta - primeiraQuinta) / (7 * 24 * 60 * 60 * 1000));
+  return `${ano}-W${String(numeroSemana).padStart(2, '0')}`;
+};
+
+const obterDataDaSemana = (valor) => {
+  const [ano, semana] = valor.split('-W').map(Number);
+  const quatroDeJaneiro = new Date(ano, 0, 4, 12);
+  const segundaPrimeiraSemana = new Date(quatroDeJaneiro);
+  segundaPrimeiraSemana.setDate(quatroDeJaneiro.getDate() - ((quatroDeJaneiro.getDay() + 6) % 7));
+  segundaPrimeiraSemana.setDate(segundaPrimeiraSemana.getDate() + (semana - 1) * 7);
+  return segundaPrimeiraSemana;
+};
+
+const normalizarTexto = (texto) => String(texto ?? '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+  .trim();
+
 // Em contratos de grupo cada aluno tem o próprio contrato e, portanto, as próprias aulas.
 // Na agenda, as aulas da mesma turma no mesmo dia e horário viram um único evento.
 const agruparAulas = (aulas) => {
@@ -124,9 +150,10 @@ const obterDiasSemana = (dataAtual) => {
 export default function Agenda() {
   const [aulas, setAulas] = useState([]);
   const [carregando, setCarregando] = useState(true);
+  const [erroCarregamento, setErroCarregamento] = useState('');
   const [dataAtual, setDataAtual] = useState(new Date());
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-  const [filtros, setFiltros] = useState({ dataInicio: '', dataFim: '', conta: '', professor: '' });
+  const [filtros, setFiltros] = useState({ busca: '', professor: '' });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   // Itens do menu sao filtrados pelas telas liberadas no cadastro do professor
   const itensMenu = useItensMenu('/aulas');
@@ -381,7 +408,10 @@ export default function Agenda() {
         turma: 'Individual',
         status: 'AGENDADA'
       });
-      fecharModalAdicionar();
+      setIsAddModalOpen(false);
+      setSelectedDay(null);
+      setNovoEvento({ nome: '', descricao: '', professorId: '', horaInicio: '07:00', horaFim: '08:00' });
+      setProfessoresDisponiveis([]);
       recarregarAulas();
       await Swal.fire({
         icon: 'success',
@@ -447,6 +477,7 @@ export default function Agenda() {
     const fetchAulas = async () => {
       try {
         setCarregando(true);
+        setErroCarregamento('');
         const semana = obterDiasSemana(dataAtual);
         const resposta = await aulasService.listarPorPeriodo(semana[0].data, semana[semana.length - 1].data);
 
@@ -454,12 +485,7 @@ export default function Agenda() {
       } catch (error) {
         if (ignorar) return;
         console.error('Erro ao buscar aulas:', error);
-        await Swal.fire({
-          icon: 'error',
-          title: 'Erro ao carregar',
-          text: error.response?.data?.error || error.message || 'Não foi possível carregar as aulas.',
-          confirmButtonColor: '#0f1f3f'
-        });
+        setErroCarregamento(error.response?.data?.error || error.message || 'Não foi possível carregar as aulas.');
       } finally {
         if (!ignorar) setCarregando(false);
       }
@@ -473,6 +499,8 @@ export default function Agenda() {
     };
   }, [dataAtual, versaoAulas]);
 
+  const alturaHora = isFiltersOpen ? ALTURA_HORA + 7 : ALTURA_HORA;
+
   const calcularEstiloEvento = (horaInicio, horaFim) => {
     const [horaI, minutoI] = horaInicio.split(':').map(Number);
     const [horaF, minutoF] = horaFim.split(':').map(Number);
@@ -482,18 +510,19 @@ export default function Agenda() {
     const duracao = minutoFim - minutoInicio;
 
     return {
-      top: `${(minutoInicio / 60) * ALTURA_HORA + 4}px`,
-      height: `${(duracao / 60) * ALTURA_HORA - 8}px`,
+      top: `${(minutoInicio / 60) * alturaHora + 4}px`,
+      height: `${(duracao / 60) * alturaHora - 8}px`,
       minHeight: '38px'
     };
   };
 
-  const aulasFiltradas = aulas.filter(aula => (
-    (!filtros.dataInicio || aula.data >= filtros.dataInicio)
-    && (!filtros.dataFim || aula.data <= filtros.dataFim)
-    && (!filtros.conta || aula.conta.toLowerCase().includes(filtros.conta.toLowerCase()))
-    && (!filtros.professor || aula.professor === filtros.professor)
-  ));
+  const aulasFiltradas = aulas.filter((aula) => {
+    const termosBusca = [aula.conta, aula.turma, ...(aula.participantes || []).map((item) => item.aluno)];
+    return (
+      (!filtros.busca || termosBusca.some((termo) => normalizarTexto(termo).includes(normalizarTexto(filtros.busca))))
+      && (!filtros.professor || aula.professor === filtros.professor)
+    );
+  });
 
   const professores = [...new Set(aulas.map(aula => aula.professor).filter(Boolean))];
 
@@ -502,7 +531,7 @@ export default function Agenda() {
   };
 
   const limparFiltros = () => {
-    setFiltros({ dataInicio: '', dataFim: '', conta: '', professor: '' });
+    setFiltros({ busca: '', professor: '' });
   };
 
   const obterAulasPorDia = (dataDia) => aulasFiltradas.filter(aula => aula.data === dataDia);
@@ -570,6 +599,7 @@ export default function Agenda() {
 
   const diasSemana = obterDiasSemana(dataAtual);
   const intervaloSemana = `${formatarDiaMes(diasSemana[0].data)} – ${formatarDiaMes(diasSemana[6].data)}/${diasSemana[6].data.slice(0, 4)}`;
+  const valorSemana = obterValorSemana(dataAtual);
 
   const mudarSemana = (deslocamento) => {
     setDataAtual(dataAnterior => {
@@ -603,6 +633,17 @@ export default function Agenda() {
                 <button type="button" className="tab-button" onClick={() => setDataAtual(new Date())}>
                   Hoje
                 </button>
+                <label className="agenda-week-picker">
+                  <span>Semana</span>
+                  <input
+                    type="week"
+                    value={valorSemana}
+                    onChange={(event) => {
+                      if (event.target.value) setDataAtual(obterDataDaSemana(event.target.value));
+                    }}
+                    aria-label="Selecionar semana"
+                  />
+                </label>
                 <button type="button" className="tab-button" onClick={() => mudarSemana(1)} aria-label="Próxima semana">
                   ›
                 </button>
@@ -623,6 +664,13 @@ export default function Agenda() {
 
           <div className="agenda-workspace">
             <div className="agenda-frame">
+              {erroCarregamento ? (
+                <div className="agenda-load-error" role="alert">
+                  <p>Não foi possível carregar os eventos da semana. {erroCarregamento}</p>
+                  <Button active onClick={recarregarAulas}>Tentar novamente</Button>
+                </div>
+              ) : (
+                <>
               <div className="agenda-dias-header">
                 <div className="agenda-horarios-label"></div>
                 {diasSemana.map((dia, idx) => (
@@ -639,7 +687,7 @@ export default function Agenda() {
                 <div className="agenda-grid">
                   <div className="agenda-horarios">
                     {HORAS.map((hora, idx) => (
-                      <div key={idx} className="hora-slot" style={{ height: `${ALTURA_HORA}px` }}>
+                      <div key={idx} className="hora-slot" style={{ height: `${alturaHora}px` }}>
                         <span>{hora}</span>
                       </div>
                     ))}
@@ -651,7 +699,7 @@ export default function Agenda() {
                         <div
                           key={`${diaIdx}-${horaIdx}`}
                           className="hora-slot"
-                          style={{ height: `${ALTURA_HORA}px` }}
+                          style={{ height: `${alturaHora}px` }}
                         />
                       ))}
 
@@ -716,6 +764,8 @@ export default function Agenda() {
                   ))}
                 </div>
               </div>
+                </>
+              )}
             </div>
 
             {isFiltersOpen && (
@@ -732,21 +782,13 @@ export default function Agenda() {
                   </button>
                 </div>
 
-                <label htmlFor="data-inicio">Data de início</label>
+                <label htmlFor="agenda-busca">Aluno ou turma</label>
                 <input
-                  id="data-inicio"
-                  type="date"
-                  value={filtros.dataInicio}
-                  onChange={event => atualizarFiltro('dataInicio', event.target.value)}
-                />
-
-                <label htmlFor="data-fim">Data de fim</label>
-                <input
-                  id="data-fim"
-                  type="date"
-                  value={filtros.dataFim}
-                  min={filtros.dataInicio}
-                  onChange={event => atualizarFiltro('dataFim', event.target.value)}
+                  id="agenda-busca"
+                  type="search"
+                  placeholder="Buscar aluno ou turma"
+                  value={filtros.busca}
+                  onChange={event => atualizarFiltro('busca', event.target.value)}
                 />
 
                 <label htmlFor="professor">Professor</label>

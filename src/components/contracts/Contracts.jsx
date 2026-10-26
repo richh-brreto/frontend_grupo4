@@ -506,7 +506,11 @@ export default function Contracts() {
         horariosIds: selectedSchedule.map(({ item }) => parseInt(item.horarioId))
       });
       setContratos((items) => items.map((item) => item.id === contratoAtualizado.id ? contratoAtualizado : item));
-      fecharModalEdicao();
+      setSelectedContract(null);
+      setSelectedSchedule([]);
+      setEditScheduleByType({});
+      setOpenSlot(null);
+      contractFormInicialRef.current = null;
       await Swal.fire({ icon: 'success', title: 'Contrato atualizado!', text: 'As alterações foram salvas com sucesso.', confirmButtonColor: '#0f1f3f' });
     } catch (erro) {
       console.error('Erro ao atualizar contrato:', erro);

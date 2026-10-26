@@ -75,12 +75,14 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Buscar dados do backend ao montar o componente
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
+        setError(null);
         const response = await axios.get('/dashboard/professores');
         
         // Adaptar os dados da API para o formato esperado
@@ -103,9 +105,8 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
         setError(null);
       } catch (err) {
         console.error('Erro ao buscar dados do dashboard:', err);
-        setError('Erro ao carregar dados do dashboard');
-        // Usar dados padrão em caso de erro
-        setDashboardData(defaultPayload);
+        setError(err.response?.data?.message || err.message || 'Erro ao carregar dados do dashboard');
+        setDashboardData(import.meta.env.DEV ? defaultPayload : null);
       } finally {
         setLoading(false);
       }
@@ -116,28 +117,31 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
       fetchDashboardData();
     } else {
       setDashboardData(externalDashboardData);
+      setError(null);
       setLoading(false);
     }
-  }, [externalDashboardData]);
+  }, [externalDashboardData, retryCount]);
 
-  const data = useMemo(() => ({
-    ...defaultPayload,
-    ...(dashboardData || {}),
-    detalhes: (dashboardData?.detalhes || defaultPayload.detalhes).map((item, index) => ({
-      ...item,
-      professorId: item.professorId ?? index + 1
-    }))
-  }), [dashboardData]);
+  const data = useMemo(() => {
+    const source = dashboardData ?? (import.meta.env.DEV ? defaultPayload : {});
+    return {
+      ...source,
+      detalhes: (source.detalhes || []).map((item, index) => ({
+        ...item,
+        professorId: item.professorId ?? index + 1
+      }))
+    };
+  }, [dashboardData]);
 
   // A dashboard é um snapshot semanal (grade contratada x disponibilidade),
   // então não filtramos por período aqui. As datas acima servem só para o
   // "Exportar relatório".
   const resumo = {
     detalhes: data.detalhes,
-    totalProfessores: new Set(data.detalhes.map(item => item.professorId)).size,
-    totalAulas: data.detalhes.reduce((total, item) => total + Number(item.aulasCount || 0), 0),
-    totalHorasLivres: data.detalhes.reduce((total, item) => total + Number(item.horasLivres || 0), 0),
-    professoresSobrecarregados: data.detalhes.filter(item => getStatusClass(item.status) === 'status-overload').length
+    totalProfessores: data.totalProfessores ?? new Set(data.detalhes.map(item => item.professorId)).size,
+    totalAulas: data.totalAulas ?? data.detalhes.reduce((total, item) => total + Number(item.aulasCount || 0), 0),
+    totalHorasLivres: data.totalHorasLivres ?? data.detalhes.reduce((total, item) => total + Number(item.horasLivres || 0), 0),
+    professoresSobrecarregados: data.professoresSobrecarregados ?? data.detalhes.filter(item => getStatusClass(item.status) === 'status-overload').length
   };
 
   const maxHours = Math.max(...data.detalhes.map(item => Number(item.horasSemanais || 0)), 40);
@@ -175,7 +179,10 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
         />
         <main className="agenda-content">
           <div className="agenda-panel dashboard1-panel">
-            <p style={{ textAlign: 'center', padding: '20px', color: 'red' }}>{error}</p>
+            <div className="dashboard1-error" role="alert">
+              <p>Não foi possível carregar os dados do painel. {error}</p>
+              <Button active onClick={() => setRetryCount((count) => count + 1)}>Tentar novamente</Button>
+            </div>
           </div>
         </main>
       </div>
@@ -221,6 +228,12 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
               </ButtonContainer>
             </div>
           </div>
+
+          {error && import.meta.env.DEV && (
+            <div className="dashboard1-demo-warning" role="status">
+              {error}. Exibindo dados de exemplo apenas em desenvolvimento.
+            </div>
+          )}
 
           <div className="dashboard1-metrics">
             <article className="metric-card-large">

@@ -93,6 +93,7 @@ export default function EditStudentModal({ aluno, onClose, onSave, onChange, onD
       onSave={handleSalvar}
       onDelete={onDelete}
       saveLabel={salvando ? 'Salvando...' : 'Salvar'}
+      size="sm"
     >
       <label>Nome:</label>
       <input

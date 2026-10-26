@@ -47,6 +47,34 @@
   padding: 9px 10px;
 }
 
+.dashboard1-error {
+  display: flex;
+  flex: 1;
+  min-height: 240px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  color: #9f1239;
+  text-align: center;
+}
+
+.dashboard1-error p {
+  max-width: 560px;
+  line-height: 1.5;
+}
+
+.dashboard1-demo-warning {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border: 1px solid #fbbf24;
+  border-radius: 8px;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 13px;
+}
+
 .dashboard1-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

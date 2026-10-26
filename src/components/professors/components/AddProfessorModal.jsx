@@ -80,10 +80,14 @@ export default function AddProfessorModal({ onClose, onSave }) {
     setSalvando(true);
     setErro(null);
 
-    onSave(payload)
-      .then(() => onClose())
-      .catch((err) => setErro(err.message))
-      .finally(() => setSalvando(false));
+    try {
+      await onSave(payload);
+      onClose();
+    } catch (err) {
+      setErro(err.message);
+    } finally {
+      setSalvando(false);
+    }
   };
 
   return (
