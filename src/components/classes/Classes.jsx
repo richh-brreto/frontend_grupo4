@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
-import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
 import Modal from '../layout/Modal';
@@ -9,8 +8,6 @@ import ScheduleGrid from '../schedule/ScheduleGrid';
 import { horariosService } from '../contracts/horariosService';
 import { professoresService } from '../professors/components/professoresService';
 import { turmasService } from "./turmasService";
-import { useItensMenu } from '../../utils/menuItems';
-import { usePermissoes } from '../../utils/permissions';
 import { ordenarHorarios } from '../../utils/ordenarHorarios';
 import '../agenda/Agenda.css';
 import './Classes.css';
@@ -30,6 +27,16 @@ const obterProfessorIdTurma = (turma) =>
   turma.professorId ?? turma.idProfessor ?? turma.professor_id ?? turma.id_professor ?? obterProfessorTurma(turma)?.id ?? '';
 const obterNomeProfessorTurma = (turma) =>
   turma.nomeProfessor ?? turma.professorNome ?? turma.nome_professor ?? obterProfessorTurma(turma)?.nome ?? '';
+const obterHorarioId = (horario) =>
+  typeof horario === 'object' && horario !== null
+    ? horario.id ?? horario.horarioId ?? horario.idHorario
+    : horario;
+const obterHorariosIdsTurma = (turma) => [
+  ...new Set([
+    ...(Array.isArray(turma?.horariosIds) ? turma.horariosIds : []),
+    ...(Array.isArray(turma?.horarios) ? turma.horarios : []),
+  ].map(obterHorarioId).filter((id) => id != null).map(String)),
+];
 
 const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 const HORARIOS_MODAL = Array.from({ length: 15 }, (_, index) => `${String(index + 7).padStart(2, '0')}:00`);
@@ -55,14 +62,30 @@ const DIA_SEMANA_MAP = {
 const normalizarDia = (diaSemana) => DIA_SEMANA_MAP[diaSemana] || diaSemana;
 const normalizarHora = (hora) => (hora ? hora.slice(0, 5) : hora);
 const horarioDisponivelParaProfessor = (horario, professor) => {
-  const horariosIds = (professor?.horariosIds ?? professor?.horarios?.map((item) => item.id) ?? []).map(String);
+  const horariosProfessor = Array.isArray(professor?.horarios) ? professor.horarios : [];
+  const horariosIds = [
+    ...(Array.isArray(professor?.horariosIds) ? professor.horariosIds : []),
+    ...horariosProfessor.map(obterHorarioId),
+  ].filter((id) => id != null).map(String);
   if (horariosIds.includes(String(horario.id))) return true;
 
-  return (professor?.horarios ?? []).some((item) =>
+  return horariosProfessor.some((item) => typeof item === 'object' && item !== null &&
     normalizarDia(item.diaSemana) === normalizarDia(horario.diaSemana)
     && normalizarHora(item.horaInicio) === normalizarHora(horario.horaInicio)
   );
 };
+const horarioOcupadoPorOutraTurma = (horario, professorId, turmas, turmaIdIgnorada) =>
+  turmas.some((turma) => {
+    if (String(obterProfessorIdTurma(turma)) !== String(professorId)) return false;
+    if (turmaIdIgnorada != null && String(turma.id) === String(turmaIdIgnorada)) return false;
+
+    if (obterHorariosIdsTurma(turma).includes(String(horario.id))) return true;
+    return (Array.isArray(turma.horarios) ? turma.horarios : []).some((alocado) =>
+      alocado && typeof alocado === 'object' && alocado.diaSemana
+        && normalizarDia(alocado.diaSemana) === normalizarDia(horario.diaSemana)
+        && normalizarHora(alocado.horaInicio) === normalizarHora(horario.horaInicio)
+    );
+  });
 const abreviarDia = (diaSemana) => {
   const dia = normalizarDia(diaSemana);
   return dia.slice(0, 3);
@@ -87,10 +110,6 @@ const agruparHorariosPorDia = (horarios = []) => {
 };
 
 export default function Classes() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  // Itens do menu sao filtrados pelas telas liberadas no cadastro do professor
-  const itensMenu = useItensMenu('/turmas');
-  const { carregando: carregandoPermissoes } = usePermissoes();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
   const [classDetails, setClassDetails] = useState(null);
@@ -104,6 +123,17 @@ export default function Classes() {
   const [professores, setProfessores] = useState([]);
   const [professoresError, setProfessoresError] = useState('');
   const [busca, setBusca] = useState('');
+  const horarioPodeSerAlocado = (horario, professor, turmaIdIgnorada) => {
+    const turmaAtual = turmaIdIgnorada == null
+      ? null
+      : turmas.find((turma) => String(turma.id) === String(turmaIdIgnorada));
+    const horarioJaAlocadoNaTurmaAtual = obterProfessorIdTurma(turmaAtual ?? {}) != null
+      && String(obterProfessorIdTurma(turmaAtual ?? {})) === String(professor?.id)
+      && obterHorariosIdsTurma(turmaAtual).includes(String(horario.id));
+
+    return (horarioDisponivelParaProfessor(horario, professor) || horarioJaAlocadoNaTurmaAtual)
+      && !horarioOcupadoPorOutraTurma(horario, professor?.id, turmas, turmaIdIgnorada);
+  };
 
   const [novaTurma, setNovaTurma] = useState({
     nome: '',
@@ -210,7 +240,7 @@ export default function Classes() {
     );
     if (horariosSelecionados.some((id) => {
       const horario = horarios.find((item) => String(item.id) === String(id));
-      return !horario || !horarioDisponivelParaProfessor(horario, professorSelecionado);
+      return !horario || !horarioPodeSerAlocado(horario, professorSelecionado);
     })) {
       camposInvalidos.push('horários disponíveis para o professor');
     }
@@ -287,7 +317,7 @@ export default function Classes() {
       nomeProfessor: obterNomeProfessorTurma(turma),
     };
     setSelectedClass(turmaParaEdicao);
-    setHorariosEdicaoSelecionados(turma.horarios?.map((horario) => horario.id) ?? []);
+    setHorariosEdicaoSelecionados([]);
     setProfessoresError('');
     
     // Store initial values for change detection
@@ -297,7 +327,7 @@ export default function Classes() {
       _initialLimiteAlunos: turmaParaEdicao.limiteAlunos,
       _initialTipo: turmaParaEdicao.tipo,
       _initialProfessorId: turmaParaEdicao.professorId,
-      _initialHorariosIds: [...(turma.horarios?.map((horario) => horario.id) ?? [])]
+      _initialHorariosIds: obterHorariosIdsTurma(turma)
     }));
 
     try {
@@ -316,12 +346,14 @@ export default function Classes() {
       );
       const professorId = professorAtual?.id ?? turmaParaEdicao.professorId;
       const horariosDisponiveis = horariosCarregados.filter(
-        (horario) => horarioDisponivelParaProfessor(horario, professorAtual)
+        (horario) => horarioPodeSerAlocado(horario, professorAtual, turmaParaEdicao.id)
       );
-      const horariosSalvos = turma.horarios ?? [];
+      const horariosSalvos = Array.isArray(turma.horarios) ? turma.horarios : [];
+      const horariosSalvosIds = obterHorariosIdsTurma(turma);
       const horariosIniciais = horariosDisponiveis
-        .filter((horario) => horariosSalvos.some((salvo) =>
-          String(salvo?.id ?? salvo) === String(horario.id)
+        .filter((horario) => horariosSalvosIds.includes(String(horario.id))
+          || horariosSalvos.some((salvo) =>
+          String(obterHorarioId(salvo)) === String(horario.id)
           || (salvo?.diaSemana
             && normalizarDia(salvo.diaSemana) === normalizarDia(horario.diaSemana)
             && normalizarHora(salvo.horaInicio) === normalizarHora(horario.horaInicio))
@@ -394,7 +426,7 @@ export default function Classes() {
     );
     if (horariosEdicaoSelecionados.some((id) => {
       const horario = horarios.find((item) => String(item.id) === String(id));
-      return !horario || !horarioDisponivelParaProfessor(horario, professorSelecionado);
+      return !horario || !horarioPodeSerAlocado(horario, professorSelecionado, selectedClass.id);
     })) {
       camposInvalidos.push('horários disponíveis para o professor');
     }
@@ -441,7 +473,12 @@ export default function Classes() {
       });
     } catch (error) {
       console.error('Erro ao atualizar turma:', error.response?.data ?? error.message);
-      alert('Não foi possível salvar as alterações da turma.');
+      await Swal.fire({
+        icon: 'error',
+        title: 'Não foi possível atualizar a turma',
+        text: error.response?.data?.message || error.message || 'Tente novamente.',
+        confirmButtonColor: '#0f1f3f'
+      });
     }
   };
 
@@ -464,7 +501,8 @@ export default function Classes() {
     try {
       await turmasService.excluir(selectedClass.id);
       setTurmas((items) => items.filter((item) => item.id !== selectedClass.id));
-      fecharModalEdicao();
+      setSelectedClass(null);
+      setHorariosEdicaoSelecionados([]);
       await Swal.fire({
         icon: 'success',
         title: 'Turma excluída!',
@@ -473,7 +511,12 @@ export default function Classes() {
       });
     } catch (error) {
       console.error('Erro ao excluir turma:', error.response?.data ?? error.message);
-      alert('Não foi possível excluir a turma. Tente novamente.');
+      await Swal.fire({
+        icon: 'error',
+        title: 'Não foi possível excluir a turma',
+        text: error.response?.data?.message || error.message || 'Tente novamente.',
+        confirmButtonColor: '#0f1f3f'
+      });
     }
   };
 
@@ -517,7 +560,7 @@ export default function Classes() {
     (professor) => String(professor.id) === String(novaTurma.professorId)
   );
   const horariosDisponiveisNovo = horarios.filter(
-    (horario) => horarioDisponivelParaProfessor(horario, professorNovo)
+    (horario) => horarioPodeSerAlocado(horario, professorNovo)
   );
   const horariosPorSlot = horariosDisponiveisNovo.reduce((slots, horario) => {
     const chave = `${normalizarDia(horario.diaSemana)}-${normalizarHora(horario.horaInicio)}`;
@@ -528,7 +571,7 @@ export default function Classes() {
     (professor) => String(professor.id) === String(selectedClass?.professorId)
   );
   const horariosDisponiveisEdicao = horarios.filter(
-    (horario) => horarioDisponivelParaProfessor(horario, professorEdicao)
+    (horario) => horarioPodeSerAlocado(horario, professorEdicao, selectedClass?.id)
   );
   const horariosPorSlotEdicao = horariosDisponiveisEdicao.reduce((slots, horario) => {
     const chave = `${normalizarDia(horario.diaSemana)}-${normalizarHora(horario.horaInicio)}`;
@@ -537,15 +580,7 @@ export default function Classes() {
   }, {});
 
   return (
-    <div className="agenda-page classes-page">
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(prev => !prev)}
-        items={itensMenu}
-        carregando={carregandoPermissoes}
-      />
-
-      <main className="agenda-content">
+    <>
         <div className="agenda-panel">
           <div className="agenda-topbar">
             <div>
@@ -555,12 +590,13 @@ export default function Classes() {
               <input
                 type="text"
                 placeholder="Buscar turma por nome..."
+                aria-label="Buscar turma por nome"
                 value={busca}
                 onChange={(event) => setBusca(event.target.value)}
                 className="class-search-input"
               />
             
-              <Button onClick={abrirModalAdicionar}>Adicionar turma</Button>
+              <Button variant="primary" onClick={abrirModalAdicionar}>Adicionar turma</Button>
               
             </ButtonContainer>
           </div>
@@ -624,7 +660,6 @@ export default function Classes() {
             />
           </div>
         </div>
-      </main>
 
       {isAddModalOpen && (
         <Modal
@@ -635,8 +670,9 @@ export default function Classes() {
           className="class-create-modal"
         >
           <div className="class-form-panel">
-          <label>Nome:</label>
+          <label className="modal-field-label" htmlFor="class-create-name">Nome:</label>
           <input
+            id="class-create-name" className="modal-form-control"
             type="text" placeholder="Nome" value={novaTurma.nome}
             onChange={(event) =>
               setNovaTurma({
@@ -646,8 +682,9 @@ export default function Classes() {
             }
           />
 
-          <label>Nível de Inglês:</label>
+          <label className="modal-field-label" htmlFor="class-create-level">Nível de Inglês:</label>
           <select
+            id="class-create-level" className="modal-form-control"
             value={novaTurma.nivel}
             onChange={(event) =>
               setNovaTurma({
@@ -660,8 +697,9 @@ export default function Classes() {
             {NIVEIS_TURMA.map((nivel) => <option key={nivel} value={nivel}>{nivel}</option>)}
           </select>
 
-          <label>Limite de alunos:</label>
+          <label className="modal-field-label" htmlFor="class-create-capacity">Limite de alunos:</label>
           <input
+            id="class-create-capacity" className="modal-form-control"
             type="number" min={1} max={10} placeholder="Limite de alunos" value={novaTurma.limiteAlunos}
             onChange={(event) =>
               setNovaTurma({
@@ -671,8 +709,9 @@ export default function Classes() {
             }
           />
 
-          <label>Tipo de turma:</label>
+          <label className="modal-field-label" htmlFor="class-create-type">Tipo de turma:</label>
           <select
+            id="class-create-type" className="modal-form-control"
             value={novaTurma.tipo}
             onChange={(event) =>
               setNovaTurma({
@@ -685,15 +724,16 @@ export default function Classes() {
             {TIPOS_TURMA.map((tipo) => <option key={tipo} value={tipo}>{tipo}</option>)}
           </select>
 
-          <label>Professor:</label>
+          <label className="modal-field-label" htmlFor="class-create-professor">Professor:</label>
           <select
+            id="class-create-professor" className="modal-form-control"
             value={novaTurma.professorId}
             onChange={(event) => {
               const professorId = Number(event.target.value) || '';
               const professor = professores.find((item) => String(item.id) === String(professorId));
               const horariosPermitidos = new Set(
                 horarios
-                  .filter((horario) => horarioDisponivelParaProfessor(horario, professor))
+                  .filter((horario) => horarioPodeSerAlocado(horario, professor))
                   .map((horario) => String(horario.id))
               );
               setNovaTurma((turma) => ({ ...turma, professorId }));
@@ -768,7 +808,6 @@ export default function Classes() {
                         ? `${normalizarDia(horario.diaSemana)} às ${normalizarHora(horario.horaInicio)}`
                         : 'Sem disponibilidade do professor'}
                     >
-                      {horario && <span>{normalizarHora(horario.horaInicio)} - {normalizarHora(horario.horaFim)}</span>}
                     </button>
                   );
                 }}
@@ -791,33 +830,33 @@ export default function Classes() {
           className="class-create-modal"
         >
           <div className="class-form-panel">
-            <label>Nome:</label>
-            <input type="text" value={selectedClass.nome} onChange={(event) => setSelectedClass((turma) => ({ ...turma, nome: event.target.value }))} />
-            <label>Nível:</label>
-            <select value={selectedClass.nivel} onChange={(event) => setSelectedClass((turma) => ({ ...turma, nivel: event.target.value }))}>
+            <label className="modal-field-label" htmlFor="class-edit-name">Nome:</label>
+            <input id="class-edit-name" className="modal-form-control" type="text" value={selectedClass.nome} onChange={(event) => setSelectedClass((turma) => ({ ...turma, nome: event.target.value }))} />
+            <label className="modal-field-label" htmlFor="class-edit-level">Nível:</label>
+            <select id="class-edit-level" className="modal-form-control" value={selectedClass.nivel} onChange={(event) => setSelectedClass((turma) => ({ ...turma, nivel: event.target.value }))}>
               <option value="">Selecione um nível</option>
               {selectedClass.nivel && !NIVEIS_TURMA.includes(selectedClass.nivel) && (
                 <option value={selectedClass.nivel}>{selectedClass.nivel}</option>
               )}
               {NIVEIS_TURMA.map((nivel) => <option key={nivel} value={nivel}>{nivel}</option>)}
             </select>
-            <label>Limite de alunos:</label>
-            <input type="number" min={1} max={10} value={selectedClass.limiteAlunos} onChange={(event) => setSelectedClass((turma) => ({ ...turma, limiteAlunos: event.target.value }))} />
-            <label>Tipo de turma:</label>
-            <select value={selectedClass.tipo ?? ''} onChange={(event) => setSelectedClass((turma) => ({ ...turma, tipo: event.target.value }))}>
+            <label className="modal-field-label" htmlFor="class-edit-capacity">Limite de alunos:</label>
+            <input id="class-edit-capacity" className="modal-form-control" type="number" min={1} max={10} value={selectedClass.limiteAlunos} onChange={(event) => setSelectedClass((turma) => ({ ...turma, limiteAlunos: event.target.value }))} />
+            <label className="modal-field-label" htmlFor="class-edit-type">Tipo de turma:</label>
+            <select id="class-edit-type" className="modal-form-control" value={selectedClass.tipo ?? ''} onChange={(event) => setSelectedClass((turma) => ({ ...turma, tipo: event.target.value }))}>
               <option value="">Selecione um tipo de turma</option>
               {selectedClass.tipo && !TIPOS_TURMA.includes(selectedClass.tipo) && (
                 <option value={selectedClass.tipo}>{selectedClass.tipo}</option>
               )}
               {TIPOS_TURMA.map((tipo) => <option key={tipo} value={tipo}>{tipo}</option>)}
             </select>
-            <label>Professor:</label>
-            <select value={selectedClass.professorId ?? ''} onChange={(event) => {
+            <label className="modal-field-label" htmlFor="class-edit-professor">Professor:</label>
+            <select id="class-edit-professor" className="modal-form-control" value={selectedClass.professorId ?? ''} onChange={(event) => {
               const professorId = Number(event.target.value) || '';
               const professor = professores.find((item) => String(item.id) === String(professorId));
               const horariosPermitidos = new Set(
                 horarios
-                  .filter((horario) => horarioDisponivelParaProfessor(horario, professor))
+                  .filter((horario) => horarioPodeSerAlocado(horario, professor, selectedClass.id))
                   .map((horario) => String(horario.id))
               );
               setSelectedClass((turma) => ({ ...turma, professorId }));
@@ -878,7 +917,6 @@ export default function Classes() {
                         ? `${normalizarDia(horario.diaSemana)} às ${normalizarHora(horario.horaInicio)}`
                         : 'Sem disponibilidade do professor'}
                     >
-                      {horario && <span>{normalizarHora(horario.horaInicio)} - {normalizarHora(horario.horaFim)}</span>}
                     </button>
                   );
                 }}
@@ -895,25 +933,28 @@ export default function Classes() {
           showSave={false}
         >
 
-          <label>Nome:</label>
-          <input type="text" value={classDetails.nome} readOnly />
+          <label className="modal-field-label" htmlFor="class-details-name">Nome:</label>
+          <input id="class-details-name" className="modal-form-control" type="text" value={classDetails.nome} readOnly />
 
-          <label>Nível:</label>
-          <input type="text" value={classDetails.nivel} readOnly />
+          <label className="modal-field-label" htmlFor="class-details-level">Nível:</label>
+          <input id="class-details-level" className="modal-form-control" type="text" value={classDetails.nivel} readOnly />
 
-          <label>Tipo:</label>
-          <input type="text" value={classDetails.tipo} readOnly />
+          <label className="modal-field-label" htmlFor="class-details-type">Tipo:</label>
+          <input id="class-details-type" className="modal-form-control" type="text" value={classDetails.tipo} readOnly />
 
-          <label>Limite de alunos:</label>
-          <input type="text" value={classDetails.limiteAlunos} readOnly />
+          <label className="modal-field-label" htmlFor="class-details-capacity">Limite de alunos:</label>
+          <input id="class-details-capacity" className="modal-form-control" type="text" value={classDetails.limiteAlunos} readOnly />
 
-          <label>Professor:</label>
-          <input type="text" value={classDetails.nomeProfessor} readOnly />
+          <label className="modal-field-label" htmlFor="class-details-professor">Professor:</label>
+          <input id="class-details-professor" className="modal-form-control" type="text" value={classDetails.nomeProfessor} readOnly />
 
-          <label>Horário:</label>
-          {agruparHorariosPorDia(classDetails.horarios).map((grupo) => (
+          <span className="modal-field-label">Horário:</span>
+          {agruparHorariosPorDia(classDetails.horarios).map((grupo, index) => (
             <input
               key={grupo.dia}
+              id={`class-details-schedule-${index}`}
+              className="modal-form-control"
+              aria-label={`Horário ${grupo.dia}`}
               type="text"
               value={`${abreviarDia(grupo.dia)}: ${grupo.horarios.join(' · ')}`}
               readOnly
@@ -922,6 +963,6 @@ export default function Classes() {
         </Modal>
       )}
 
-    </div>
+    </>
   );
 }

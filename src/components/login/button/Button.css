@@ -4,17 +4,23 @@
     font-size: 1rem;
     font-weight: 600;
     color: #fff;
-    background-color: #4f46e5;
+    background-color: var(--color-primary);
     border: none;
     border-radius: 8px;
     cursor: pointer;
-    transition: background-color 0.2s;
+    font-family: var(--font-family-ui);
+    transition: background-color var(--transition-control);
 }
 
 .button:hover {
-    background-color: #4338ca;
+    background-color: var(--color-primary-hover);
 }
 
 .button:active {
-    background-color: #3730a3;
+    background-color: var(--color-primary-active);
+}
+
+.button:disabled {
+    cursor: wait;
+    opacity: 0.7;
 }

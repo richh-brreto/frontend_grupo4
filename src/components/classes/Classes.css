@@ -38,7 +38,7 @@
   text-transform: uppercase;
 }
 
-.status-pill {
+.classes-page .status-pill {
   padding: 8px 12px;
   border-radius: 999px;
   font-size: 12px;
@@ -48,12 +48,12 @@
   color: #1d4ed8;
 }
 
-.status-pill.em-andamento {
+.classes-page .status-pill.em-andamento {
   background: #fef3c7;
   color: #b45309;
 }
 
-.status-pill.pendente {
+.classes-page .status-pill.pendente {
   background: #fde7e7;
   color: #b91c1c;
 }
@@ -111,8 +111,9 @@
   font-size: 14px;
 }
 
-.class-search-input:focus {
-  outline: none;
+.class-search-input:focus-visible {
+  outline: 2px solid #1e3a8a;
+  outline-offset: 2px;
   border-color: #1e3a8a;
   box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.12);
 }

@@ -96,8 +96,9 @@
   line-height: 1.4;
 }
 
-.contract-student-select:focus {
-  outline: none;
+.contract-student-select:focus-visible {
+  outline: 2px solid #1d4ed8;
+  outline-offset: 2px;
   border-color: #1d4ed8;
   box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
 }
@@ -466,8 +467,9 @@
   line-height: 1.4;
 }
 
-.contract-date-field input:focus {
-  outline: none;
+.contract-date-field input:focus-visible {
+  outline: 2px solid #1d4ed8;
+  outline-offset: 2px;
   border-color: #1d4ed8;
   box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
 }

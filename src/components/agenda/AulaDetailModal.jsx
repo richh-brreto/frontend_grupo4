@@ -9,11 +9,15 @@ const formatarParticipantes = (aula) => {
   return aula.ativos.map(p => p.aluno).join(', ');
 };
 
+const obterParticipantesCancelados = (aula) =>
+  (aula.participantes ?? []).filter((participante) => participante.status === 'CANCELADA');
+
 export default function AulaDetailModal({ aula, onClose, onEditar, podeGerenciar }) {
   if (!aula) return null;
 
   const isTurma = !!aula.turmaId;
   const titulo = isTurma ? `Turma: ${aula.conta}` : `Aula individual: ${aula.conta}`;
+  const participantesCancelados = obterParticipantesCancelados(aula);
 
   return (
     <Modal
@@ -29,28 +33,35 @@ export default function AulaDetailModal({ aula, onClose, onEditar, podeGerenciar
           <h3>{titulo}</h3>
           
           <div className="aula-detail-field">
-            <label>Data:</label>
+            <span className="aula-detail-label">Data:</span>
             <span>{aula.data ? aula.data.split('-').reverse().join('/') : ''}</span>
           </div>
 
           <div className="aula-detail-field">
-            <label>Horário:</label>
+            <span className="aula-detail-label">Horário:</span>
             <span>{cortarSegundos(aula.horaInicio)} - {cortarSegundos(aula.horaFim)}</span>
           </div>
 
           <div className="aula-detail-field">
-            <label>Professor:</label>
+            <span className="aula-detail-label">Professor:</span>
             <span>{aula.professor || 'Sem professor'}</span>
           </div>
 
           <div className="aula-detail-field">
-            <label>{isTurma ? 'Alunos' : 'Aluno'}:</label>
+            <span className="aula-detail-label">{isTurma ? 'Alunos' : 'Aluno'}:</span>
             <span>{formatarParticipantes(aula)}</span>
           </div>
 
+          {participantesCancelados.length > 0 && (
+            <div className="aula-detail-field aula-participantes-cancelados">
+              <span className="aula-detail-label">{isTurma ? 'Alunos com aula cancelada:' : 'Aula cancelada para:'}</span>
+              <span>{participantesCancelados.map((participante) => participante.aluno).join(', ')}</span>
+            </div>
+          )}
+
           {aula.status === 'CANCELADA' && (
             <div className="aula-detail-field aula-cancelada">
-              <label>Status:</label>
+              <span className="aula-detail-label">Status:</span>
               <span className="status-cancelado">Cancelada</span>
             </div>
           )}

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import Swal from 'sweetalert2';
-import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
 import Container from '../layout/Container';
@@ -10,8 +9,6 @@ import AddProfessorModal from './components/AddProfessorModal';
 import EditProfessorModal from './components/EditProfessorModal';
 import ProfessorProfileModal from './components/ProfessorProfileModal';
 import mostrarCodigoAcesso from '../../utils/mostrarCodigoAcesso';
-import { useItensMenu } from '../../utils/menuItems';
-import { usePermissoes } from '../../utils/permissions';
 import '../agenda/Agenda.css';
 import './Professors.css';
 
@@ -24,10 +21,6 @@ const normalizar = (texto) =>
     .toLowerCase();
 
 export default function Professors() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  // Itens do menu sao filtrados pelas telas liberadas no cadastro do professor
-  const itensMenu = useItensMenu('/professores');
-  const { carregando: carregandoPermissoes } = usePermissoes();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedProfessor, setSelectedProfessor] = useState(null);
   const [professorProfile, setProfessorProfile] = useState(null);
@@ -60,9 +53,12 @@ export default function Professors() {
   const salvarNovoProfessor = async (professor) => {
     try {
       const professorCriado = await adicionarProfessor(professor);
-      await mostrarCodigoAcesso({
-        nome: professorCriado.nome,
-        codigoAcesso: professorCriado.codigoAcesso,
+      setIsAddModalOpen(false);
+      requestAnimationFrame(() => {
+        void mostrarCodigoAcesso({
+          nome: professorCriado.nome,
+          codigoAcesso: professorCriado.codigoAcesso,
+        });
       });
     } catch (error) {
       await Swal.fire({ icon: 'error', title: 'Não foi possível cadastrar', text: error.message || 'Tente novamente.', confirmButtonColor: '#0f1f3f' });
@@ -94,15 +90,7 @@ export default function Professors() {
   };
 
   return (
-    <div className="agenda-page professors-page">
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed((prev) => !prev)}
-        items={itensMenu}
-        carregando={carregandoPermissoes}
-      />
-
-      <main className="agenda-content">
+    <>
         <div className="agenda-panel">
           <div className="agenda-topbar">
             <div>
@@ -112,17 +100,20 @@ export default function Professors() {
               <input
                 type="text"
                 placeholder="Buscar professor por nome..."
+                aria-label="Buscar professor por nome"
                 value={busca}
                 onChange={(event) => setBusca(event.target.value)}
                 className="professor-search-input"
               />
-              <Button active={filtro === 'ativos'} onClick={() => setFiltro('ativos')}>
-                Ativos
-              </Button>
-              <Button active={filtro === 'inativos'} onClick={() => setFiltro('inativos')}>
-                Inativos
-              </Button>
-              <Button onClick={() => setIsAddModalOpen(true)}>Adicionar professor</Button>
+              <div className="filter-segment" role="group" aria-label="Filtrar professores por status">
+                <Button variant={filtro === 'ativos' ? 'primary' : 'secondary'} aria-pressed={filtro === 'ativos'} onClick={() => setFiltro('ativos')}>
+                  Ativos
+                </Button>
+                <Button variant={filtro === 'inativos' ? 'primary' : 'secondary'} aria-pressed={filtro === 'inativos'} onClick={() => setFiltro('inativos')}>
+                  Inativos
+                </Button>
+              </div>
+              <Button variant="primary" onClick={() => setIsAddModalOpen(true)}>Adicionar professor</Button>
             </ButtonContainer>
           </div>
 
@@ -142,7 +133,6 @@ export default function Professors() {
             />
           </div>
         </div>
-      </main>
 
       {isAddModalOpen && (
         <AddProfessorModal
@@ -165,6 +155,6 @@ export default function Professors() {
         <ProfessorProfileModal professor={professorProfile} onClose={() => setProfessorProfile(null)} />
       )}
 
-    </div>
+    </>
   );
 }

@@ -14,6 +14,7 @@ import Professors from "./components/professors/Professors";
 import Overview from "./components/overview/Overview";
 import ChatProvider from "./components/chat/ChatProvider";
 import ChatWidget from "./components/chat/ChatWidget";
+import ProtectedLayout from "./components/layout/ProtectedLayout";
 import { primeiraRotaLiberada } from "./utils/menuItems";
 import { usePermissoes, temSessao } from "./utils/permissions";
 
@@ -59,7 +60,7 @@ function App() {
 
                 {/* Rotas protegidas por tela */}
                 {isLoggedIn && (
-                    <>
+                    <Route element={<ProtectedLayout />}>
                         <Route
                             path="/aulas"
                             element={
@@ -116,7 +117,7 @@ function App() {
                                 </RotaProtegida>
                             }
                         />
-                    </>
+                    </Route>
                 )}
 
                 {/* Sem sessão, qualquer rota protegida cai no login */}

@@ -75,14 +75,13 @@
   padding-right: 6px;
 }
 
-.modal-body label {
+.modal-field-label {
   font-size: 14px;
   color: #64748b;
   font-weight: 600;
 }
 
-.modal-body input,
-.modal-body select {
+.modal-form-control {
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
@@ -94,7 +93,7 @@
   font-size: 14px;
 }
 
-.modal-body select {
+select.modal-form-control {
   appearance: none;
   padding-right: 42px;
   background-image:
@@ -105,6 +104,18 @@
     calc(100% - 15px) 50%;
   background-repeat: no-repeat;
   background-size: 5px 5px, 5px 5px;
+}
+
+.modal-form-control:focus-visible,
+.modal-close:focus-visible,
+.modal-button:focus-visible {
+  outline: 2px solid #1d4ed8;
+  outline-offset: 2px;
+}
+
+.modal-form-control:focus-visible {
+  border-color: #1d4ed8;
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.16);
 }
 
 .modal-actions {

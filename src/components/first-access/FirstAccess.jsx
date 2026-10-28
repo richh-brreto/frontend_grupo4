@@ -54,7 +54,7 @@ export default function FirstAccess() {
 
   return (
     <div className="page first-access-page">
-      <img className="logo" src={logo} alt="Boost Logo" />
+      <img className="first-access-logo" src={logo} alt="Boost Logo" />
 
       <form className="card first-access-card" onSubmit={handleSubmit}>
         <h1 className="first-access-title">Primeiro Acesso</h1>

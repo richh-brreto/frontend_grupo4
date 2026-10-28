@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import Button from "./Button";
 import "./Modal.css";
 
@@ -19,6 +19,7 @@ function Modal({
   hideFooter = false,
   saving = false
 }) {
+  const titleId = useId();
   const [savingInternally, setSavingInternally] = useState(false);
   const saveInProgressRef = useRef(false);
   const isSaving = saving || savingInternally;
@@ -42,18 +43,23 @@ function Modal({
 
   return (
     <div className="modal-overlay" onClick={isSaving ? undefined : onClose}>
-      <div className="modal-backdrop" />
+      <div className="modal-backdrop" aria-hidden="true" />
 
       <div
         className={`modal-content modal-size-${size} ${className}`.trim()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="modal-header">
-          <h2>{title}</h2>
+          <h2 id={titleId}>{title}</h2>
 
           <button
             type="button"
             className="modal-close"
+            aria-label="Fechar diálogo"
             onClick={onClose}
             disabled={isSaving}
           >

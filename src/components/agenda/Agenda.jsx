@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import Swal from 'sweetalert2';
-import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
 import Modal from '../layout/Modal';
@@ -8,7 +7,6 @@ import AulaDetailModal from './AulaDetailModal';
 import RemarcarScheduleSelector from './RemarcarScheduleSelector';
 import { aulasService } from './aulasService';
 import { professoresService } from '../professors/components/professoresService';
-import { useItensMenu } from '../../utils/menuItems';
 import { usePermissoes } from '../../utils/permissions';
 import './Agenda.css';
 
@@ -113,7 +111,7 @@ const renderizarTextoAula = (aula) => (
   <>
     <div className="evento-label">
       {aula.turmaId ? aula.conta : 'Individual'}
-      {aula.professor && ` · Prof. ${aula.professor}`}
+      {aula.professor && <span className="evento-professor"> · Prof. {aula.professor}</span>}
     </div>
     <div className="evento-label">
       {aula.turmaId ? aula.turma : `Aluno(a) ${aula.conta}`}
@@ -154,9 +152,6 @@ export default function Agenda() {
   const [dataAtual, setDataAtual] = useState(new Date());
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [filtros, setFiltros] = useState({ busca: '', professor: '' });
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  // Itens do menu sao filtrados pelas telas liberadas no cadastro do professor
-  const itensMenu = useItensMenu('/aulas');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -172,7 +167,7 @@ export default function Agenda() {
   const [novoEvento, setNovoEvento] = useState({ nome: '', descricao: '', professorId: '', horaInicio: '07:00', horaFim: '08:00' });
   const [professoresDisponiveis, setProfessoresDisponiveis] = useState([]);
   // Quem enxerga a agenda é quem tem a tela liberada (o menu já protege a rota).
-  const { podeAcessar, carregando: carregandoPermissoes } = usePermissoes();
+  const { podeAcessar } = usePermissoes();
   const podeGerenciar = podeAcessar('TELA_AGENDA');
 
   const temAlteracoesNovoEvento = () => {
@@ -611,15 +606,7 @@ export default function Agenda() {
 
 
   return (
-    <div className="agenda-page">
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(prev => !prev)}
-        items={itensMenu}
-        carregando={carregandoPermissoes}
-      />
-
-      <main className="agenda-content">
+    <>
         <div className="agenda-panel">
           <div className="agenda-topbar">
             <div>
@@ -627,7 +614,7 @@ export default function Agenda() {
             </div>
             <div className="agenda-tabs">
               <div className="agenda-semana-nav">
-                <button type="button" className="tab-button" onClick={() => mudarSemana(-1)} aria-label="Semana anterior">
+                <button type="button" className="tab-button tab-button--ghost" onClick={() => mudarSemana(-1)} aria-label="Semana anterior">
                   ‹
                 </button>
                 <button type="button" className="tab-button" onClick={() => setDataAtual(new Date())}>
@@ -644,21 +631,21 @@ export default function Agenda() {
                     aria-label="Selecionar semana"
                   />
                 </label>
-                <button type="button" className="tab-button" onClick={() => mudarSemana(1)} aria-label="Próxima semana">
+                <button type="button" className="tab-button tab-button--ghost" onClick={() => mudarSemana(1)} aria-label="Próxima semana">
                   ›
                 </button>
                 <span className="agenda-semana-label">
                   {carregando ? 'Carregando...' : intervaloSemana}
                 </span>
               </div>
-              <button
-                className={`tab-button ${isFiltersOpen ? 'active' : ''}`}
+              <Button
+                variant={isFiltersOpen ? 'primary' : 'secondary'}
                 type="button"
                 aria-pressed={isFiltersOpen}
                 onClick={() => setIsFiltersOpen(aberto => !aberto)}
               >
                 Filtros
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -810,7 +797,6 @@ export default function Agenda() {
             )}
           </div>
         </div>
-      </main>
 
       {isAddModalOpen && (
         <Modal
@@ -818,24 +804,30 @@ export default function Agenda() {
           onClose={fecharModalAdicionar}
           onSave={salvarNovoEvento}
         >
-          <label>Nome</label>
+          <label className="modal-field-label" htmlFor="agenda-extra-name">Nome</label>
           <input
+            id="agenda-extra-name"
+            className="modal-form-control"
             type="text"
             placeholder="Nome do evento"
             value={novoEvento.nome}
             onChange={(e) => setNovoEvento(prev => ({ ...prev, nome: e.target.value }))}
           />
 
-          <label>Descrição</label>
+          <label className="modal-field-label" htmlFor="agenda-extra-description">Descrição</label>
           <input
+            id="agenda-extra-description"
+            className="modal-form-control"
             type="text"
             placeholder="Descrição"
             value={novoEvento.descricao}
             onChange={(e) => setNovoEvento(prev => ({ ...prev, descricao: e.target.value }))}
           />
 
-          <label>Professor</label>
+          <label className="modal-field-label" htmlFor="agenda-extra-professor">Professor</label>
           <select
+            id="agenda-extra-professor"
+            className="modal-form-control"
             value={novoEvento.professorId}
             onChange={(e) => setNovoEvento(prev => ({ ...prev, professorId: e.target.value }))}
           >
@@ -847,16 +839,18 @@ export default function Agenda() {
 
           {selectedDay && (
             <div className="evento-data-info">
-              <label>Data</label>
-              <input type="text" value={selectedDay.data.split('-').reverse().join('/')} readOnly />
+              <label className="modal-field-label" htmlFor="agenda-extra-date">Data</label>
+              <input id="agenda-extra-date" className="modal-form-control" type="text" value={selectedDay.data.split('-').reverse().join('/')} readOnly />
             </div>
           )}
 
           <div className="evento-horarios">
             <div>
-              <label>Hora de início</label>
+              <label className="modal-field-label" htmlFor="agenda-extra-start-hour">Hora de início</label>
               <div className="hora-select-group">
                 <select
+                  id="agenda-extra-start-hour"
+                  className="modal-form-control"
                   value={novoEvento.horaInicio.split(':')[0]}
                   onChange={(e) => setNovoEvento(prev => ({ ...prev, horaInicio: `${e.target.value}:${prev.horaInicio.split(':')[1]}` }))}
                 >
@@ -866,6 +860,8 @@ export default function Agenda() {
                 </select>
                 <span>:</span>
                 <select
+                  className="modal-form-control"
+                  aria-label="Minutos da hora de início"
                   value={novoEvento.horaInicio.split(':')[1]}
                   onChange={(e) => setNovoEvento(prev => ({ ...prev, horaInicio: `${prev.horaInicio.split(':')[0]}:${e.target.value}` }))}
                 >
@@ -875,9 +871,11 @@ export default function Agenda() {
               </div>
             </div>
             <div>
-              <label>Hora de fim</label>
+              <label className="modal-field-label" htmlFor="agenda-extra-end-hour">Hora de fim</label>
               <div className="hora-select-group">
                 <select
+                  id="agenda-extra-end-hour"
+                  className="modal-form-control"
                   value={novoEvento.horaFim.split(':')[0]}
                   onChange={(e) => setNovoEvento(prev => ({ ...prev, horaFim: `${e.target.value}:${prev.horaFim.split(':')[1]}` }))}
                 >
@@ -887,6 +885,8 @@ export default function Agenda() {
                 </select>
                 <span>:</span>
                 <select
+                  className="modal-form-control"
+                  aria-label="Minutos da hora de fim"
                   value={novoEvento.horaFim.split(':')[1]}
                   onChange={(e) => setNovoEvento(prev => ({ ...prev, horaFim: `${prev.horaFim.split(':')[0]}:${e.target.value}` }))}
                 >
@@ -929,6 +929,7 @@ export default function Agenda() {
             <label htmlFor="nova-data">Nova data</label>
             <input
               id="nova-data"
+              className="modal-form-control"
               type="date"
               value={remarcacao.novaData}
               readOnly
@@ -936,6 +937,7 @@ export default function Agenda() {
             <label htmlFor="motivo-remarcacao">Motivo (opcional)</label>
             <input
               id="motivo-remarcacao"
+              className="modal-form-control"
               type="text"
               placeholder="Motivo da remarcação"
               maxLength={500}
@@ -984,6 +986,6 @@ export default function Agenda() {
         />
       )}
 
-    </div>
+    </>
   );
 }

@@ -9,6 +9,7 @@
     font-size: 0.875rem;
     font-weight: 500;
     color: #374151;
+    font-family: var(--font-family-ui);
 }
 
 .field {
@@ -21,18 +22,27 @@
     width: 100%;
     padding: 10px 14px;
     font-size: 1rem;
-    border: 1.5px solid #d1d5db;
+    border: 1.5px solid var(--color-border);
     border-radius: 8px;
-    outline: none;
     background: #fff;
-    color: #111827;
+    color: var(--color-text);
     box-sizing: border-box;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    font-family: var(--font-family-ui);
+    transition: border-color var(--transition-control), box-shadow var(--transition-control);
+}
+
+.field-password .input {
+    padding-right: 88px;
 }
 
 .input:focus {
-    border-color: #4f46e5;
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgb(15 31 63 / 15%);
+}
+
+.input:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
 }
 
 .input::placeholder {
@@ -40,11 +50,11 @@
 }
 
 .inputError {
-    border-color: #ef4444;
+    border-color: var(--color-danger);
 }
 
 .inputError:focus {
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+    box-shadow: 0 0 0 3px rgb(185 28 28 / 15%);
 }
 
 .toggle {
@@ -61,7 +71,12 @@
     color: #111827;
 }
 
+.toggle:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
 .error {
     font-size: 0.8rem;
-    color: #ef4444;
+    color: var(--color-danger);
 }

@@ -4,6 +4,7 @@ import Modal from '../../layout/Modal';
 import ProfessorScheduleSelector from './ProfessorScheduleSelector';
 import SeletorPermissoes from './SeletorPermissoes';
 import { ordenarHorarios } from '../../../utils/ordenarHorarios';
+import { emailJaCadastrado, MENSAGEM_EMAIL_DUPLICADO } from '../../../utils/emailCadastro';
 
 export default function EditProfessorModal({ professor, onClose, onSave, onDelete }) {
   const [form, setForm] = useState({
@@ -82,6 +83,13 @@ export default function EditProfessorModal({ professor, onClose, onSave, onDelet
     setSalvando(true);
     setErro(null);
     try {
+      const emailNormalizado = form.email.trim().toLowerCase();
+      const emailInicialNormalizado = String(professor.email ?? '').trim().toLowerCase();
+      if (emailNormalizado !== emailInicialNormalizado
+        && await emailJaCadastrado(form.email, { tipo: 'professor', id: professor.id })) {
+        setErro(MENSAGEM_EMAIL_DUPLICADO);
+        return;
+      }
       await onSave({ ...form, telefone: form.telefone, horariosIds });
       onClose();
     } catch (error) {
@@ -101,14 +109,14 @@ export default function EditProfessorModal({ professor, onClose, onSave, onDelet
       className="professor-create-modal"
     >
       <div className="professor-form-panel">
-        <label>Nome:</label>
-        <input type="text" value={form.nome} onChange={(event) => setForm({ ...form, nome: event.target.value })} />
+        <label className="modal-field-label" htmlFor="professor-edit-name">Nome:</label>
+        <input id="professor-edit-name" className="modal-form-control" type="text" value={form.nome} onChange={(event) => setForm({ ...form, nome: event.target.value })} />
 
-        <label>Email:</label>
-        <input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
+        <label className="modal-field-label" htmlFor="professor-edit-email">Email:</label>
+        <input id="professor-edit-email" className="modal-form-control" type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
 
-        <label>Telefone:</label>
-        <input type="tel" value={form.telefone} onChange={(event) => setForm({ ...form, telefone: event.target.value })} />
+        <label className="modal-field-label" htmlFor="professor-edit-phone">Telefone:</label>
+        <input id="professor-edit-phone" className="modal-form-control" type="tel" value={form.telefone} onChange={(event) => setForm({ ...form, telefone: event.target.value })} />
 
         <SeletorPermissoes
           selecionadas={form.permissoes}

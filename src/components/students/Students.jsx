@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
 import Container from '../layout/Container';
@@ -12,17 +11,11 @@ import EditStudentModal from './components/EditStudentModal';
 import ScheduleModal from './components/ScheduleModal';
 import Pagination from './components/Pagination';
 import { contratosService } from '../contracts/contratosService';
-import { useItensMenu } from '../../utils/menuItems';
-import { usePermissoes } from '../../utils/permissions';
 import '../agenda/Agenda.css';
 import './Students.css';
 
 export default function Students() {
   const navigate = useNavigate();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  // Itens do menu sao filtrados pelas telas liberadas no cadastro do professor
-  const itensMenu = useItensMenu('/alunos');
-  const { carregando: carregandoPermissoes } = usePermissoes();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [studentSchedule, setStudentSchedule] = useState(null);
@@ -170,15 +163,7 @@ export default function Students() {
   };
 
   return (
-    <div className="agenda-page students-page">
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed((prev) => !prev)}
-        items={itensMenu}
-        carregando={carregandoPermissoes}
-      />
-
-      <main className="agenda-content">
+    <>
         <div className="agenda-panel">
           <div className="agenda-topbar">
             <div>
@@ -192,13 +177,15 @@ export default function Students() {
                 onChange={(e) => setBusca(e.target.value)}
                 className="class-search-input"
               />
-              <Button active={filtro === 'ativos'} onClick={() => setFiltro('ativos')}>
-                Ativos
-              </Button>
-              <Button active={filtro === 'inativos'} onClick={() => setFiltro('inativos')}>
-                Inativos
-              </Button>
-              <Button onClick={() => setIsAddModalOpen(true)}>Adicionar aluno</Button>
+              <div className="filter-segment" role="group" aria-label="Filtrar alunos por status">
+                <Button variant={filtro === 'ativos' ? 'primary' : 'secondary'} aria-pressed={filtro === 'ativos'} onClick={() => setFiltro('ativos')}>
+                  Ativos
+                </Button>
+                <Button variant={filtro === 'inativos' ? 'primary' : 'secondary'} aria-pressed={filtro === 'inativos'} onClick={() => setFiltro('inativos')}>
+                  Inativos
+                </Button>
+              </div>
+              <Button variant="primary" onClick={() => setIsAddModalOpen(true)}>Adicionar aluno</Button>
             </ButtonContainer>
           </div>
 
@@ -217,7 +204,6 @@ export default function Students() {
             />
           )}
         </div>
-      </main>
 
       {isAddModalOpen && (
         <AddStudentModal
@@ -240,6 +226,6 @@ export default function Students() {
         <ScheduleModal aluno={studentSchedule} onClose={() => setStudentSchedule(null)} />
       )}
 
-    </div>
+    </>
   );
 }

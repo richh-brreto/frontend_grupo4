@@ -1,10 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import axios from '../../utils/axiosConfig';
-import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
-import { useItensMenu } from '../../utils/menuItems';
-import { usePermissoes } from '../../utils/permissions';
 import { useChat } from '../chat/chatContext';
 import '../agenda/Agenda.css';
 import './Dashboard1.css';
@@ -66,10 +63,6 @@ function getStatusClass(status) {
 }
 
 export default function Dashboard1({ dashboardData: externalDashboardData = null }) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  // Itens do menu sao filtrados pelas telas liberadas no cadastro do professor
-  const itensMenu = useItensMenu('/dashboard');
-  const { carregando: carregandoPermissoes } = usePermissoes();
   const { abrirRelatorio } = useChat();
   const [periodo, setPeriodo] = useState({ dataInicio: '', dataFim: '' });
   const [dashboardData, setDashboardData] = useState(null);
@@ -152,54 +145,25 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
 
   if (loading) {
     return (
-      <div className="agenda-page dashboard1-page">
-        <Sidebar
-          collapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed(prev => !prev)}
-          items={itensMenu}
-          carregando={carregandoPermissoes}
-        />
-        <main className="agenda-content">
-          <div className="agenda-panel dashboard1-panel">
-            <p style={{ textAlign: 'center', padding: '20px' }}>Carregando dados...</p>
-          </div>
-        </main>
+      <div className="agenda-panel dashboard1-panel">
+        <p style={{ textAlign: 'center', padding: '20px' }}>Carregando dados...</p>
       </div>
     );
   }
 
   if (error && !dashboardData) {
     return (
-      <div className="agenda-page dashboard1-page">
-        <Sidebar
-          collapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed(prev => !prev)}
-          items={itensMenu}
-          carregando={carregandoPermissoes}
-        />
-        <main className="agenda-content">
-          <div className="agenda-panel dashboard1-panel">
-            <div className="dashboard1-error" role="alert">
-              <p>Não foi possível carregar os dados do painel. {error}</p>
-              <Button active onClick={() => setRetryCount((count) => count + 1)}>Tentar novamente</Button>
-            </div>
-          </div>
-        </main>
+      <div className="agenda-panel dashboard1-panel">
+        <div className="dashboard1-error" role="alert">
+          <p>Não foi possível carregar os dados do painel. {error}</p>
+          <Button active onClick={() => setRetryCount((count) => count + 1)}>Tentar novamente</Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="agenda-page dashboard1-page">
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(prev => !prev)}
-        items={itensMenu}
-        carregando={carregandoPermissoes}
-      />
-
-      <main className="agenda-content">
-        <div className="agenda-panel dashboard1-panel">
+    <div className="agenda-panel dashboard1-panel">
           <div className="dashboard1-header">
             <div>
               <p className="dashboard1-eyebrow">Painel de carga</p>
@@ -312,8 +276,6 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
               </div>
             </section>
           </div>
-        </div>
-      </main>
     </div>
   );
 }

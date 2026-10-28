@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import Swal from 'sweetalert2';
 import Modal from '../../layout/Modal';
+import { emailJaCadastrado, MENSAGEM_EMAIL_DUPLICADO } from '../../../utils/emailCadastro';
 
 const NIVEIS = [
   "Selecione um nível de inglês",
@@ -90,28 +91,34 @@ export default function AddStudentModal({ onClose, onSave }) {
     setSalvando(true);
     setErro(null);
 
-    onSave(payload)
-      .then(() => onClose())
-      .catch((err) => setErro(err.message))
-      .finally(() => {
-        salvandoRef.current = false;
-        setSalvando(false);
-      });
+    try {
+      if (await emailJaCadastrado(payload.email)) {
+        setErro(MENSAGEM_EMAIL_DUPLICADO);
+        return;
+      }
+      await onSave(payload);
+      onClose();
+    } catch (err) {
+      setErro(err.message);
+    } finally {
+      salvandoRef.current = false;
+      setSalvando(false);
+    }
   };
 
   return (
     <Modal title="Adicionar Aluno" onClose={handleFechar} onSave={handleSalvar} saving={salvando} size="sm">
-      <label>Nome:</label>
-      <input type="text" placeholder="Nome" value={form.nome} onChange={atualizarCampo('nome')} />
+      <label className="modal-field-label" htmlFor="student-create-name">Nome:</label>
+      <input id="student-create-name" className="modal-form-control" type="text" placeholder="Nome" value={form.nome} onChange={atualizarCampo('nome')} />
 
-      <label>Email:</label>
-      <input type="email" placeholder="Email" value={form.email} onChange={atualizarCampo('email')} />
+      <label className="modal-field-label" htmlFor="student-create-email">Email:</label>
+      <input id="student-create-email" className="modal-form-control" type="email" placeholder="Email" value={form.email} onChange={atualizarCampo('email')} />
 
-      <label>Telefone:</label>
-      <input type="tel" placeholder="Telefone" value={form.telefone} onChange={atualizarCampo('telefone')} />
+      <label className="modal-field-label" htmlFor="student-create-phone">Telefone:</label>
+      <input id="student-create-phone" className="modal-form-control" type="tel" placeholder="Telefone" value={form.telefone} onChange={atualizarCampo('telefone')} />
 
-      <label>Nível:</label>
-      <select value={form.nivel} onChange={atualizarCampo('nivel')}>
+      <label className="modal-field-label" htmlFor="student-create-level">Nível:</label>
+      <select id="student-create-level" className="modal-form-control" value={form.nivel} onChange={atualizarCampo('nivel')}>
         {NIVEIS.map((nivel) => (
           <option key={nivel} value={nivel}>
             {nivel}

@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
-import Sidebar from '../layout/Sidebar';
 import Button from "../layout/Button";
 import ButtonContainer from "../layout/ButtonContainer";
 import Modal from '../layout/Modal';
 import { comunicadosService } from './comunicadosService';
-import { useItensMenu } from '../../utils/menuItems';
 import { usePermissoes } from '../../utils/permissions';
 import '../agenda/Agenda.css';
 import './Overview.css';
@@ -33,11 +31,8 @@ const formatarData = (dataIso) => {
 
 export default function Overview() {
   // A tela de comunicados é a TELA_GERAL; quem a vê pode manter os avisos.
-  const { podeAcessar, carregando: carregandoPermissoes } = usePermissoes();
+  const { podeAcessar } = usePermissoes();
   const podeGerenciar = podeAcessar('TELA_GERAL');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  // Itens do menu sao filtrados pelas telas liberadas no cadastro do professor
-  const itensMenu = useItensMenu('/overview');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
   const [originalAnnouncement, setOriginalAnnouncement] = useState(null);
@@ -225,15 +220,7 @@ export default function Overview() {
   };
 
   return (
-    <div className="agenda-page overview-page">
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(prev => !prev)}
-        items={itensMenu}
-        carregando={carregandoPermissoes}
-      />
-
-      <main className="agenda-content">
+    <>
         <div className="agenda-panel">
           <div className="agenda-topbar">
             <div>
@@ -241,7 +228,7 @@ export default function Overview() {
             </div>
             {podeGerenciar && (
               <ButtonContainer>
-                <Button onClick={abrirModalAdicionar}>Adicionar comunicado</Button>
+                <Button variant="primary" onClick={abrirModalAdicionar}>Adicionar comunicado</Button>
               </ButtonContainer>
             )}
           </div>
@@ -269,7 +256,6 @@ export default function Overview() {
             </div>
           </div>
         </div>
-      </main>
 
       {isAddModalOpen && (
         <Modal
@@ -277,8 +263,10 @@ export default function Overview() {
           onClose={fecharModalAdicionar}
           onSave={salvarNovoComunicado}
         >
-          <label>Título:</label>
+          <label className="modal-field-label" htmlFor="announcement-create-title">Título:</label>
           <input
+            id="announcement-create-title"
+            className="modal-form-control"
             type="text"
             placeholder="Título"
             maxLength={TITULO_MAX}
@@ -286,8 +274,10 @@ export default function Overview() {
             onChange={(event) => setNovoComunicado((item) => ({ ...item, titulo: event.target.value }))}
           />
 
-          <label>Texto:</label>
+          <label className="modal-field-label" htmlFor="announcement-create-text">Texto:</label>
           <textarea
+            id="announcement-create-text"
+            className="modal-form-control"
             placeholder="Texto do comunicado"
             maxLength={TEXTO_MAX}
             rows={8}
@@ -307,8 +297,10 @@ export default function Overview() {
           saveLabel="Salvar"
           deleteLabel="Excluir"
         >
-          <label>Título:</label>
+          <label className="modal-field-label" htmlFor="announcement-edit-title">Título:</label>
           <input
+            id="announcement-edit-title"
+            className="modal-form-control"
             type="text"
             maxLength={TITULO_MAX}
             value={selectedAnnouncement.titulo}
@@ -320,8 +312,10 @@ export default function Overview() {
             }
           />
 
-          <label>Texto:</label>
+          <label className="modal-field-label" htmlFor="announcement-edit-text">Texto:</label>
           <textarea
+            id="announcement-edit-text"
+            className="modal-form-control"
             maxLength={TEXTO_MAX}
             rows={8}
             value={selectedAnnouncement.texto}
@@ -335,6 +329,6 @@ export default function Overview() {
         </Modal>
       )}
 
-    </div>
+    </>
   );
 }

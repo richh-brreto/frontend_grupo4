@@ -85,7 +85,7 @@ function Home() {
                     </nav>
 
                     <Link className="home-login" to="/login">
-                        Acesso do professor
+                        Entrar
                     </Link>
                 </div>
             </header>
@@ -230,7 +230,7 @@ function Home() {
                         <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer">
                             Instagram
                         </a>
-                        <Link to="/login">Acesso do professor</Link>
+                        <Link to="/login">Entrar</Link>
                     </div>
                 </div>
             </footer>

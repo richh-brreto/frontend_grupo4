@@ -17,9 +17,9 @@ export default function CodigoAcessoBox({ codigoAcesso, senhaDefinida }) {
 
   return (
     <div className="codigo-access-box">
-      <label>Código de acesso (uso único):</label>
+      <label className="modal-field-label" htmlFor="codigo-acesso-uso-unico">Código de acesso (uso único):</label>
       <div className="codigo-access-row">
-        <input type="text" value={codigoAcesso} readOnly />
+        <input id="codigo-acesso-uso-unico" className="modal-form-control" type="text" value={codigoAcesso} readOnly />
         <button type="button" className="codigo-access-copy" onClick={handleCopiar}>
           {copiado ? 'Copiado!' : 'Copiar'}
         </button>

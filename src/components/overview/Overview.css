@@ -70,7 +70,7 @@
   }
 }
 
-.modal-body textarea {
+textarea.modal-form-control {
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
@@ -85,8 +85,9 @@
   min-height: 120px;
 }
 
-.modal-body textarea:focus {
-  outline: none;
+textarea.modal-form-control:focus-visible {
+  outline: 2px solid #1d4ed8;
+  outline-offset: 2px;
   border-color: #1e3a8a;
   box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.12);
 }

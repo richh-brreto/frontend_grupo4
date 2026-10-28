@@ -1,23 +1,23 @@
-.page {
+.login-page {
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background-color: #152048;
+    background-color: var(--color-brand-soft);
 }
 
-.logo {
+.login-logo {
     width: 450px;
 }
 
-.card {
+.login-card {
     display: flex;
     flex-direction: column;
     gap: 16px;
     width: 100%;
     max-width: 360px;
     padding: 32px 28px;
-    background-color: #F0F4F8;
+    background-color: var(--color-surface-soft);
     border-radius: 12px;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
 }
@@ -25,15 +25,21 @@
 .login-first-access-link {
     text-align: center;
     font-size: 14px;
-    color: #64748b;
+    color: var(--color-text-muted);
 }
 
 .login-first-access-link a {
-    color: #4f46e5;
+    color: var(--color-primary);
     font-weight: 600;
     text-decoration: none;
 }
 
 .login-first-access-link a:hover {
     text-decoration: underline;
+}
+
+.login-error {
+    margin: 0;
+    color: var(--color-danger);
+    font-size: 0.875rem;
 }

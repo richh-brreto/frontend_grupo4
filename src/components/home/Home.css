@@ -1,8 +1,6 @@
 /* ============================================================
    Home - pagina publica (cartao de visitas do Boost)
-   Paleta alinhada ao restante do sistema: navy #0f1f3f / #152048,
-   botoes no indigo #4f46e5 de login/button e do dashboard, azul
-   #1d4ed8 como cor de acento
+    Paleta e tipografia compartilhadas com as telas internas.
    ============================================================ */
 
 /* rolagem suave nos links de ancora da navbar, com folga para o header
@@ -19,22 +17,23 @@ html:has(.home) {
 }
 
 .home {
-    --navy-deep: #0b1730;
-    --navy: #0f1f3f;
-    --navy-soft: #152048;
-    --blue: #1d4ed8;
-    --indigo: #4f46e5;
-    --indigo-hover: #4338ca;
-    --indigo-active: #3730a3;
-    --sky: #60a5fa;
-    --ice: #eaf4ff;
-    --surface: #f8fbff;
-    --line: #e2e8f0;
-    --muted: #64748b;
+    --navy-deep: var(--color-brand-deep);
+    --navy: var(--color-primary);
+    --navy-soft: var(--color-brand-soft);
+    --blue: var(--color-accent);
+    --indigo: var(--color-primary);
+    --indigo-hover: var(--color-primary-hover);
+    --indigo-active: var(--color-primary-active);
+    --sky: var(--color-sky);
+    --ice: var(--color-accent-soft);
+    --surface: var(--color-surface-soft);
+    --line: var(--color-border);
+    --muted: var(--color-text-muted);
 
     min-height: 100%;
-    background: var(--surface);
-    color: var(--navy);
+    background: var(--color-surface-soft);
+    color: var(--color-text);
+    font-family: var(--font-family-ui);
     /* clip em vez de hidden: hidden faria o overflow-y computar como auto
        e criaria um container de rolagem aninhado sem necessidade */
     overflow-x: clip;
@@ -108,7 +107,7 @@ html:has(.home) {
 }
 
 /* mesma aparencia do botao .button usado no login e no dashboard */
-.home-login {
+.home a.home-login {
     padding: 10px 20px;
     font-size: 0.9rem;
     font-weight: 600;

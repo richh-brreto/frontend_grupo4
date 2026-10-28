@@ -12,6 +12,8 @@ function Card({ onLoginSuccess }) {
     const location = useLocation();
     const [email, setEmail] = useState("");
     const [senha, setSenha] = useState("");
+    const [erro, setErro] = useState("");
+    const [entrando, setEntrando] = useState(false);
 
     useEffect(() => {
         if (location.state?.primeiroAcessoSucesso) {
@@ -27,6 +29,10 @@ function Card({ onLoginSuccess }) {
 
     async function handleSubmit(event) {
         event.preventDefault();
+        if (entrando) return;
+
+        setErro("");
+        setEntrando(true);
 
         try {
             const response = await axios.post(
@@ -47,21 +53,26 @@ function Card({ onLoginSuccess }) {
             onLoginSuccess(true);
         } catch (error) {
             console.error("Erro no login:", error.response?.data ?? error.message);
-            alert("Falha no login. Verifique suas credenciais.");
+            setErro("E-mail ou senha inválidos. Confira os dados e tente novamente.");
+        } finally {
+            setEntrando(false);
         }
     }
 
     return (
-        <div className="page">
-            <img className="logo" src={logo} alt="Boost Logo" />
-            <form className="card" onSubmit={handleSubmit}>
+        <div className="login-page">
+            <img className="login-logo" src={logo} alt="Boost Logo" />
+            <form className="login-card" onSubmit={handleSubmit}>
                 <Input
                     label="E-mail"
                     type="email"
                     id="email"
                     placeholder="usuario@email.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                        setEmail(e.target.value);
+                        setErro("");
+                    }}
                 />
                 <Input
                     label="Senha"
@@ -69,9 +80,15 @@ function Card({ onLoginSuccess }) {
                     id="senha"
                     placeholder="********"
                     value={senha}
-                    onChange={(e) => setSenha(e.target.value)}
+                    onChange={(e) => {
+                        setSenha(e.target.value);
+                        setErro("");
+                    }}
                 />
-                <Button type="submit">Entrar</Button>
+                {erro && <p className="login-error" role="alert">{erro}</p>}
+                <Button type="submit" disabled={entrando}>
+                    {entrando ? "Entrando..." : "Entrar"}
+                </Button>
                 <div className="login-first-access-link">
                     Primeiro acesso? <Link to="/primeiro-acesso">Definir senha</Link>
                 </div>

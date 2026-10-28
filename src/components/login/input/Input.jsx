@@ -16,7 +16,7 @@ function Input({ label, type = "text", id, value, onChange, placeholder }) {
                     {label}
                 </label>
             )}
-            <div className="field">
+            <div className={`field${type === "password" ? " field-password" : ""}`}>
                 <input
                     id={id}
                     type={inputType}
@@ -30,6 +30,7 @@ function Input({ label, type = "text", id, value, onChange, placeholder }) {
                     <button
                         type="button"
                         className="toggle"
+                        aria-pressed={showPassword}
                         onClick={() => setShowPassword((v) => !v)}
                     >
                         {showPassword ? "Ocultar" : "Mostrar"}

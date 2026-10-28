@@ -3,44 +3,33 @@ import { useState } from 'react';
 import axios from '../../utils/axiosConfig';
 import { encerrarSessao } from '../../utils/permissionStorage';
 import { recarregarPermissoes } from '../../utils/permissions';
+import logo from '../../assets/Boost.png';
 import '../agenda/Agenda.css';
 
 export default function Sidebar({ collapsed, onToggle, items, carregando }) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    const salvo = localStorage.getItem('sidebar-collapsed');
-    return salvo === null ? collapsed : salvo === 'true';
-  });
-
-  const alternarSidebar = () => {
-    setSidebarCollapsed((atual) => {
-      const novoEstado = !atual;
-      localStorage.setItem('sidebar-collapsed', String(novoEstado));
-      return novoEstado;
-    });
-    onToggle();
-  };
-
-  function handleLogout() {
-    const encerrar = () => {
-      encerrarSessao();
-      recarregarPermissoes();
-      window.location.href = '/login';
-    };
-
-    axios.post('/logout').finally(encerrar);
+  const [logoutEmAndamento, setLogoutEmAndamento] = useState(false);
+  async function handleLogout() {
+    if (logoutEmAndamento) return;
+    setLogoutEmAndamento(true);
+    await axios.post('/logout').catch(() => null);
+    encerrarSessao();
+    recarregarPermissoes();
+    window.location.replace('/login');
   }
 
   return (
-    <aside className={`agenda-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
+    <aside className={`agenda-sidebar ${collapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
-        <div className="sidebar-logo">Logo</div>
+        <div className="sidebar-logo">
+          <img src={logo} alt="Boost English" />
+        </div>
         <button
           type="button"
           className="sidebar-collapse"
-          onClick={alternarSidebar}
-          aria-label="toggle sidebar"
+            onClick={onToggle}
+          aria-label={collapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
         >
-          {sidebarCollapsed ? '›' : '‹'}
+          {collapsed ? '›' : '‹'}
         </button>
       </div>
 
@@ -74,8 +63,8 @@ export default function Sidebar({ collapsed, onToggle, items, carregando }) {
       </nav>
 
       <div className="sidebar-footer">
-        <button type="button" className="sidebar-item" onClick={handleLogout}>
-          Logout
+        <button type="button" className="sidebar-item" onClick={handleLogout} disabled={logoutEmAndamento}>
+          {logoutEmAndamento ? 'Saindo...' : 'Sair'}
         </button>
       </div>
     </aside>

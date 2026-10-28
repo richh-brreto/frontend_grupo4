@@ -1,5 +1,41 @@
 import { useState, useEffect, useCallback } from 'react';
 import { professoresService } from './professoresService';
+import { horariosService } from './horariosService';
+
+const extrairLista = (resposta) => {
+  if (Array.isArray(resposta)) return resposta;
+  if (Array.isArray(resposta?.content)) return resposta.content;
+  if (Array.isArray(resposta?.data)) return resposta.data;
+  if (Array.isArray(resposta?.data?.content)) return resposta.data.content;
+  return [];
+};
+
+const obterHorarioId = (horario) =>
+  typeof horario === 'object' && horario !== null
+    ? horario.id ?? horario.horarioId ?? horario.idHorario
+    : horario;
+
+const normalizarProfessor = (professor, horariosCatalogo) => {
+  const horariosRecebidos = Array.isArray(professor.horarios) ? professor.horarios : [];
+  const horariosIds = [
+    ...(Array.isArray(professor.horariosIds) ? professor.horariosIds : []),
+    ...horariosRecebidos.map(obterHorarioId),
+  ].filter((id) => id != null);
+  const horariosPorId = new Map(
+    [...horariosCatalogo, ...horariosRecebidos.filter((item) => item && typeof item === 'object')]
+      .filter((horario) => horario.id != null)
+      .map((horario) => [String(horario.id), horario])
+  );
+  const horarios = [...new Set(horariosIds.map(String))]
+    .map((id) => horariosPorId.get(id))
+    .filter(Boolean);
+
+  return {
+    ...professor,
+    horariosIds: horarios.length > 0 ? horarios.map((horario) => horario.id) : horariosIds,
+    horarios,
+  };
+};
 
 export function useProfessores() {
   const [professores, setProfessores] = useState([]);
@@ -9,8 +45,16 @@ export function useProfessores() {
 
   const carregarProfessores = useCallback(() => {
     setLoading(true);
-    professoresService.listar()
-      .then((data) => setProfessores(data ?? []))
+    Promise.all([
+      professoresService.listar(),
+      horariosService.listar().catch(() => []),
+    ])
+      .then(([data, horariosData]) => {
+        const horariosCatalogo = extrairLista(horariosData);
+        setProfessores(extrairLista(data).map((professor) =>
+          normalizarProfessor(professor, horariosCatalogo)
+        ));
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);

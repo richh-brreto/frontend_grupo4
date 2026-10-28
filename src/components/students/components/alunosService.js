@@ -18,13 +18,13 @@ export const alunosService = {
     return axios.get(BASE_URL, { params }).then((res) => res.data);
   },
 
-  // Para selects que precisam de todos os alunos ativos: percorre as páginas no tamanho máximo da API
-  async listarTodos() {
+  // Percorre as páginas para consultas que precisam de todos os registros do status informado
+  async listarTodos({ ativo = true } = {}) {
     const alunos = [];
     let page = 0;
     let resposta;
     do {
-      resposta = await this.listar({ page, size: 50 });
+      resposta = await this.listar({ page, size: 50, ativo });
       const conteudo = extrairAlunos(resposta);
       alunos.push(...conteudo);
       page += 1;

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import Sidebar from '../layout/Sidebar';
 import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
 import Modal from '../layout/Modal';
@@ -11,8 +10,6 @@ import { alunosService } from '../students/components/alunosService';
 import { professoresDisponiveisService } from './professoresDisponiveisService';
 import { turmasDisponiveisService } from './turmasDisponiveisService';
 import { contratosService } from './contratosService';
-import { useItensMenu } from '../../utils/menuItems';
-import { usePermissoes } from '../../utils/permissions';
 import { ordenarHorarios } from '../../utils/ordenarHorarios';
 import mostrarCodigoAcesso from '../../utils/mostrarCodigoAcesso';
 import '../agenda/Agenda.css';
@@ -56,10 +53,6 @@ const contratoEhAtivo = (contrato) => {
 export default function Contracts() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  // Itens do menu sao filtrados pelas telas liberadas no cadastro do professor
-  const itensMenu = useItensMenu('/contratos');
-  const { carregando: carregandoPermissoes } = usePermissoes();
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(
     () => Boolean(location.state?.openContractSetup)
   );
@@ -315,17 +308,17 @@ export default function Contracts() {
   const salvarNovoContrato = async () => {
     if (salvandoNovoContratoRef.current || confirmandoSaidaRef.current) return;
     if (!alunoSelecionado || selectedSchedule.length === 0) {
-      alert('Por favor, selecione um aluno e um horário');
+      await Swal.fire({ icon: 'error', title: 'Dados incompletos', text: 'Por favor, selecione um aluno e um horário.', confirmButtonColor: '#0f1f3f' });
       return;
     }
 
     if (!dataInicioContrato || !dataFimContrato) {
-      alert('Por favor, preencha as datas de início e fim do contrato');
+      await Swal.fire({ icon: 'error', title: 'Dados incompletos', text: 'Por favor, preencha as datas de início e fim do contrato.', confirmButtonColor: '#0f1f3f' });
       return;
     }
 
     if (dataFimContrato < dataInicioContrato) {
-      alert('A data de fim deve ser maior ou igual à data de início');
+      await Swal.fire({ icon: 'error', title: 'Datas inválidas', text: 'A data de fim deve ser maior ou igual à data de início.', confirmButtonColor: '#0f1f3f' });
       return;
     }
 
@@ -545,34 +538,30 @@ export default function Contracts() {
   );
 
   return (
-    <div className={`agenda-page contracts-page`}>
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(prev => !prev)}
-        items={itensMenu}
-        carregando={carregandoPermissoes}
-      />
-
-      <main className="agenda-content">
+    <>
         <div className="agenda-panel">
           <div className="agenda-topbar">
             <div>
               <h1>Contratos</h1>
             </div>
             <ButtonContainer>
-              <Button
-                active={contractFilter === 'ativos'}
-                onClick={() => setContractFilter('ativos')}
-              >
-                Ativos
-              </Button>
-              <Button
-                active={contractFilter === 'inativos'}
-                onClick={() => setContractFilter('inativos')}
-              >
-                Inativos
-              </Button>
-              <Button onClick={abrirModalAdicionar} disabled={carregandoOperacao}>Adicionar Contrato</Button>
+              <div className="filter-segment" role="group" aria-label="Filtrar contratos por status">
+                <Button
+                  variant={contractFilter === 'ativos' ? 'primary' : 'secondary'}
+                  aria-pressed={contractFilter === 'ativos'}
+                  onClick={() => setContractFilter('ativos')}
+                >
+                  Ativos
+                </Button>
+                <Button
+                  variant={contractFilter === 'inativos' ? 'primary' : 'secondary'}
+                  aria-pressed={contractFilter === 'inativos'}
+                  onClick={() => setContractFilter('inativos')}
+                >
+                  Inativos
+                </Button>
+              </div>
+              <Button variant="primary" onClick={abrirModalAdicionar} disabled={carregandoOperacao}>Adicionar Contrato</Button>
             </ButtonContainer>
           </div>
 
@@ -632,7 +621,6 @@ export default function Contracts() {
             )}
           </div>
         </div>
-      </main>
 
       {isScheduleModalOpen && (
         <Modal
@@ -647,7 +635,7 @@ export default function Contracts() {
           {alunoFixoNoCadastro ? (
             <input
               id="contract-student"
-              className="contract-student-select"
+              className="contract-student-select modal-form-control"
               type="text"
               value={alunoSelecionado?.nome || ''}
               readOnly
@@ -655,7 +643,7 @@ export default function Contracts() {
           ) : (
             <select
               id="contract-student"
-              className="contract-student-select"
+              className="contract-student-select modal-form-control"
               value={alunoSelecionadoId}
               onChange={trocarAluno}
             >
@@ -703,6 +691,7 @@ export default function Contracts() {
             <label className="contract-date-field">
               <span>Data início:</span>
               <input
+                className="modal-form-control"
                 type="date"
                 value={dataInicioContrato}
                 min={dataHoje()}
@@ -718,6 +707,7 @@ export default function Contracts() {
             <label className="contract-date-field">
               <span>Data fim:</span>
               <input
+                className="modal-form-control"
                 type="date"
                 value={dataFimContrato}
                 min={dataInicioContrato}
@@ -838,6 +828,7 @@ export default function Contracts() {
             <label htmlFor="edit-contract-student">Aluno:</label>
             <input
               id="edit-contract-student"
+              className="modal-form-control"
               type="text"
               value={selectedContract.aluno?.nome || ''}
               readOnly
@@ -856,11 +847,11 @@ export default function Contracts() {
             <div className="contract-dates">
               <label className="contract-date-field">
                 <span>Data início:</span>
-                <input type="date" value={dataInicioContrato} min={dataHoje()} onChange={(event) => setDataInicioContrato(event.target.value)} />
+                <input className="modal-form-control" type="date" value={dataInicioContrato} min={dataHoje()} onChange={(event) => setDataInicioContrato(event.target.value)} />
               </label>
               <label className="contract-date-field">
                 <span>Data fim:</span>
-                <input type="date" value={dataFimContrato} min={dataInicioContrato} onChange={(event) => setDataFimContrato(event.target.value)} />
+                <input className="modal-form-control" type="date" value={dataFimContrato} min={dataInicioContrato} onChange={(event) => setDataFimContrato(event.target.value)} />
               </label>
             </div>
 
@@ -926,6 +917,6 @@ export default function Contracts() {
         </Modal>
       )}
 
-    </div>
+    </>
   );
 }

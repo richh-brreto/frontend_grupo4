@@ -4,6 +4,7 @@ import Modal from '../../layout/Modal';
 import ProfessorScheduleSelector from './ProfessorScheduleSelector';
 import SeletorPermissoes from './SeletorPermissoes';
 import { ordenarHorarios } from '../../../utils/ordenarHorarios';
+import { emailJaCadastrado, MENSAGEM_EMAIL_DUPLICADO } from '../../../utils/emailCadastro';
 
 const ESTADO_INICIAL = {
   nome: '',
@@ -81,6 +82,10 @@ export default function AddProfessorModal({ onClose, onSave }) {
     setErro(null);
 
     try {
+      if (await emailJaCadastrado(payload.email)) {
+        setErro(MENSAGEM_EMAIL_DUPLICADO);
+        return;
+      }
       await onSave(payload);
       onClose();
     } catch (err) {
@@ -93,14 +98,14 @@ export default function AddProfessorModal({ onClose, onSave }) {
   return (
     <Modal title="Adicionar Professor" onClose={handleFechar} onSave={handleSalvar} saveLabel={salvando ? 'Salvando...' : 'Salvar'} className="professor-create-modal">
       <div className="professor-form-panel">
-        <label>Nome:</label>
-        <input type="text" placeholder="Nome" value={form.nome} onChange={atualizarCampo('nome')} />
+        <label className="modal-field-label" htmlFor="professor-create-name">Nome:</label>
+        <input id="professor-create-name" className="modal-form-control" type="text" placeholder="Nome" value={form.nome} onChange={atualizarCampo('nome')} />
 
-        <label>Email:</label>
-        <input type="email" placeholder="Email" value={form.email} onChange={atualizarCampo('email')} />
+        <label className="modal-field-label" htmlFor="professor-create-email">Email:</label>
+        <input id="professor-create-email" className="modal-form-control" type="email" placeholder="Email" value={form.email} onChange={atualizarCampo('email')} />
 
-        <label>Telefone:</label>
-        <input type="tel" placeholder="Telefone" value={form.telefone} onChange={atualizarCampo('telefone')} />
+        <label className="modal-field-label" htmlFor="professor-create-phone">Telefone:</label>
+        <input id="professor-create-phone" className="modal-form-control" type="tel" placeholder="Telefone" value={form.telefone} onChange={atualizarCampo('telefone')} />
 
         <SeletorPermissoes
           selecionadas={form.permissoes}
