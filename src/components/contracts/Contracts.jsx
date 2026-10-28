@@ -15,7 +15,7 @@ import { horariosService } from './horariosService';
 import { ordenarHorarios } from '../../utils/ordenarHorarios';
 import mostrarCodigoAcesso from '../../utils/mostrarCodigoAcesso';
 import { useUsuarioAtual } from '../../utils/permissions';
-import { contratoPertenceAoProfessor } from '../../utils/escopoProfessor';
+import { contratoPertenceAoProfessor, obterProfessorIdTurma } from '../../utils/escopoProfessor';
 import mostrarSucesso from '../../utils/mostrarSucesso';
 import '../agenda/Agenda.css';
 import './Contracts.css';
@@ -46,6 +46,11 @@ const normalizarNivel = (nivel) =>
 const normalizarDia = (diaSemana) => DIA_SEMANA_MAP[diaSemana] || diaSemana;
 const normalizarHora = (hora) => (hora ? hora.slice(0, 5) : hora);
 const dataHoje = () => new Date().toISOString().split('T')[0];
+const formatarDataContrato = (data) => {
+  if (!data) return '—';
+  const [ano, mes, dia] = String(data).slice(0, 10).split('-');
+  return ano && mes && dia ? `${dia}/${mes}/${ano}` : String(data);
+};
 const extrairLista = (resposta) => {
   if (Array.isArray(resposta)) return resposta;
   if (Array.isArray(resposta?.content)) return resposta.content;
@@ -62,6 +67,13 @@ const obterHorariosIdsContrato = (contrato) => [
   ...(Array.isArray(contrato?.horarios) ? contrato.horarios : []),
   ...(contrato?.horario ? [contrato.horario] : []),
 ].map(obterHorarioId).filter((id) => id != null).map(String);
+const obterTurmaIdContrato = (contrato) =>
+  contrato?.turma?.id ?? contrato?.turmaId ?? contrato?.turma_id ?? contrato?.idTurma;
+const obterAlunoIdContrato = (contrato) =>
+  contrato?.aluno?.id ?? contrato?.alunoId ?? contrato?.aluno_id ?? contrato?.idAluno;
+const intervalosContratosSeSobrepoem = (primeiro, segundo) =>
+  (!primeiro.dataInicio || !segundo.dataFim || primeiro.dataInicio <= segundo.dataFim)
+  && (!primeiro.dataFim || !segundo.dataInicio || primeiro.dataFim >= segundo.dataInicio);
 
 // O ContratoResponse da API não envia "aluno.ativo"; determina a vigência pela data fim.
 const contratoEhAtivo = (contrato) => {
@@ -110,6 +122,9 @@ export default function Contracts() {
   const [erroContratos, setErroContratos] = useState(null);
   const [carregandoOperacao, setCarregandoOperacao] = useState(false);
   const [turmasDoSistema, setTurmasDoSistema] = useState([]);
+  const [contratoDetalhes, setContratoDetalhes] = useState(null);
+  const [horariosDetalhes, setHorariosDetalhes] = useState([]);
+  const [carregandoHorariosDetalhes, setCarregandoHorariosDetalhes] = useState(false);
 
   // Refs para detectar alterações não salvas nos modais
   const scheduleInicialRef = useRef([]);
@@ -144,6 +159,46 @@ export default function Contracts() {
   useEffect(() => {
     carregarContratos();
   }, []);
+
+  useEffect(() => {
+    if (!contratoDetalhes) return undefined;
+
+    let cancelado = false;
+    const horariosRecebidos = [
+      ...(Array.isArray(contratoDetalhes.horarios) ? contratoDetalhes.horarios : []),
+      ...(contratoDetalhes.horario ? [contratoDetalhes.horario] : []),
+    ].filter((horario) => horario && typeof horario === 'object' && horario.diaSemana);
+    const ids = [...new Set(obterHorariosIdsContrato(contratoDetalhes))];
+
+    if (horariosRecebidos.length >= ids.length || ids.length === 0) {
+      setHorariosDetalhes(horariosRecebidos);
+      setCarregandoHorariosDetalhes(false);
+      return undefined;
+    }
+
+    setHorariosDetalhes(horariosRecebidos);
+    setCarregandoHorariosDetalhes(true);
+    horariosService.listar()
+      .then((resposta) => {
+        if (cancelado) return;
+        const catalogo = extrairLista(resposta);
+        const catalogoPorId = new Map(catalogo.map((horario) => [String(horario.id), horario]));
+        const resolvidos = ids.map((id) => catalogoPorId.get(id)).filter(Boolean);
+        setHorariosDetalhes([...new Map(
+          [...horariosRecebidos, ...resolvidos].map((horario) => [String(horario.id), horario])
+        ).values()]);
+      })
+      .catch(() => {
+        if (!cancelado) setHorariosDetalhes(horariosRecebidos);
+      })
+      .finally(() => {
+        if (!cancelado) setCarregandoHorariosDetalhes(false);
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [contratoDetalhes]);
 
   useEffect(() => {
     if (ehAdministrador) return;
@@ -604,6 +659,32 @@ export default function Contracts() {
     .filter((contrato) => contractFilter === 'ativos'
       ? contratoEhAtivo(contrato)
       : !contratoEhAtivo(contrato));
+  const turmaIdDetalhes = contratoDetalhes ? obterTurmaIdContrato(contratoDetalhes) : null;
+  const turmaDetalhes = contratoDetalhes?.turma
+    ?? turmasDoSistema.find((turma) => String(turma.id) === String(turmaIdDetalhes));
+  const ehContratoGrupoDetalhes = String(contratoDetalhes?.tipo ?? '').toLowerCase() === 'grupo';
+  const contratosDaTurmaDetalhes = contratoDetalhes && ehContratoGrupoDetalhes && turmaIdDetalhes != null
+    ? contratos.filter((item) => String(obterTurmaIdContrato(item)) === String(turmaIdDetalhes)
+      && String(item.tipo ?? '').toLowerCase() === 'grupo'
+      && intervalosContratosSeSobrepoem(contratoDetalhes, item))
+    : contratoDetalhes ? [contratoDetalhes] : [];
+  const alunosDetalhes = [...new Map(contratosDaTurmaDetalhes.map((item) => {
+    const alunoId = obterAlunoIdContrato(item);
+    const nome = item.aluno?.nome ?? item.nomeAluno ?? (alunoId != null ? `Aluno #${alunoId}` : 'Aluno não informado');
+    return [String(alunoId ?? nome), nome];
+  }))].map(([, nome]) => nome);
+  const professorDetalhes = contratoDetalhes?.professor
+    ?? turmaDetalhes?.professor
+    ?? turmaDetalhes?.professorResponsavel
+    ?? turmaDetalhes?.teacher;
+  const professorIdDetalhes = contratoDetalhes?.professorId
+    ?? contratoDetalhes?.idProfessor
+    ?? professorDetalhes?.id
+    ?? obterProfessorIdTurma(turmaDetalhes ?? {});
+  const professorNomeDetalhes = (typeof professorDetalhes === 'string' ? professorDetalhes : professorDetalhes?.nome)
+    ?? turmaDetalhes?.nomeProfessor
+    ?? turmaDetalhes?.professorNome
+    ?? (professorIdDetalhes != null ? `Professor #${professorIdDetalhes}` : '—');
 
   return (
     <>
@@ -678,7 +759,7 @@ export default function Contracts() {
                     </div>
                     <div>
                       <span>Vigência</span>
-                      <strong>{contrato.dataInicio} a {contrato.dataFim}</strong>
+                      <strong>{formatarDataContrato(contrato.dataInicio)} à {formatarDataContrato(contrato.dataFim)}</strong>
                     </div>
                   </div>
 
@@ -686,6 +767,7 @@ export default function Contracts() {
                     {ehAdministrador && (
                       <Button active onClick={() => abrirModalEdicao(contrato)}>Editar</Button>
                     )}
+                    <Button onClick={() => setContratoDetalhes(contrato)}>Ver detalhes</Button>
                   </ButtonContainer>
                 </article>
               )}
@@ -693,6 +775,57 @@ export default function Contracts() {
             )}
           </div>
         </div>
+
+      {contratoDetalhes && (
+        <Modal
+          title={`Detalhes do contrato ${contratoDetalhes.id}`}
+          onClose={() => setContratoDetalhes(null)}
+          showSave={false}
+          cancelLabel="Fechar"
+          className="contract-details-modal"
+        >
+          <div className="contract-meta">
+            <div>
+              <span>Turma</span>
+              <strong>{turmaDetalhes?.nome ?? contratoDetalhes.turma?.nome ?? '—'}</strong>
+            </div>
+            <div>
+              <span>Professor alocado</span>
+              <strong>{professorNomeDetalhes}</strong>
+            </div>
+            <div className="contract-details-wide">
+              <span>{ehContratoGrupoDetalhes ? 'Alunos' : 'Aluno'}</span>
+              {alunosDetalhes.length > 0 ? (
+                <ul className="contract-details-list">
+                  {alunosDetalhes.map((nome) => <li key={nome}>{nome}</li>)}
+                </ul>
+              ) : (
+                <strong>—</strong>
+              )}
+            </div>
+            <div className="contract-details-wide">
+              <span>Vigência</span>
+              <strong>{formatarDataContrato(contratoDetalhes.dataInicio)} à {formatarDataContrato(contratoDetalhes.dataFim)}</strong>
+            </div>
+            <div className="contract-details-wide">
+              <span>Dias e horários</span>
+              {carregandoHorariosDetalhes ? (
+                <strong>Carregando horários...</strong>
+              ) : horariosDetalhes.length > 0 ? (
+                <ul className="contract-details-list">
+                  {[...horariosDetalhes].sort(ordenarHorarios).map((horario, index) => (
+                    <li key={horario.id ?? `${horario.diaSemana}-${horario.horaInicio}-${index}`}>
+                      {normalizarDia(horario.diaSemana)}: {normalizarHora(horario.horaInicio)}-{normalizarHora(horario.horaFim)}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <strong>Dias e horários não informados</strong>
+              )}
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {ehAdministrador && isScheduleModalOpen && (
         <Modal

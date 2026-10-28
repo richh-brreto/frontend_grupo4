@@ -82,6 +82,19 @@
   font-size: 13px;
 }
 
+.contract-details-wide {
+  grid-column: 1 / -1;
+}
+
+.contract-details-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+  color: #0f1f3f;
+  font-size: 13px;
+}
+
 .contract-student-select {
   width: 100%;
   box-sizing: border-box;
