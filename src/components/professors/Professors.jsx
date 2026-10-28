@@ -20,6 +20,9 @@ const normalizar = (texto) =>
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
 
+const ehAdministradorDoSistema = (professor) =>
+  String(professor?.id) === '1';
+
 export default function Professors() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedProfessor, setSelectedProfessor] = useState(null);
@@ -78,6 +81,8 @@ export default function Professors() {
   };
 
   const excluirProfessorComConfirmacao = async () => {
+    if (ehAdministradorDoSistema(selectedProfessor)) return;
+
     const resultado = await Swal.fire({ icon: 'warning', title: 'Excluir professor?', text: `Tem certeza que deseja excluir o professor "${selectedProfessor.nome}"? Essa ação não pode ser desfeita.`, showCancelButton: true, confirmButtonText: 'Sim, excluir', cancelButtonText: 'Cancelar', confirmButtonColor: '#b91c1c', cancelButtonColor: '#64748b' });
     if (!resultado.isConfirmed) return;
     try {
@@ -127,7 +132,10 @@ export default function Professors() {
                   professor={professor}
                   onEditar={abrirModalEdicao}
                   onVerPerfil={setProfessorProfile}
-                  onAlternarStatus={alternarStatus}
+                  onAlternarStatus={(item) => {
+                    if (!ehAdministradorDoSistema(item)) alternarStatus(item);
+                  }}
+                  isSystemAdmin={ehAdministradorDoSistema(professor)}
                 />
               )}
             />
@@ -147,7 +155,7 @@ export default function Professors() {
           onChange={setSelectedProfessor}
           onClose={() => setSelectedProfessor(null)}
           onSave={salvarEdicaoProfessor}
-          onDelete={excluirProfessorComConfirmacao}
+          onDelete={ehAdministradorDoSistema(selectedProfessor) ? undefined : excluirProfessorComConfirmacao}
         />
       )}
 

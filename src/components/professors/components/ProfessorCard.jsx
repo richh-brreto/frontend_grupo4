@@ -3,7 +3,7 @@ import Button from '../../layout/Button';
 import ButtonContainer from '../../layout/ButtonContainer';
 import { copiarTexto } from '../../../utils/clipboard';
 
-export default function ProfessorCard({ professor, onEditar, onVerPerfil, onAlternarStatus }) {
+export default function ProfessorCard({ professor, onEditar, onVerPerfil, onAlternarStatus, isSystemAdmin = false }) {
   const [copiado, setCopiado] = useState(false);
   const senhaPendente = !professor.senhaDefinida;
   const iniciais = professor.nome
@@ -66,9 +66,11 @@ export default function ProfessorCard({ professor, onEditar, onVerPerfil, onAlte
         {senhaPendente && professor.codigoAcesso && (
           <Button onClick={copiarCodigo}>{copiado ? 'Código copiado!' : 'Copiar código de acesso'}</Button>
         )}
-        <Button onClick={() => onAlternarStatus(professor)}>
-          {professor.ativo ? 'Inativar' : 'Reativar'}
-        </Button>
+        {!isSystemAdmin && (
+          <Button onClick={() => onAlternarStatus(professor)}>
+            {professor.ativo ? 'Inativar' : 'Reativar'}
+          </Button>
+        )}
       </ButtonContainer>
     </article>
   );
