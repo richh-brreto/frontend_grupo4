@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import axios from "../../../utils/axiosConfig";
 import { useLocation, Link } from "react-router-dom";
-import Swal from "sweetalert2";
 import logo from "../../../assets/Boost-White.png";
 import { definirUsuarioAtual, registrarSessao, salvarPermissoes } from "../../../utils/permissions";
+import mostrarSucesso from "../../../utils/mostrarSucesso";
 import "./Card.css";
 import Input from "../input/Input";
 import Button from "../button/Button";
@@ -17,11 +17,9 @@ function Card({ onLoginSuccess }) {
 
     useEffect(() => {
         if (location.state?.primeiroAcessoSucesso) {
-            Swal.fire({
-                icon: "success",
+            mostrarSucesso({
                 title: "Senha configurada com sucesso!",
                 text: "Agora entre com seu e-mail e sua nova senha.",
-                confirmButtonColor: "#0f1f3f",
             });
             window.history.replaceState({}, document.title);
         }

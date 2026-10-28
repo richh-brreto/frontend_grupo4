@@ -10,6 +10,7 @@ import EditProfessorModal from './components/EditProfessorModal';
 import ProfessorProfileModal from './components/ProfessorProfileModal';
 import mostrarCodigoAcesso from '../../utils/mostrarCodigoAcesso';
 import { useUsuarioAtual } from '../../utils/permissions';
+import mostrarSucesso from '../../utils/mostrarSucesso';
 import '../agenda/Agenda.css';
 import './Professors.css';
 
@@ -79,7 +80,7 @@ export default function Professors() {
     try {
       await editarProfessor({ ...selectedProfessor, ...dados });
       setSelectedProfessor(null);
-      await Swal.fire({ icon: 'success', title: 'Professor atualizado!', text: 'As alterações foram salvas com sucesso.', confirmButtonColor: '#0f1f3f' });
+      await mostrarSucesso({ title: 'Professor atualizado!', text: 'As alterações foram salvas com sucesso.' });
     } catch (error) {
       await Swal.fire({ icon: 'error', title: 'Não foi possível salvar', text: error.response?.data?.message || error.message || 'Tente novamente.', confirmButtonColor: '#0f1f3f' });
       throw error;
@@ -94,7 +95,7 @@ export default function Professors() {
     try {
       await excluirProfessor(selectedProfessor.id);
       setSelectedProfessor(null);
-      await Swal.fire({ icon: 'success', title: 'Professor excluído!', text: 'O professor foi removido com sucesso.', confirmButtonColor: '#0f1f3f' });
+      await mostrarSucesso({ title: 'Professor excluído!', text: 'O professor foi removido com sucesso.' });
     } catch (error) {
       await Swal.fire({ icon: 'error', title: 'Não foi possível excluir', text: error.message || 'Tente novamente.', confirmButtonColor: '#0f1f3f' });
     }

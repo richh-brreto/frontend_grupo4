@@ -7,14 +7,16 @@ import Modal from '../layout/Modal';
 import Container from '../layout/Container';
 import ScheduleGrid from '../schedule/ScheduleGrid';
 import { alunosService } from '../students/components/alunosService';
-import { professoresDisponiveisService } from './professoresDisponiveisService';
+import { professoresService } from '../professors/components/professoresService';
 import { turmasDisponiveisService } from './turmasDisponiveisService';
 import { contratosService } from './contratosService';
 import { turmasService } from '../classes/turmasService';
+import { horariosService } from './horariosService';
 import { ordenarHorarios } from '../../utils/ordenarHorarios';
 import mostrarCodigoAcesso from '../../utils/mostrarCodigoAcesso';
 import { useUsuarioAtual } from '../../utils/permissions';
 import { contratoPertenceAoProfessor } from '../../utils/escopoProfessor';
+import mostrarSucesso from '../../utils/mostrarSucesso';
 import '../agenda/Agenda.css';
 import './Contracts.css';
 
@@ -44,6 +46,22 @@ const normalizarNivel = (nivel) =>
 const normalizarDia = (diaSemana) => DIA_SEMANA_MAP[diaSemana] || diaSemana;
 const normalizarHora = (hora) => (hora ? hora.slice(0, 5) : hora);
 const dataHoje = () => new Date().toISOString().split('T')[0];
+const extrairLista = (resposta) => {
+  if (Array.isArray(resposta)) return resposta;
+  if (Array.isArray(resposta?.content)) return resposta.content;
+  if (Array.isArray(resposta?.data)) return resposta.data;
+  if (Array.isArray(resposta?.data?.content)) return resposta.data.content;
+  return [];
+};
+const obterHorarioId = (horario) =>
+  typeof horario === 'object' && horario !== null
+    ? horario.id ?? horario.horarioId ?? horario.idHorario
+    : horario;
+const obterHorariosIdsContrato = (contrato) => [
+  ...(Array.isArray(contrato?.horariosIds) ? contrato.horariosIds : []),
+  ...(Array.isArray(contrato?.horarios) ? contrato.horarios : []),
+  ...(contrato?.horario ? [contrato.horario] : []),
+].map(obterHorarioId).filter((id) => id != null).map(String);
 
 // O ContratoResponse da API não envia "aluno.ativo"; determina a vigência pela data fim.
 const contratoEhAtivo = (contrato) => {
@@ -156,28 +174,56 @@ export default function Contracts() {
 
   // Busca as duas listas quando o modal de agendamento abre
   useEffect(() => {
-    if (!ehAdministrador || (!isScheduleModalOpen && !selectedContract)) return;
+    if (!ehAdministrador || carregandoContratos || (!isScheduleModalOpen && !selectedContract)) return;
 
     let cancelado = false;
     setCarregandoDisponibilidade(true);
     setErroDisponibilidade(null);
 
-    const payload = {
-      alunoHorariosIds: alunoSelecionado?.horariosIds || [0]
-    };
-
     Promise.all([
-      professoresDisponiveisService.listar(payload).catch((erro) => {
-        throw new Error(erro.message || 'Falha ao buscar professores disponíveis');
-      }),
-      turmasDisponiveisService.listar().catch((erro) => {
-        throw new Error(erro.message || 'Falha ao buscar turmas disponíveis');
-      })
+      professoresService.listar(),
+      horariosService.listar(),
+      turmasDisponiveisService.listar(),
+      turmasService.listar(),
     ])
-      .then(([professores, turmas]) => {
+      .then(([professoresResposta, horariosResposta, turmasResposta, todasTurmasResposta]) => {
         if (cancelado) return;
-        setProfessoresDisponiveis(Array.isArray(professores) ? professores : []);
-        setTurmasDisponiveis(Array.isArray(turmas) ? turmas : []);
+        const horariosCatalogo = extrairLista(horariosResposta);
+        const turmas = extrairLista(turmasResposta);
+        const todasTurmas = extrairLista(todasTurmasResposta);
+        const horariosPorId = new Map(horariosCatalogo.map((horario) => [String(horario.id), horario]));
+        const professores = extrairLista(professoresResposta)
+          .filter((professor) => professor.ativo !== false)
+          .map((professor) => {
+            const horariosRecebidos = Array.isArray(professor.horarios) ? professor.horarios : [];
+            const horariosIds = [
+              ...(Array.isArray(professor.horariosIds) ? professor.horariosIds : []),
+              ...horariosRecebidos.map(obterHorarioId),
+            ].filter((id) => id != null).map(String);
+            const horariosPorProfessor = new Map([
+              ...horariosCatalogo,
+              ...horariosRecebidos.filter((horario) => horario && typeof horario === 'object'),
+            ].filter((horario) => horario.id != null)
+              .map((horario) => [String(horario.id), horario]));
+            const horarios = [...new Set(horariosIds)]
+              .map((id) => horariosPorProfessor.get(id) ?? horariosPorId.get(id))
+              .filter(Boolean);
+            const horariosOcupados = new Set(contratos
+              .filter((contrato) => String(contrato.id) !== String(selectedContract?.id)
+                && contratoPertenceAoProfessor(contrato, professor.id, todasTurmas)
+                && (!contrato.dataInicio || !dataFimContrato || contrato.dataInicio <= dataFimContrato)
+                && (!contrato.dataFim || !dataInicioContrato || contrato.dataFim >= dataInicioContrato))
+              .flatMap(obterHorariosIdsContrato));
+
+            return {
+              ...professor,
+              horarios: horarios.filter((horario) => !horariosOcupados.has(String(horario.id))),
+            };
+          });
+
+        setProfessoresDisponiveis(professores);
+        setTurmasDisponiveis(turmas);
+        setTurmasDoSistema(todasTurmas);
         const horariosDoContrato = selectedContract?.horarios
           || (selectedContract?.horario ? [selectedContract.horario] : []);
         if (horariosDoContrato.length) {
@@ -217,7 +263,7 @@ export default function Contracts() {
     return () => {
       cancelado = true;
     };
-  }, [isScheduleModalOpen, alunoSelecionado, selectedContract, ehAdministrador]);
+  }, [isScheduleModalOpen, alunoSelecionado, selectedContract, ehAdministrador, carregandoContratos, contratos, dataInicioContrato, dataFimContrato]);
 
   // Monta o mapa dia+hora -> lista de opções (professor OU turma), dependendo do contractType
   const gradeDisponibilidade = useMemo(() => {
@@ -376,7 +422,7 @@ export default function Contracts() {
       if (alunoCriado) {
         await mostrarCodigoAcesso({ ...alunoCriado, titulo: 'Aluno e contrato criados!' });
       } else {
-        await Swal.fire({ icon: 'success', title: 'Contrato criado!', text: 'O contrato foi cadastrado com sucesso.', confirmButtonColor: '#0f1f3f' });
+        await mostrarSucesso({ title: 'Contrato criado!', text: 'O contrato foi cadastrado com sucesso.' });
       }
     } catch (erro) {
       console.error('Erro ao criar contrato:', erro.response?.data || erro.message);
@@ -523,7 +569,7 @@ export default function Contracts() {
       setEditScheduleByType({});
       setOpenSlot(null);
       contractFormInicialRef.current = null;
-      await Swal.fire({ icon: 'success', title: 'Contrato atualizado!', text: 'As alterações foram salvas com sucesso.', confirmButtonColor: '#0f1f3f' });
+      await mostrarSucesso({ title: 'Contrato atualizado!', text: 'As alterações foram salvas com sucesso.' });
     } catch (erro) {
       console.error('Erro ao atualizar contrato:', erro);
       await Swal.fire({ icon: 'error', title: 'Não foi possível salvar', text: erro.response?.data?.message || erro.message || 'Tente novamente.', confirmButtonColor: '#0f1f3f' });
@@ -543,7 +589,7 @@ export default function Contracts() {
       await contratosService.deletar(selectedContract.id);
       setContratos((items) => items.filter((item) => item.id !== selectedContract.id));
       fecharModalEdicao();
-      await Swal.fire({ icon: 'success', title: 'Contrato excluído!', text: 'O contrato foi removido com sucesso.', confirmButtonColor: '#0f1f3f' });
+      await mostrarSucesso({ title: 'Contrato excluído!', text: 'O contrato foi removido com sucesso.' });
     } catch (erro) {
       console.error('Erro ao deletar contrato:', erro);
       await Swal.fire({ icon: 'error', title: 'Não foi possível excluir', text: erro.response?.data?.message || erro.message || 'Tente novamente.', confirmButtonColor: '#0f1f3f' });

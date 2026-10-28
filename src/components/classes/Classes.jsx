@@ -10,6 +10,7 @@ import { professoresService } from '../professors/components/professoresService'
 import { turmasService } from "./turmasService";
 import { ordenarHorarios } from '../../utils/ordenarHorarios';
 import { useUsuarioAtual } from '../../utils/permissions';
+import mostrarSucesso from '../../utils/mostrarSucesso';
 import '../agenda/Agenda.css';
 import './Classes.css';
 
@@ -281,11 +282,9 @@ export default function Classes() {
         }]);
       }
 
-      await Swal.fire({
-        icon: 'success',
+      await mostrarSucesso({
         title: 'Turma criada!',
         text: 'A turma foi cadastrada com sucesso.',
-        confirmButtonColor: '#0f1f3f'
       });
 
       setNovaTurma({ nome: '', nivel: '', limiteAlunos: '', tipo: '', professorId: '' });
@@ -469,11 +468,9 @@ export default function Classes() {
       );
       setSelectedClass(null);
       setHorariosEdicaoSelecionados([]);
-      await Swal.fire({
-        icon: 'success',
+      await mostrarSucesso({
         title: 'Turma atualizada!',
         text: 'As alterações foram salvas com sucesso.',
-        confirmButtonColor: '#0f1f3f'
       });
     } catch (error) {
       console.error('Erro ao atualizar turma:', error.response?.data ?? error.message);
@@ -507,11 +504,9 @@ export default function Classes() {
       setTurmas((items) => items.filter((item) => item.id !== selectedClass.id));
       setSelectedClass(null);
       setHorariosEdicaoSelecionados([]);
-      await Swal.fire({
-        icon: 'success',
+      await mostrarSucesso({
         title: 'Turma excluída!',
         text: 'A turma foi removida com sucesso.',
-        confirmButtonColor: '#0f1f3f'
       });
     } catch (error) {
       console.error('Erro ao excluir turma:', error.response?.data ?? error.message);

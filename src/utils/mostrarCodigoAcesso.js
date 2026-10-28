@@ -1,5 +1,5 @@
-import Swal from 'sweetalert2';
 import { copiarTexto } from './clipboard';
+import mostrarSucesso from './mostrarSucesso';
 
 const escaparSeguro = (valor) =>
   String(valor ?? '').replace(/[&<>"']/g, (caractere) => ({
@@ -14,8 +14,7 @@ export default function mostrarCodigoAcesso({ nome, codigoAcesso, titulo = `${no
   const inputId = 'codigo-acesso-copy-input';
   const valorSeguro = escaparSeguro(codigoAcesso);
 
-  return Swal.fire({
-    icon: 'success',
+  return mostrarSucesso({
     title: titulo,
     html: `
       <p style="text-align:left; color:#475569; font-size:14px; margin:0 0 12px;">
@@ -38,8 +37,6 @@ export default function mostrarCodigoAcesso({ nome, codigoAcesso, titulo = `${no
         </button>
       </div>
     `,
-    confirmButtonText: 'Concluir',
-    confirmButtonColor: '#0f1f3f',
     didOpen: () => {
       const botao = document.getElementById('swal-copy-btn');
       const input = document.getElementById(inputId);

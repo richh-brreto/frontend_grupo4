@@ -5,6 +5,7 @@ import ButtonContainer from "../layout/ButtonContainer";
 import Modal from '../layout/Modal';
 import { comunicadosService } from './comunicadosService';
 import { usePermissoes } from '../../utils/permissions';
+import mostrarSucesso from '../../utils/mostrarSucesso';
 import '../agenda/Agenda.css';
 import './Overview.css';
 
@@ -109,11 +110,9 @@ export default function Overview() {
       setComunicados((items) => [criado, ...items]);
       setIsAddModalOpen(false);
       setNovoComunicado({ titulo: '', texto: '' });
-      await Swal.fire({
-        icon: 'success',
+      await mostrarSucesso({
         title: 'Comunicado cadastrado!',
         text: 'O comunicado foi cadastrado com sucesso.',
-        confirmButtonColor: '#0f1f3f'
       });
     } catch (error) {
       await Swal.fire({
@@ -167,11 +166,9 @@ export default function Overview() {
       setComunicados((items) =>
         items.map((item) => (item.id === atualizado.id ? atualizado : item))
       );
-      await Swal.fire({
-        icon: 'success',
+      await mostrarSucesso({
         title: 'Comunicado atualizado!',
         text: 'As alterações foram salvas com sucesso.',
-        confirmButtonColor: '#0f1f3f'
       });
       setSelectedAnnouncement(null);
       setOriginalAnnouncement(null);
@@ -203,11 +200,9 @@ export default function Overview() {
       await comunicadosService.excluir(selectedAnnouncement.id);
       setComunicados((items) => items.filter((item) => item.id !== selectedAnnouncement.id));
       fecharModalEdicao();
-      await Swal.fire({
-        icon: 'success',
+      await mostrarSucesso({
         title: 'Comunicado excluído!',
         text: 'O comunicado foi removido com sucesso.',
-        confirmButtonColor: '#0f1f3f'
       });
     } catch (error) {
       await Swal.fire({

@@ -11,6 +11,7 @@ import { contratosService } from '../contracts/contratosService';
 import { turmasService } from '../classes/turmasService';
 import { usePermissoes, useUsuarioAtual } from '../../utils/permissions';
 import { contratoPertenceAoProfessor, obterProfessorIdTurma } from '../../utils/escopoProfessor';
+import mostrarSucesso from '../../utils/mostrarSucesso';
 import './Agenda.css';
 
 
@@ -277,11 +278,9 @@ export default function Agenda() {
       await aulasService.registrarAusencias(selectedAula, alunosAusentes);
       fecharModalAusencia();
       recarregarAulas();
-      await Swal.fire({
-        icon: 'success',
+      await mostrarSucesso({
         title: 'Ausências salvas!',
         text: 'A presença dos alunos foi registrada com sucesso.',
-        confirmButtonColor: '#0f1f3f'
       });
     } catch (error) {
       await mostrarErro(error, 'Erro ao salvar ausências');
@@ -313,11 +312,9 @@ export default function Agenda() {
       await aulasService.cancelar(selectedAula, resultado.value?.trim() || null);
       fecharModalEditar();
       recarregarAulas();
-      await Swal.fire({
-        icon: 'success',
+      await mostrarSucesso({
         title: 'Aula cancelada!',
         text: 'A aula foi cancelada com sucesso.',
-        confirmButtonColor: '#0f1f3f'
       });
     } catch (error) {
       await mostrarErro(error, 'Erro ao cancelar');
@@ -420,11 +417,9 @@ export default function Agenda() {
       setNovoEvento({ nome: '', descricao: '', professorId: '', horaInicio: '07:00', horaFim: '08:00' });
       setProfessoresDisponiveis([]);
       recarregarAulas();
-      await Swal.fire({
-        icon: 'success',
+      await mostrarSucesso({
         title: 'Evento adicionado!',
         text: 'O evento foi adicionado à agenda com sucesso.',
-        confirmButtonColor: '#0f1f3f'
       });
     } catch (error) {
       await mostrarErro(error, 'Erro ao adicionar evento');
@@ -466,11 +461,9 @@ export default function Agenda() {
       setSelectedAula(null);
       setRemarcacao({ novaData: '', novaHoraInicio: '', novaHoraFim: '', motivo: '', horarioSelecionado: null });
       recarregarAulas();
-      await Swal.fire({
-        icon: 'success',
+      await mostrarSucesso({
         title: 'Aula remarcada!',
         text: 'A aula foi remarcada com sucesso.',
-        confirmButtonColor: '#0f1f3f'
       });
     } catch (error) {
       setIsRescheduleModalOpen(true);

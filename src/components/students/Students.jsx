@@ -14,6 +14,7 @@ import { contratosService } from '../contracts/contratosService';
 import { turmasService } from '../classes/turmasService';
 import { useUsuarioAtual } from '../../utils/permissions';
 import { contratoPertenceAoProfessor } from '../../utils/escopoProfessor';
+import mostrarSucesso from '../../utils/mostrarSucesso';
 import '../agenda/Agenda.css';
 import './Students.css';
 
@@ -71,7 +72,7 @@ export default function Students() {
     try {
       await editarAluno(selectedStudent);
       setSelectedStudent(null);
-      await Swal.fire({ icon: 'success', title: 'Aluno atualizado!', text: 'As alterações foram salvas com sucesso.', confirmButtonColor: '#0f1f3f' });
+      await mostrarSucesso({ title: 'Aluno atualizado!', text: 'As alterações foram salvas com sucesso.' });
     } catch (error) {
       await Swal.fire({ icon: 'error', title: 'Não foi possível salvar', text: error.message || 'Tente novamente.', confirmButtonColor: '#0f1f3f' });
     }
@@ -128,7 +129,7 @@ export default function Students() {
     try {
       await excluirAluno(selectedStudent.id);
       setSelectedStudent(null);
-      await Swal.fire({ icon: 'success', title: 'Aluno excluído!', text: 'O aluno foi removido com sucesso.', confirmButtonColor: '#0f1f3f' });
+      await mostrarSucesso({ title: 'Aluno excluído!', text: 'O aluno foi removido com sucesso.' });
     } catch (error) {
       await Swal.fire({ icon: 'error', title: 'Não foi possível excluir', text: error.message || 'Tente novamente.', confirmButtonColor: '#0f1f3f' });
     }
