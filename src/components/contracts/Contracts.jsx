@@ -10,8 +10,11 @@ import { alunosService } from '../students/components/alunosService';
 import { professoresDisponiveisService } from './professoresDisponiveisService';
 import { turmasDisponiveisService } from './turmasDisponiveisService';
 import { contratosService } from './contratosService';
+import { turmasService } from '../classes/turmasService';
 import { ordenarHorarios } from '../../utils/ordenarHorarios';
 import mostrarCodigoAcesso from '../../utils/mostrarCodigoAcesso';
+import { useUsuarioAtual } from '../../utils/permissions';
+import { contratoPertenceAoProfessor } from '../../utils/escopoProfessor';
 import '../agenda/Agenda.css';
 import './Contracts.css';
 
@@ -53,6 +56,7 @@ const contratoEhAtivo = (contrato) => {
 export default function Contracts() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { professorId, ehAdministrador } = useUsuarioAtual();
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(
     () => Boolean(location.state?.openContractSetup)
   );
@@ -87,6 +91,7 @@ export default function Contracts() {
   const [carregandoContratos, setCarregandoContratos] = useState(true);
   const [erroContratos, setErroContratos] = useState(null);
   const [carregandoOperacao, setCarregandoOperacao] = useState(false);
+  const [turmasDoSistema, setTurmasDoSistema] = useState([]);
 
   // Refs para detectar alterações não salvas nos modais
   const scheduleInicialRef = useRef([]);
@@ -96,6 +101,11 @@ export default function Contracts() {
 
   // Carregar alunos
   useEffect(() => {
+    if (!ehAdministrador) {
+      setAlunos([]);
+      return;
+    }
+
     const alunoDoCadastro = location.state?.openContractSetup
       ? location.state?.alunoCadastro
       : null;
@@ -110,12 +120,19 @@ export default function Contracts() {
     }).catch((erro) => {
       console.error('Erro ao carregar alunos:', erro);
     });
-  }, [location.state]);
+  }, [location.state, ehAdministrador]);
 
   // Carregar contratos da API
   useEffect(() => {
     carregarContratos();
   }, []);
+
+  useEffect(() => {
+    if (ehAdministrador) return;
+    turmasService.listar()
+      .then((dados) => setTurmasDoSistema(Array.isArray(dados) ? dados : dados?.content ?? []))
+      .catch((erro) => console.error('Erro ao carregar turmas do professor:', erro));
+  }, [ehAdministrador]);
 
   const carregarContratos = () => {
     setCarregandoContratos(true);
@@ -139,7 +156,7 @@ export default function Contracts() {
 
   // Busca as duas listas quando o modal de agendamento abre
   useEffect(() => {
-    if (!isScheduleModalOpen && !selectedContract) return;
+    if (!ehAdministrador || (!isScheduleModalOpen && !selectedContract)) return;
 
     let cancelado = false;
     setCarregandoDisponibilidade(true);
@@ -200,7 +217,7 @@ export default function Contracts() {
     return () => {
       cancelado = true;
     };
-  }, [isScheduleModalOpen, alunoSelecionado, selectedContract]);
+  }, [isScheduleModalOpen, alunoSelecionado, selectedContract, ehAdministrador]);
 
   // Monta o mapa dia+hora -> lista de opções (professor OU turma), dependendo do contractType
   const gradeDisponibilidade = useMemo(() => {
@@ -246,6 +263,7 @@ export default function Contracts() {
   }, [alunoSelecionado?.nivel, contractType, professoresDisponiveis, turmasDisponiveis]);
 
   const abrirModalAdicionar = () => {
+    if (!ehAdministrador) return;
     if (salvandoNovoContratoRef.current) return;
     setAlunoFixoNoCadastro(null);
     setAlunoSelecionadoId('');
@@ -412,6 +430,7 @@ export default function Contracts() {
   };
 
   const abrirModalEdicao = (contrato) => {
+    if (!ehAdministrador) return;
     const contratoCompleto = {
       ...contrato,
       turma: contrato.turma ? { ...contrato.turma } : null,
@@ -533,9 +552,12 @@ export default function Contracts() {
     }
   };
 
-  const contratosFiltrados = contratos.filter((contrato) =>
-    contractFilter === 'ativos' ? contratoEhAtivo(contrato) : !contratoEhAtivo(contrato)
-  );
+  const contratosFiltrados = contratos
+    .filter((contrato) => ehAdministrador
+      || contratoPertenceAoProfessor(contrato, professorId, turmasDoSistema))
+    .filter((contrato) => contractFilter === 'ativos'
+      ? contratoEhAtivo(contrato)
+      : !contratoEhAtivo(contrato));
 
   return (
     <>
@@ -561,7 +583,9 @@ export default function Contracts() {
                   Inativos
                 </Button>
               </div>
-              <Button variant="primary" onClick={abrirModalAdicionar} disabled={carregandoOperacao}>Adicionar Contrato</Button>
+              {ehAdministrador && (
+                <Button variant="primary" onClick={abrirModalAdicionar} disabled={carregandoOperacao}>Adicionar Contrato</Button>
+              )}
             </ButtonContainer>
           </div>
 
@@ -613,7 +637,9 @@ export default function Contracts() {
                   </div>
 
                   <ButtonContainer>
-                    <Button active onClick={() => abrirModalEdicao(contrato)}>Editar</Button>
+                    {ehAdministrador && (
+                      <Button active onClick={() => abrirModalEdicao(contrato)}>Editar</Button>
+                    )}
                   </ButtonContainer>
                 </article>
               )}
@@ -622,7 +648,7 @@ export default function Contracts() {
           </div>
         </div>
 
-      {isScheduleModalOpen && (
+      {ehAdministrador && isScheduleModalOpen && (
         <Modal
           title="Configurar contrato"
           onClose={fecharModalAgendamento}
@@ -816,7 +842,7 @@ export default function Contracts() {
         </Modal>
       )}
 
-      {selectedContract && (
+      {ehAdministrador && selectedContract && (
         <Modal
           title="Editar Contrato"
           onClose={fecharModalEdicao}

@@ -4,13 +4,14 @@ import remarkGfm from 'remark-gfm';
 import Swal from 'sweetalert2';
 import { chatService } from './chatService';
 import { useChat } from './chatContext';
-import { usePermissoes } from '../../utils/permissions';
+import { usePermissoes, useUsuarioAtual } from '../../utils/permissions';
 import './ChatWidget.css';
 
 const mensagemErro = (error, padrao) => error.response?.data?.error || padrao;
 
 export default function ChatWidget() {
   const { podeAcessar } = usePermissoes();
+  const { ehAdministrador } = useUsuarioAtual();
   const { aberto, modo, periodo, relatorioSolicitacao, abrirChat, fecharChat } = useChat();
 
   const [mensagens, setMensagens] = useState([]);
@@ -97,7 +98,7 @@ export default function ChatWidget() {
 
   const limparConversa = () => setMensagens([]);
 
-  if (!podeAcessar('TELA_DASHBOARD')) {
+  if (!ehAdministrador || !podeAcessar('TELA_DASHBOARD')) {
     return null;
   }
 

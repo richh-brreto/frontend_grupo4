@@ -9,6 +9,7 @@ import { horariosService } from '../contracts/horariosService';
 import { professoresService } from '../professors/components/professoresService';
 import { turmasService } from "./turmasService";
 import { ordenarHorarios } from '../../utils/ordenarHorarios';
+import { useUsuarioAtual } from '../../utils/permissions';
 import '../agenda/Agenda.css';
 import './Classes.css';
 
@@ -110,6 +111,7 @@ const agruparHorariosPorDia = (horarios = []) => {
 };
 
 export default function Classes() {
+  const { professorId, ehAdministrador } = useUsuarioAtual();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
   const [classDetails, setClassDetails] = useState(null);
@@ -162,6 +164,7 @@ export default function Classes() {
   };
 
   const abrirModalAdicionar = async () => {
+    if (!ehAdministrador) return;
     setIsAddModalOpen(true);
     setHorariosError('');
     setProfessoresError('');
@@ -309,6 +312,7 @@ export default function Classes() {
   };
 
   const abrirModalEdicao = async (turma) => {
+    if (!ehAdministrador) return;
     const turmaParaEdicao = {
       ...turma,
       nivel: obterNivelTurma(turma),
@@ -552,9 +556,13 @@ export default function Classes() {
   }, []);
 
   const buscaNormalizada = normalizar(busca.trim());
+  const turmasVisiveis = ehAdministrador
+    ? turmas
+    : turmas.filter((turma) => professorId != null
+      && String(obterProfessorIdTurma(turma)) === String(professorId));
   const turmasFiltradas = buscaNormalizada
-    ? turmas.filter((turma) => normalizar(turma.nome).includes(buscaNormalizada))
-    : turmas;
+    ? turmasVisiveis.filter((turma) => normalizar(turma.nome).includes(buscaNormalizada))
+    : turmasVisiveis;
 
   const professorNovo = professores.find(
     (professor) => String(professor.id) === String(novaTurma.professorId)
@@ -596,7 +604,9 @@ export default function Classes() {
                 className="class-search-input"
               />
             
-              <Button variant="primary" onClick={abrirModalAdicionar}>Adicionar turma</Button>
+              {ehAdministrador && (
+                <Button variant="primary" onClick={abrirModalAdicionar}>Adicionar turma</Button>
+              )}
               
             </ButtonContainer>
           </div>
@@ -652,7 +662,9 @@ export default function Classes() {
                   </div>
 
                   <ButtonContainer>
-                    <Button onClick={() => abrirModalEdicao(turma)}>Editar</Button>
+                    {ehAdministrador && (
+                      <Button onClick={() => abrirModalEdicao(turma)}>Editar</Button>
+                    )}
                     <Button active onClick={() => abrirDetalhes(turma)}>Ver detalhes</Button>
                   </ButtonContainer>
                 </article>
@@ -661,7 +673,7 @@ export default function Classes() {
           </div>
         </div>
 
-      {isAddModalOpen && (
+      {ehAdministrador && isAddModalOpen && (
         <Modal
           title="Adicionar Turma"
           onClose={fecharModalAdicionar}
@@ -821,7 +833,7 @@ export default function Classes() {
         </Modal>
       )}
 
-      {selectedClass && (
+      {ehAdministrador && selectedClass && (
         <Modal
           title="Editar Turma"
           onClose={fecharModalEdicao}

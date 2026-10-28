@@ -7,7 +7,10 @@ import AulaDetailModal from './AulaDetailModal';
 import RemarcarScheduleSelector from './RemarcarScheduleSelector';
 import { aulasService } from './aulasService';
 import { professoresService } from '../professors/components/professoresService';
-import { usePermissoes } from '../../utils/permissions';
+import { contratosService } from '../contracts/contratosService';
+import { turmasService } from '../classes/turmasService';
+import { usePermissoes, useUsuarioAtual } from '../../utils/permissions';
+import { contratoPertenceAoProfessor, obterProfessorIdTurma } from '../../utils/escopoProfessor';
 import './Agenda.css';
 
 
@@ -52,6 +55,14 @@ const normalizarTexto = (texto) => String(texto ?? '')
   .replace(/[\u0300-\u036f]/g, '')
   .toLowerCase()
   .trim();
+
+const extrairLista = (resposta) => {
+  if (Array.isArray(resposta)) return resposta;
+  if (Array.isArray(resposta?.content)) return resposta.content;
+  if (Array.isArray(resposta?.data)) return resposta.data;
+  if (Array.isArray(resposta?.data?.content)) return resposta.data.content;
+  return [];
+};
 
 // Em contratos de grupo cada aluno tem o próprio contrato e, portanto, as próprias aulas.
 // Na agenda, as aulas da mesma turma no mesmo dia e horário viram um único evento.
@@ -168,6 +179,7 @@ export default function Agenda() {
   const [professoresDisponiveis, setProfessoresDisponiveis] = useState([]);
   // Quem enxerga a agenda é quem tem a tela liberada (o menu já protege a rota).
   const { podeAcessar } = usePermissoes();
+  const { professorId, ehAdministrador, carregando: carregandoUsuario } = useUsuarioAtual();
   const podeGerenciar = podeAcessar('TELA_AGENDA');
 
   const temAlteracoesNovoEvento = () => {
@@ -470,13 +482,44 @@ export default function Agenda() {
 
   useEffect(() => {
     const fetchAulas = async () => {
+      if (carregandoUsuario) return;
+
       try {
         setCarregando(true);
         setErroCarregamento('');
         const semana = obterDiasSemana(dataAtual);
         const resposta = await aulasService.listarPorPeriodo(semana[0].data, semana[semana.length - 1].data);
+        let aulasVisiveis = resposta;
 
-        if (!ignorar) setAulas(agruparAulas(resposta));
+        if (!ehAdministrador) {
+          const [turmasResposta, contratosResposta] = await Promise.all([
+            turmasService.listar(),
+            contratosService.listar(),
+          ]);
+          const turmas = extrairLista(turmasResposta);
+          const contratos = extrairLista(contratosResposta);
+          const turmasDoProfessor = new Set(turmas
+            .filter((turma) => String(obterProfessorIdTurma(turma) ?? '') === String(professorId ?? ''))
+            .map((turma) => String(turma.id)));
+          const contratosDoProfessor = new Set(contratos
+            .filter((contrato) => contratoPertenceAoProfessor(contrato, professorId, turmas))
+            .map((contrato) => String(contrato.id)));
+
+          aulasVisiveis = resposta.filter((aula) => {
+            if (aula.turmaId != null) return turmasDoProfessor.has(String(aula.turmaId));
+
+            const professorDaAula = aula.professorId
+              ?? aula.idProfessor
+              ?? aula.professor_id
+              ?? aula.professor?.id;
+            if (professorDaAula != null) {
+              return String(professorDaAula) === String(professorId);
+            }
+            return contratosDoProfessor.has(String(aula.contratoId));
+          });
+        }
+
+        if (!ignorar) setAulas(agruparAulas(aulasVisiveis));
       } catch (error) {
         if (ignorar) return;
         console.error('Erro ao buscar aulas:', error);
@@ -492,7 +535,7 @@ export default function Agenda() {
     return () => {
       ignorar = true;
     };
-  }, [dataAtual, versaoAulas]);
+  }, [dataAtual, versaoAulas, professorId, ehAdministrador, carregandoUsuario]);
 
   const alturaHora = isFiltersOpen ? ALTURA_HORA + 7 : ALTURA_HORA;
 

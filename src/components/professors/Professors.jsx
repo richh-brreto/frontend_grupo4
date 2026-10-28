@@ -9,6 +9,7 @@ import AddProfessorModal from './components/AddProfessorModal';
 import EditProfessorModal from './components/EditProfessorModal';
 import ProfessorProfileModal from './components/ProfessorProfileModal';
 import mostrarCodigoAcesso from '../../utils/mostrarCodigoAcesso';
+import { useUsuarioAtual } from '../../utils/permissions';
 import '../agenda/Agenda.css';
 import './Professors.css';
 
@@ -24,6 +25,7 @@ const ehAdministradorDoSistema = (professor) =>
   String(professor?.id) === '1';
 
 export default function Professors() {
+  const { professorId, ehAdministrador } = useUsuarioAtual();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedProfessor, setSelectedProfessor] = useState(null);
   const [professorProfile, setProfessorProfile] = useState(null);
@@ -45,9 +47,13 @@ export default function Professors() {
   if (error) return <p>Erro ao carregar professores: {error}</p>;
 
   const buscaNormalizada = normalizar(busca.trim());
+  const professoresVisiveis = ehAdministrador
+    ? professores
+    : professores.filter((professor) => professorId != null
+      && String(professor.id) === String(professorId));
   const professoresFiltrados = buscaNormalizada
-    ? professores.filter((professor) => normalizar(professor.nome).includes(buscaNormalizada))
-    : professores;
+    ? professoresVisiveis.filter((professor) => normalizar(professor.nome).includes(buscaNormalizada))
+    : professoresVisiveis;
 
   const abrirModalEdicao = (professor) => {
     setSelectedProfessor({ ...professor });
@@ -118,7 +124,9 @@ export default function Professors() {
                   Inativos
                 </Button>
               </div>
-              <Button variant="primary" onClick={() => setIsAddModalOpen(true)}>Adicionar professor</Button>
+              {ehAdministrador && (
+                <Button variant="primary" onClick={() => setIsAddModalOpen(true)}>Adicionar professor</Button>
+              )}
             </ButtonContainer>
           </div>
 
@@ -142,7 +150,7 @@ export default function Professors() {
           </div>
         </div>
 
-      {isAddModalOpen && (
+      {ehAdministrador && isAddModalOpen && (
         <AddProfessorModal
           onClose={() => setIsAddModalOpen(false)}
           onSave={salvarNovoProfessor}

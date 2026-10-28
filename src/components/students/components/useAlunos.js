@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { alunosService } from './alunosService';
+import { contratosService } from '../../contracts/contratosService';
+import { turmasService } from '../../classes/turmasService';
+import { contratoPertenceAoProfessor, obterAlunoIdContrato } from '../../../utils/escopoProfessor';
 
 const TAMANHO_PAGINA = 10;
 const ATRASO_BUSCA_MS = 400;
@@ -20,8 +23,19 @@ const alunoEstaAtivo = (aluno) => {
 };
 
 const PAGINA_VAZIA = { totalElements: 0, totalPages: 0, first: true, last: true };
+const extrairLista = (resposta) => {
+  if (Array.isArray(resposta)) return resposta;
+  if (Array.isArray(resposta?.content)) return resposta.content;
+  if (Array.isArray(resposta?.data)) return resposta.data;
+  if (Array.isArray(resposta?.data?.content)) return resposta.data.content;
+  return [];
+};
+const normalizarTexto = (texto) => String(texto ?? '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase();
 
-export function useAlunos() {
+export function useAlunos({ professorId, ehAdministrador }) {
   const [alunos, setAlunos] = useState([]);
   const [paginacao, setPaginacao] = useState(PAGINA_VAZIA);
   const [pagina, setPagina] = useState(0);
@@ -51,14 +65,67 @@ export function useAlunos() {
     setLoading(true);
     setError(null);
 
-    return alunosService.listar({
-      page: pagina,
-      size: TAMANHO_PAGINA,
-      nome: buscaAplicada,
-      ativo: filtro === 'ativos',
-    })
+    const requisicaoAlunos = ehAdministrador
+      ? alunosService.listar({
+          page: pagina,
+          size: TAMANHO_PAGINA,
+          nome: buscaAplicada,
+          ativo: filtro === 'ativos',
+        })
+      : professorId == null
+        ? Promise.resolve([])
+        : Promise.all([
+            alunosService.listarTodos({ ativo: filtro === 'ativos' }),
+            contratosService.listar(),
+            turmasService.listar(),
+          ]);
+
+    return requisicaoAlunos
       .then((data) => {
         if (requisicao !== ultimaRequisicao.current) return;
+
+        if (!ehAdministrador) {
+          if (professorId == null) {
+            setAlunos([]);
+            setPaginacao(PAGINA_VAZIA);
+            return;
+          }
+
+          const [alunosRecebidos, contratosResposta, turmasResposta] = data;
+          const contratos = extrairLista(contratosResposta);
+          const turmas = extrairLista(turmasResposta);
+          const idsAlunosDoProfessor = new Set(contratos
+            .filter((contrato) => contratoPertenceAoProfessor(contrato, professorId, turmas))
+            .map(obterAlunoIdContrato)
+            .filter((id) => id != null)
+            .map(String));
+          const buscaNormalizada = normalizarTexto(buscaAplicada.trim());
+          const alunosDoProfessor = alunosRecebidos
+            .filter((aluno) => idsAlunosDoProfessor.has(String(aluno.id)))
+            .filter((aluno) => !buscaNormalizada || normalizarTexto(aluno.nome).includes(buscaNormalizada));
+          const totalPaginas = Math.max(1, Math.ceil(alunosDoProfessor.length / TAMANHO_PAGINA));
+
+          if (alunosDoProfessor.length === 0 && pagina > 0) {
+            setPagina(Math.max(0, totalPaginas - 1));
+            return;
+          }
+
+          const alunosDaPagina = alunosDoProfessor.slice(
+            pagina * TAMANHO_PAGINA,
+            (pagina + 1) * TAMANHO_PAGINA
+          );
+          setAlunos(alunosDaPagina.map((aluno) => ({
+            ...aluno,
+            ativo: alunoEstaAtivo(aluno),
+          })));
+          setPaginacao({
+            totalElements: alunosDoProfessor.length,
+            totalPages: totalPaginas,
+            first: pagina === 0,
+            last: pagina >= totalPaginas - 1,
+          });
+          return;
+        }
 
         // A página ficou vazia (ex: último aluno dela foi inativado): volta para a última que existe
         const conteudo = Array.isArray(data)
@@ -93,7 +160,7 @@ export function useAlunos() {
       .finally(() => {
         if (requisicao === ultimaRequisicao.current) setLoading(false);
       });
-  }, [pagina, buscaAplicada, filtro]);
+  }, [pagina, buscaAplicada, filtro, professorId, ehAdministrador]);
 
   useEffect(() => {
     recarregarRef.current = carregarAlunos;

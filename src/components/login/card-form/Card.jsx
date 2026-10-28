@@ -3,7 +3,7 @@ import axios from "../../../utils/axiosConfig";
 import { useLocation, Link } from "react-router-dom";
 import Swal from "sweetalert2";
 import logo from "../../../assets/Boost-White.png";
-import { registrarSessao, salvarPermissoes } from "../../../utils/permissions";
+import { definirUsuarioAtual, registrarSessao, salvarPermissoes } from "../../../utils/permissions";
 import "./Card.css";
 import Input from "../input/Input";
 import Button from "../button/Button";
@@ -48,6 +48,7 @@ function Card({ onLoginSuccess }) {
             }
 
             salvarPermissoes(response.data?.permissoes ?? []);
+            definirUsuarioAtual(response.data, email);
             registrarSessao();
 
             onLoginSuccess(true);

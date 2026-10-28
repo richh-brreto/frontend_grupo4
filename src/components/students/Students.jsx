@@ -11,11 +11,15 @@ import EditStudentModal from './components/EditStudentModal';
 import ScheduleModal from './components/ScheduleModal';
 import Pagination from './components/Pagination';
 import { contratosService } from '../contracts/contratosService';
+import { turmasService } from '../classes/turmasService';
+import { useUsuarioAtual } from '../../utils/permissions';
+import { contratoPertenceAoProfessor } from '../../utils/escopoProfessor';
 import '../agenda/Agenda.css';
 import './Students.css';
 
 export default function Students() {
   const navigate = useNavigate();
+  const { professorId, ehAdministrador } = useUsuarioAtual();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [studentSchedule, setStudentSchedule] = useState(null);
@@ -38,7 +42,7 @@ export default function Students() {
     editarAluno,
     excluirAluno,
     alternarStatus,
-  } = useAlunos();
+  } = useAlunos({ professorId, ehAdministrador });
 
   // Ao trocar de página, a lista nova começa do topo
   useEffect(() => {
@@ -75,14 +79,23 @@ export default function Students() {
 
   const verHorariosAluno = async (aluno) => {
     try {
-      const resposta = await contratosService.listar();
+      const [resposta, turmasResposta] = await Promise.all([
+        contratosService.listar(),
+        ehAdministrador ? Promise.resolve([]) : turmasService.listar(),
+      ]);
       const contratos = Array.isArray(resposta)
         ? resposta
         : Array.isArray(resposta?.content)
           ? resposta.content
           : [];
+      const turmas = Array.isArray(turmasResposta)
+        ? turmasResposta
+        : Array.isArray(turmasResposta?.content)
+          ? turmasResposta.content
+          : [];
       const contratosDoAluno = contratos.filter((contrato) =>
         String(contrato.aluno?.id ?? contrato.alunoId) === String(aluno.id)
+        && (ehAdministrador || contratoPertenceAoProfessor(contrato, professorId, turmas))
       );
       const horarios = contratosDoAluno.flatMap((contrato) =>
         (contrato.horarios ?? (contrato.horario ? [contrato.horario] : [])).map((horario) => ({

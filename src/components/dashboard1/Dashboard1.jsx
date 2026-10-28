@@ -3,6 +3,7 @@ import axios from '../../utils/axiosConfig';
 import Button from '../layout/Button';
 import ButtonContainer from '../layout/ButtonContainer';
 import { useChat } from '../chat/chatContext';
+import { useUsuarioAtual } from '../../utils/permissions';
 import '../agenda/Agenda.css';
 import './Dashboard1.css';
 
@@ -64,6 +65,7 @@ function getStatusClass(status) {
 
 export default function Dashboard1({ dashboardData: externalDashboardData = null }) {
   const { abrirRelatorio } = useChat();
+  const { professorId, ehAdministrador } = useUsuarioAtual();
   const [periodo, setPeriodo] = useState({ dataInicio: '', dataFim: '' });
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -126,18 +128,31 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
     };
   }, [dashboardData]);
 
+  const detalhesVisiveis = ehAdministrador
+    ? data.detalhes
+    : data.detalhes.filter((item) => professorId != null
+      && String(item.professorId) === String(professorId));
+
   // A dashboard é um snapshot semanal (grade contratada x disponibilidade),
   // então não filtramos por período aqui. As datas acima servem só para o
   // "Exportar relatório".
   const resumo = {
-    detalhes: data.detalhes,
-    totalProfessores: data.totalProfessores ?? new Set(data.detalhes.map(item => item.professorId)).size,
-    totalAulas: data.totalAulas ?? data.detalhes.reduce((total, item) => total + Number(item.aulasCount || 0), 0),
-    totalHorasLivres: data.totalHorasLivres ?? data.detalhes.reduce((total, item) => total + Number(item.horasLivres || 0), 0),
-    professoresSobrecarregados: data.professoresSobrecarregados ?? data.detalhes.filter(item => getStatusClass(item.status) === 'status-overload').length
+    detalhes: detalhesVisiveis,
+    totalProfessores: ehAdministrador
+      ? data.totalProfessores ?? new Set(detalhesVisiveis.map(item => item.professorId)).size
+      : detalhesVisiveis.length,
+    totalAulas: ehAdministrador
+      ? data.totalAulas ?? detalhesVisiveis.reduce((total, item) => total + Number(item.aulasCount || 0), 0)
+      : detalhesVisiveis.reduce((total, item) => total + Number(item.aulasCount || 0), 0),
+    totalHorasLivres: ehAdministrador
+      ? data.totalHorasLivres ?? detalhesVisiveis.reduce((total, item) => total + Number(item.horasLivres || 0), 0)
+      : detalhesVisiveis.reduce((total, item) => total + Number(item.horasLivres || 0), 0),
+    professoresSobrecarregados: ehAdministrador
+      ? data.professoresSobrecarregados ?? detalhesVisiveis.filter(item => getStatusClass(item.status) === 'status-overload').length
+      : detalhesVisiveis.filter(item => getStatusClass(item.status) === 'status-overload').length
   };
 
-  const maxHours = Math.max(...data.detalhes.map(item => Number(item.horasSemanais || 0)), 40);
+  const maxHours = Math.max(...resumo.detalhes.map(item => Number(item.horasSemanais || 0)), 40);
 
   const atualizarPeriodo = (campo, valor) => {
     setPeriodo(periodoAtual => ({ ...periodoAtual, [campo]: valor }));
@@ -169,7 +184,7 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
               <p className="dashboard1-eyebrow">Painel de carga</p>
               <h1>Dashboard operacional</h1>
             </div>
-            <div className="dashboard1-actions">
+            {ehAdministrador && <div className="dashboard1-actions">
               <label>
                 <span>Data início</span>
                 <input
@@ -190,7 +205,7 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
               <ButtonContainer>
                 <Button active onClick={() => abrirRelatorio(periodo)}>Exportar relatório</Button>
               </ButtonContainer>
-            </div>
+            </div>}
           </div>
 
           {error && import.meta.env.DEV && (
@@ -201,9 +216,9 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
 
           <div className="dashboard1-metrics">
             <article className="metric-card-large">
-              <span>Total de professores</span>
+              <span>{ehAdministrador ? 'Total de professores' : 'Perfil'}</span>
               <strong>{resumo.totalProfessores}</strong>
-              <small>Ativos no sistema</small>
+              <small>{ehAdministrador ? 'Ativos no sistema' : 'Professor'}</small>
             </article>
             <article className="metric-card-large">
               <span>Total de aulas</span>
@@ -216,16 +231,16 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
               <small>Disponibilidade semanal</small>
             </article>
             <article className="metric-card-large accent">
-              <span>Professores sobrecarregados</span>
+              <span>{ehAdministrador ? 'Professores sobrecarregados' : 'Status de carga'}</span>
               <strong>{resumo.professoresSobrecarregados}</strong>
-              <small>Necessitam revisão</small>
+              <small>{ehAdministrador ? 'Necessitam revisão' : 'Aulas acima da capacidade'}</small>
             </article>
           </div>
 
           <div className="dashboard1-grid">
             <section className="dashboard1-card chart-card">
               <div className="dashboard1-card-header">
-                <h2>Horas semanais por professor</h2>
+                <h2>{ehAdministrador ? 'Horas semanais por professor' : 'Sua carga semanal'}</h2>
                 <span>Grade contratada x disponibilidade</span>
               </div>
 
@@ -259,8 +274,8 @@ export default function Dashboard1({ dashboardData: externalDashboardData = null
 
             <section className="dashboard1-card summary-card">
               <div className="dashboard1-card-header">
-                <h2>Resumo por professor</h2>
-                <span>Carga semanal por professor</span>
+                <h2>{ehAdministrador ? 'Resumo por professor' : 'Seu resumo'}</h2>
+                <span>{ehAdministrador ? 'Carga semanal por professor' : 'Sua carga semanal'}</span>
               </div>
 
               <div className="summary-list">
