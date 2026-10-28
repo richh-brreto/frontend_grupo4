@@ -50,8 +50,10 @@ const agruparAulas = (aulas) => {
     grupo.aulaIds.push(aula.id);
     grupo.participantes.push({
       aulaId: aula.id,
+        contratoId: aula.contratoId,
       alunoId: aula.alunoId,
       aluno: aula.aluno,
+        linkAula: aula.linkAula,
       presenca: aula.presenca,
       status: aula.status
     });
@@ -117,6 +119,8 @@ export default function Agenda() {
   const [isAusenciaModalOpen, setIsAusenciaModalOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
   const [selectedAula, setSelectedAula] = useState(null);
+  const [contratoLinkId, setContratoLinkId] = useState(null);
+  const [linkAula, setLinkAula] = useState('');
   const [alunosAusentes, setAlunosAusentes] = useState([]);
   const [remarcacao, setRemarcacao] = useState({ novaData: '', novaHoraInicio: '', novaHoraFim: '', motivo: '' });
   const [versaoAulas, setVersaoAulas] = useState(0);
@@ -136,12 +140,41 @@ export default function Agenda() {
 
   const abrirModalEditar = (aula) => {
     setSelectedAula(aula);
+    const participanteInicial = aula.participantes?.[0];
+    setContratoLinkId(participanteInicial?.contratoId ?? aula.contratoId);
+    setLinkAula(participanteInicial?.linkAula ?? aula.linkAula ?? '');
     setIsEditModalOpen(true);
   };
 
   const fecharModalEditar = () => {
     setIsEditModalOpen(false);
     setSelectedAula(null);
+    setContratoLinkId(null);
+    setLinkAula('');
+  };
+
+  const selecionarContratoDoLink = (contratoId) => {
+    setContratoLinkId(Number(contratoId));
+    const participante = selectedAula?.participantes?.find(item => item.contratoId === Number(contratoId));
+    setLinkAula(participante?.linkAula ?? selectedAula?.linkAula ?? '');
+  };
+
+  const salvarLinkAula = async () => {
+    if (!contratoLinkId) return;
+
+    try {
+      await aulasService.atualizarLinkContrato(contratoLinkId, linkAula.trim() || null);
+      fecharModalEditar();
+      recarregarAulas();
+      await Swal.fire({
+        icon: 'success',
+        title: 'Link salvo!',
+        text: 'O link foi atualizado em todas as aulas deste contrato.',
+        confirmButtonColor: '#0f1f3f'
+      });
+    } catch (error) {
+      await mostrarErro(error, 'Erro ao salvar link');
+    }
   };
 
   const recarregarAulas = () => setVersaoAulas(versao => versao + 1);
@@ -485,7 +518,16 @@ export default function Agenda() {
                         {obterAulasComPosicao(dia.data).map((aula) => (
                           <div
                             key={aula.id}
-                            className={`evento ${aula.status === 'CANCELADA' ? 'evento-cancelado' : ''}`.trim()}
+                            className={`evento ${aula.status === 'CANCELADA' ? 'evento-cancelado' : ''} ${podeGerenciar ? 'evento-interativo' : ''}`.trim()}
+                            onClick={podeGerenciar ? () => abrirModalEditar(aula) : undefined}
+                            onKeyDown={podeGerenciar ? (event) => {
+                              if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault();
+                                abrirModalEditar(aula);
+                              }
+                            } : undefined}
+                            role={podeGerenciar ? 'button' : undefined}
+                            tabIndex={podeGerenciar ? 0 : undefined}
                             style={{
                               ...aula.estilo,
                               width: `calc((100% - ${(aula.numColunas - 1) * 4}px) / ${aula.numColunas})`,
@@ -500,7 +542,10 @@ export default function Agenda() {
                               <button
                                 type="button"
                                 className="evento-action"
-                                onClick={() => abrirModalEditar(aula)}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  abrirModalEditar(aula);
+                                }}
                               >
                                 Editar
                               </button>
@@ -590,7 +635,35 @@ export default function Agenda() {
         <Modal
           title="Editar evento"
           onClose={fecharModalEditar}
+          onSave={salvarLinkAula}
+          saveLabel="Salvar link"
         >
+          {selectedAula.participantes?.length > 1 && (
+            <>
+              <label htmlFor="contrato-link">Contrato/aluno</label>
+              <select
+                id="contrato-link"
+                value={contratoLinkId ?? ''}
+                onChange={event => selecionarContratoDoLink(event.target.value)}
+              >
+                {[...new Map(selectedAula.participantes.map(item => [item.contratoId, item])).values()].map(participante => (
+                  <option key={participante.contratoId} value={participante.contratoId}>
+                    {participante.aluno || `Contrato #${participante.contratoId}`}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+          <label htmlFor="link-aula">Link da aula</label>
+          <input
+            id="link-aula"
+            type="url"
+            placeholder="https://..."
+            maxLength={2048}
+            value={linkAula}
+            onChange={event => setLinkAula(event.target.value)}
+          />
+          <p className="link-aula-ajuda">O link será compartilhado por todas as aulas deste contrato. Deixe vazio para removê-lo.</p>
           <Button active onClick={cancelarAula}>Cancelar aula</Button>
           <Button active onClick={abrirModalRemarcar}>Remarcar aula</Button>
           <Button active onClick={abrirModalAusencia}>Marcar ausências</Button>

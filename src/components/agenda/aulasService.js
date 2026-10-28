@@ -14,6 +14,10 @@ export const aulasService = {
     return axios.get(BASE_URL, { params: { inicio, fim } }).then((res) => res.data);
   },
 
+  atualizarLinkContrato(contratoId, linkAula) {
+    return axios.patch(`${BASE_URL}/contrato/${contratoId}/link`, { linkAula });
+  },
+
   cancelar(evento, motivo) {
     if (evento.turmaId) {
       return axios

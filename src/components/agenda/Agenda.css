@@ -337,6 +337,21 @@
   gap: 6px;
 }
 
+.evento-interativo {
+  cursor: pointer;
+}
+
+.evento-interativo:focus-visible {
+  outline: 3px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+.link-aula-ajuda {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .evento-cancelado {
   opacity: 0.55;
   text-decoration: line-through;
