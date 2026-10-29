@@ -16,7 +16,14 @@ export const aulasService = {
     const faltaProfessorDaTurma = (aula) => aula.turmaId && !aula.professor?.trim();
     if (!aulas.some(faltaProfessorDaTurma)) return aulas;
 
-    const resposta = await turmasService.listar();
+    // Quem não acessa /turmas (ex.: aluno) recebe as aulas sem o nome do professor
+    let resposta;
+    try {
+      resposta = await turmasService.listar();
+    } catch (erro) {
+      if (erro.response?.status === 403) return aulas;
+      throw erro;
+    }
     const turmas = Array.isArray(resposta) ? resposta : resposta.content;
     if (!Array.isArray(turmas)) {
       throw new Error('Não foi possível consultar os professores das turmas.');
