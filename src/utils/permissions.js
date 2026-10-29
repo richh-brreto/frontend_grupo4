@@ -45,7 +45,15 @@ const normalizarUsuario = (resposta) => {
     ?? dados;
 };
 
+const ehUsuarioAluno = (usuario) => {
+  const dados = usuario?.data ?? usuario;
+  return String(dados?.tipo ?? '').toUpperCase() === 'ALUNO';
+};
+
 const obterIdProfessor = (usuario) => {
+  // Aluno não tem id de professor; sem isso o fallback para "id" poderia
+  // confundir o aluno de id 1 com o administrador.
+  if (ehUsuarioAluno(usuario)) return undefined;
   const dados = usuario?.data ?? usuario;
   const identidade = dados?.professor
     ?? dados?.usuario
@@ -96,7 +104,7 @@ function carregarDoBackend() {
       };
 
       const email = obterEmailUsuario(usuarioCache);
-      if (email) {
+      if (email && !ehUsuarioAluno(usuarioCache)) {
         try {
           const respostaProfessores = await axios.get('/professores');
           const professorAtual = extrairLista(respostaProfessores.data).find(
@@ -172,6 +180,7 @@ export function useUsuarioAtual() {
     usuario,
     professorId,
     ehAdministrador: String(professorId ?? '') === '1',
+    ehAluno: ehUsuarioAluno(usuario),
     carregando,
   };
 }
