@@ -181,7 +181,8 @@ export default function Agenda() {
   // Quem enxerga a agenda é quem tem a tela liberada (o menu já protege a rota).
   const { podeAcessar } = usePermissoes();
   const { professorId, ehAdministrador, ehAluno, carregando: carregandoUsuario } = useUsuarioAtual();
-  const podeGerenciar = podeAcessar('TELA_AGENDA');
+  // Aluno só consulta a própria agenda
+  const podeGerenciar = !ehAluno && podeAcessar('TELA_AGENDA');
 
   const temAlteracoesNovoEvento = () => {
     return novoEvento.nome.trim() !== '' || novoEvento.descricao.trim() !== '' || novoEvento.professorId !== '';
