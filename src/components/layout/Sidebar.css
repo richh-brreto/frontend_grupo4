@@ -1,0 +1,227 @@
+/* ==========================================================================
+   Sidebar Styling (Boost English Platform)
+   Applied with Taste UI Principles: subtle controls, strong visual hierarchy,
+   pill-shaped exit button, expanded logo, and clean collapse mode.
+   ========================================================================== */
+
+.agenda-sidebar {
+  width: 260px;
+  min-width: 260px;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), padding 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.sidebar-header-top {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+/* Subtle Hamburger / Collapse Button */
+.sidebar-toggle-btn {
+  background: transparent;
+  border: 1px solid rgba(15, 31, 63, 0.12);
+  color: #5f6f90;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.sidebar-toggle-btn:hover {
+  background: rgba(15, 31, 63, 0.06);
+  border-color: rgba(15, 31, 63, 0.25);
+  color: #0f1f3f;
+  transform: scale(1.05);
+}
+
+.sidebar-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+/* Logo container and enlarged image (Sidebar aberta) */
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 140px;
+  padding: 0;
+}
+
+.sidebar-logo img {
+  width: 150px;
+  height: 150px;
+  max-width: 150px;
+  max-height: 150px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+  transition: transform 0.2s ease;
+}
+
+.sidebar-logo img:hover {
+  transform: scale(1.02);
+}
+
+/* Navigation items */
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(15, 31, 63, 0.2) transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(15, 31, 63, 0.2);
+  border-radius: 999px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary, #0f1f3f);
+}
+
+.sidebar-nav .sidebar-item {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-weight: 500;
+  font-size: 14px;
+  color: #0f1f3f;
+  text-decoration: none;
+  min-height: 44px;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.sidebar-nav .sidebar-item:hover {
+  background: rgba(15, 31, 63, 0.06);
+  transform: translateY(-1px);
+}
+
+.sidebar-nav .sidebar-item.active {
+  background: var(--color-primary, #0f1f3f);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Footer & Sair Button (Pill style similar to Chat IA) */
+.sidebar-footer {
+  margin-top: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding-top: 16px;
+}
+
+.sidebar-exit {
+  width: auto;
+  min-width: 130px;
+  background: #b91c1c;
+  color: #ffffff;
+  border: none;
+  border-radius: 999px; /* Formato pill como o Chat IA */
+  padding: 12px 22px;
+  font-weight: 700;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(185, 28, 28, 0.28);
+  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sidebar-exit:hover:not(:disabled) {
+  background: #991b1b;
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(185, 28, 28, 0.38);
+}
+
+.sidebar-exit:active:not(:disabled) {
+  background: #7f1d1d;
+  transform: translateY(0);
+}
+
+.sidebar-exit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ==========================================================================
+   Collapsed State:
+   - Sidebar estreita
+   - Apenas Logo e Botão de reabrir visíveis
+   - Todos os botões de opções e footer somem
+   ========================================================================== */
+
+.agenda-sidebar.collapsed {
+  width: 88px;
+  min-width: 88px;
+  padding: 24px 10px;
+}
+
+.agenda-sidebar.collapsed .sidebar-header {
+  margin-bottom: 0;
+  gap: 16px;
+}
+
+.agenda-sidebar.collapsed .sidebar-header-top {
+  justify-content: center;
+  order: 2; /* Botão sutil de reabrir posicionado logo abaixo do logo */
+}
+
+.agenda-sidebar.collapsed .sidebar-logo {
+  min-height: 56px;
+  order: 1; /* Logo no topo */
+}
+
+.agenda-sidebar.collapsed .sidebar-logo img {
+  width: 56px;
+  height: 56px;
+  max-width: 56px;
+  max-height: 56px;
+}
+
+/* Os botões de opções somem na sidebar diminuída */
+.agenda-sidebar.collapsed .sidebar-nav {
+  display: none !important;
+}
+
+/* O footer também some na sidebar diminuída */
+.agenda-sidebar.collapsed .sidebar-footer {
+  display: none !important;
+}

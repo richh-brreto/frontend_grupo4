@@ -15,25 +15,17 @@ const PAGE_CLASSES = {
 };
 
 export default function ProtectedLayout() {
+  const [collapsed, setCollapsed] = useState(false);
   const { pathname } = useLocation();
   const { carregando } = usePermissoes();
   const itensMenu = useItensMenu(pathname);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(
-    () => localStorage.getItem('sidebar-collapsed') === 'true'
-  );
 
-  const alternarSidebar = () => {
-    setSidebarCollapsed((atual) => {
-      const novoEstado = !atual;
-      localStorage.setItem('sidebar-collapsed', String(novoEstado));
-      return novoEstado;
-    });
-  };
+  const alternarSidebar = () => setCollapsed((prev) => !prev);
 
   return (
     <div className={`agenda-page ${PAGE_CLASSES[pathname] ?? ''}`.trim()}>
       <Sidebar
-        collapsed={sidebarCollapsed}
+        collapsed={collapsed}
         onToggle={alternarSidebar}
         items={itensMenu}
         carregando={carregando}
