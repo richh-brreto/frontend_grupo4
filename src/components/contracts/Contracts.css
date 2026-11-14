@@ -633,3 +633,38 @@
     height: 48vh;
   }
 }
+
+.contract-link-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.contract-link-field label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6d7a95;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.contract-link-action {
+  color: #1d4ed8;
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.15s ease;
+}
+
+.contract-link-action:hover {
+  color: #0f1f3f;
+  text-decoration: underline;
+}
+
+.contract-link-large {
+  word-break: break-all;
+  font-size: 13px;
+  margin-top: 2px;
+}

@@ -51,6 +51,10 @@ const formatarDataContrato = (data) => {
   const [ano, mes, dia] = String(data).slice(0, 10).split('-');
   return ano && mes && dia ? `${dia}/${mes}/${ano}` : String(data);
 };
+const formatarLinkAula = (url) => {
+  if (!url) return '';
+  return /^https?:\/\//i.test(url) ? url : `https://${url}`;
+};
 const extrairLista = (resposta) => {
   if (Array.isArray(resposta)) return resposta;
   if (Array.isArray(resposta?.content)) return resposta.content;
@@ -98,6 +102,7 @@ export default function Contracts() {
   const hoje = dataHoje();
   const [dataInicioContrato, setDataInicioContrato] = useState(hoje);
   const [dataFimContrato, setDataFimContrato] = useState(hoje);
+  const [linkDaAula, setLinkDaAula] = useState('');
 
   // horários selecionados no mini-calendário: [{ dia, hora, item }]
   const [selectedSchedule, setSelectedSchedule] = useState([]);
@@ -368,6 +373,7 @@ export default function Contracts() {
     if (salvandoNovoContratoRef.current) return;
     setAlunoFixoNoCadastro(null);
     setAlunoSelecionadoId('');
+    setLinkDaAula('');
     setIsScheduleModalOpen(true);
   };
 
@@ -377,6 +383,7 @@ export default function Contracts() {
       contractType !== 'individual' ||
       dataInicioContrato !== dataHoje() ||
       dataFimContrato !== dataHoje() ||
+      linkDaAula.trim() !== '' ||
       selectedSchedule.length > 0
     );
   };
@@ -388,6 +395,7 @@ export default function Contracts() {
     setOpenSlot(null);
     setDataInicioContrato(dataHoje());
     setDataFimContrato(dataHoje());
+    setLinkDaAula('');
     setAlunoSelecionadoId('');
     setContractType('individual');
     if (location.state?.openContractSetup) {
@@ -453,6 +461,7 @@ export default function Contracts() {
         alunoId: parseInt(alunoSelecionado.id),
         turmaId: 0,
         professorId: 0,
+        linkDaAula: linkDaAula.trim() || null,
         horariosIds: selectedSchedule.map(({ item }) => parseInt(item.horarioId))
       };
 
@@ -543,6 +552,7 @@ export default function Contracts() {
     setContractType(contrato.tipo === 'grupo' ? 'grupo' : 'individual');
     setDataInicioContrato(contrato.dataInicio || hoje);
     setDataFimContrato(contrato.dataFim || hoje);
+    setLinkDaAula(contrato.linkDaAula || '');
     setSelectedSchedule([]);
     setEditScheduleByType({});
     setOpenSlot(null);
@@ -553,6 +563,7 @@ export default function Contracts() {
       contractType: contrato.tipo === 'grupo' ? 'grupo' : 'individual',
       dataInicioContrato: contrato.dataInicio || hoje,
       dataFimContrato: contrato.dataFim || hoje,
+      linkDaAula: contrato.linkDaAula || '',
       selectedSchedule: [...selectedSchedule]
     };
   };
@@ -565,6 +576,7 @@ export default function Contracts() {
       contractType !== inicial.contractType ||
       dataInicioContrato !== inicial.dataInicioContrato ||
       dataFimContrato !== inicial.dataFimContrato ||
+      linkDaAula !== (inicial.linkDaAula || '') ||
       JSON.stringify([...selectedSchedule].sort((a,b) => a.item.horarioId - b.item.horarioId)) !== 
       JSON.stringify([...inicial.selectedSchedule].sort((a,b) => a.item.horarioId - b.item.horarioId))
     );
@@ -588,6 +600,7 @@ export default function Contracts() {
     setSelectedSchedule([]);
     setEditScheduleByType({});
     setOpenSlot(null);
+    setLinkDaAula('');
     contractFormInicialRef.current = null;
   };
 
@@ -616,6 +629,7 @@ export default function Contracts() {
         alunoId: parseInt(alunoSelecionadoId),
         turmaId: contractType === 'grupo' ? parseInt(itemSelecionado.id) : 0,
         professorId: contractType === 'individual' ? parseInt(itemSelecionado.id) : 0,
+        linkDaAula: linkDaAula.trim() || null,
         horariosIds: selectedSchedule.map(({ item }) => parseInt(item.horarioId))
       });
       setContratos((items) => items.map((item) => item.id === contratoAtualizado.id ? contratoAtualizado : item));
@@ -623,6 +637,7 @@ export default function Contracts() {
       setSelectedSchedule([]);
       setEditScheduleByType({});
       setOpenSlot(null);
+      setLinkDaAula('');
       contractFormInicialRef.current = null;
       await mostrarSucesso({ title: 'Contrato atualizado!', text: 'As alterações foram salvas com sucesso.' });
     } catch (erro) {
@@ -761,6 +776,24 @@ export default function Contracts() {
                       <span>Vigência</span>
                       <strong>{formatarDataContrato(contrato.dataInicio)} à {formatarDataContrato(contrato.dataFim)}</strong>
                     </div>
+                    <div className="contract-details-wide">
+                      <span>Link da aula</span>
+                      <strong>
+                        {contrato.linkDaAula ? (
+                          <a
+                            href={formatarLinkAula(contrato.linkDaAula)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="contract-link-action"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Acessar aula ↗
+                          </a>
+                        ) : (
+                          '—'
+                        )}
+                      </strong>
+                    </div>
                   </div>
 
                   <ButtonContainer>
@@ -806,6 +839,21 @@ export default function Contracts() {
             <div className="contract-details-wide">
               <span>Vigência</span>
               <strong>{formatarDataContrato(contratoDetalhes.dataInicio)} à {formatarDataContrato(contratoDetalhes.dataFim)}</strong>
+            </div>
+            <div className="contract-details-wide">
+              <span>Link da aula</span>
+              {contratoDetalhes.linkDaAula ? (
+                <a
+                  href={formatarLinkAula(contratoDetalhes.linkDaAula)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="contract-link-action contract-link-large"
+                >
+                  {contratoDetalhes.linkDaAula} ↗
+                </a>
+              ) : (
+                <strong>Não informado</strong>
+              )}
             </div>
             <div className="contract-details-wide">
               <span>Dias e horários</span>
@@ -919,6 +967,18 @@ export default function Contracts() {
                 onChange={(event) => setDataFimContrato(event.target.value)}
               />
             </label>
+          </div>
+
+          <div className="contract-link-field">
+            <label htmlFor="contract-link">Link da aula (opcional):</label>
+            <input
+              id="contract-link"
+              className="modal-form-control"
+              type="url"
+              placeholder="Ex: https://meet.google.com/abc-defg-hij"
+              value={linkDaAula}
+              onChange={(event) => setLinkDaAula(event.target.value)}
+            />
           </div>
 
           {carregandoDisponibilidade && (
@@ -1058,6 +1118,18 @@ export default function Contracts() {
                 <span>Data fim:</span>
                 <input className="modal-form-control" type="date" value={dataFimContrato} min={dataInicioContrato} onChange={(event) => setDataFimContrato(event.target.value)} />
               </label>
+            </div>
+
+            <div className="contract-link-field">
+              <label htmlFor="edit-contract-link">Link da aula (opcional):</label>
+              <input
+                id="edit-contract-link"
+                className="modal-form-control"
+                type="url"
+                placeholder="Ex: https://meet.google.com/abc-defg-hij"
+                value={linkDaAula}
+                onChange={(event) => setLinkDaAula(event.target.value)}
+              />
             </div>
 
             {carregandoDisponibilidade && <p className="contract-disponibilidade-status">Carregando disponibilidade...</p>}
