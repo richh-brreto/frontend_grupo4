@@ -180,8 +180,9 @@ export default function Agenda() {
   const [professoresDisponiveis, setProfessoresDisponiveis] = useState([]);
   // Quem enxerga a agenda é quem tem a tela liberada (o menu já protege a rota).
   const { podeAcessar } = usePermissoes();
-  const { professorId, ehAdministrador, carregando: carregandoUsuario } = useUsuarioAtual();
-  const podeGerenciar = podeAcessar('TELA_AGENDA');
+  const { professorId, ehAdministrador, ehAluno, carregando: carregandoUsuario } = useUsuarioAtual();
+  // Aluno só consulta a própria agenda
+  const podeGerenciar = !ehAluno && podeAcessar('TELA_AGENDA');
 
   const temAlteracoesNovoEvento = () => {
     return novoEvento.nome.trim() !== '' || novoEvento.descricao.trim() !== '' || novoEvento.professorId !== '';
@@ -484,7 +485,8 @@ export default function Agenda() {
         const resposta = await aulasService.listarPorPeriodo(semana[0].data, semana[semana.length - 1].data);
         let aulasVisiveis = resposta;
 
-        if (!ehAdministrador) {
+        // O backend já devolve ao aluno somente as aulas dele
+        if (!ehAdministrador && !ehAluno) {
           const [turmasResposta, contratosResposta] = await Promise.all([
             turmasService.listar(),
             contratosService.listar(),
@@ -528,7 +530,7 @@ export default function Agenda() {
     return () => {
       ignorar = true;
     };
-  }, [dataAtual, versaoAulas, professorId, ehAdministrador, carregandoUsuario]);
+  }, [dataAtual, versaoAulas, professorId, ehAdministrador, ehAluno, carregandoUsuario]);
 
   const alturaHora = isFiltersOpen ? ALTURA_HORA + 7 : ALTURA_HORA;
 
