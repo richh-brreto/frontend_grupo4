@@ -1,7 +1,7 @@
 .chat-fab {
   position: fixed;
-  right: 24px;
-  bottom: 24px;
+  right: 44px;
+  bottom: 44px;
   z-index: 44;
   border: none;
   border-radius: 999px;
@@ -20,6 +20,10 @@
   box-shadow: 0 20px 38px rgba(15, 31, 63, 0.34);
 }
 
+.chat-fab:active {
+  transform: translateY(0);
+}
+
 .chat-fab.aberto {
   padding: 14px 18px;
   font-size: 20px;
@@ -28,8 +32,8 @@
 
 .chat-panel {
   position: fixed;
-  right: 24px;
-  bottom: 92px;
+  right: 44px;
+  bottom: 108px;
   z-index: 45;
   display: flex;
   flex-direction: column;

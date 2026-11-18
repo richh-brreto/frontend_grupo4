@@ -156,8 +156,10 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: min(70vh, 640px);
+  max-height: min(420px, 55vh);
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   padding-right: 6px;
 }
 
@@ -197,6 +199,12 @@
   padding-right: 6px;
 }
 
+.bars-chart,
+.summary-list {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary) transparent;
+}
+
 .bars-chart::-webkit-scrollbar,
 .summary-list::-webkit-scrollbar {
   width: 8px;
@@ -209,8 +217,14 @@
 
 .bars-chart::-webkit-scrollbar-thumb,
 .summary-list::-webkit-scrollbar-thumb {
-  background: #cfd8e6;
+  background: var(--color-primary);
   border-radius: 999px;
+  transition: background 0.15s ease;
+}
+
+.bars-chart::-webkit-scrollbar-thumb:hover,
+.summary-list::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary-hover);
 }
 
 .summary-item {
